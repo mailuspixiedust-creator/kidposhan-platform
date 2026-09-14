@@ -10,7 +10,7 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "kidposhan-platform-db"
-database_id = "REPLACE_WITH_NEW_D1_ID"
+database_id = "0320ade1-1c4f-43eb-8f77-be63da87621c"
 
 [[r2_buckets]]
 binding = "MEDIA"
