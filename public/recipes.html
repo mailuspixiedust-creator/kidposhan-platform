@@ -1,2 +1,63 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KidPoshan — Recipes</title><link rel="stylesheet" href="/assets/css/styles.css"></head><body><div id="nav"></div><main class="container"><section class="section"><h1 style="font-size:46px">All Recipes for Healthy, Happy Kids</h1><p class="muted" style="font-size:18px">Nutritious. Tasty. Age-appropriate. Real food for real families.</p><div class="field"><input id="q" placeholder="Search recipes by name, ingredient or keyword..."></div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px"><select id="diet"><option>All</option><option>Veg</option><option>Jain</option><option>Non-Veg</option></select><select id="season"><option>All Seasons</option><option>Summer</option><option>Monsoon</option><option>Winter</option></select><select id="meal"><option value="">All meal moments</option><option>Breakfast</option><option>Lunchbox</option><option>4 PM Snack</option><option>Dinner</option></select><select id="age"><option value="">All ages</option><option value="3">2–4 years</option><option value="6">5–8 years</option><option value="10">9–12 years</option></select><button class="btn btn-soft" id="apply">Apply</button></div></section><section class="section"><div id="count" class="muted"></div><div id="grid" class="feature-grid" style="grid-template-columns:repeat(4,1fr)"></div></section></main><div id="foot"></div><script src="/assets/js/app.js"></script><script>
-$('#nav').innerHTML=KP.nav('recipes');$('#foot').innerHTML=KP.footer();async function load(){const p=new URLSearchParams();if($('#q').value)p.set('q',$('#q').value);if($('#diet').value)p.set('diet',$('#diet').value);if($('#season').value)p.set('season',$('#season').value);if($('#meal').value)p.set('meal',$('#meal').value);if($('#age').value)p.set('age',$('#age').value);const d=await KP.api('/recipes?'+p.toString());$('#count').textContent=`${d.recipes.length} recipes found`;$('#grid').innerHTML=d.recipes.map(r=>`<a class="card" href="/recipe.html?slug=${r.slug}"><img src="${r.image_url||'/assets/images/aloo-tikki.jpg'}" onerror="this.onerror=null;this.src='/assets/images/aloo-tikki.jpg'"><div class="card-body"><span class="score">${r.score}</span><h3>${r.name}</h3><div class="muted">${r.description}</div><div class="meta">👤 ${r.age_min}–${r.age_max} yrs · ⏰ ${r.meal_moment} · ⏱ ${r.prep_minutes} mins</div><div style="margin-top:10px"><span class="btn btn-green">View Recipe →</span></div></div></a>`).join('')}load();$('#apply').onclick=load;$('#q').onkeyup=e=>{if(e.key==='Enter')load()};</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KidPoshan — Explore Recipes</title>
+<link rel="stylesheet" href="/assets/css/styles.css">
+<style>
+.recipes-page{background:#fff}.recipes-wrap{width:min(1180px,calc(100% - 40px));margin:auto}
+.recipes-hero{padding:38px 0 22px;text-align:center}.recipes-hero h1{font-size:46px;letter-spacing:-1.8px;margin:0 0 8px}.recipes-hero p{margin:0 auto;color:var(--muted);font-size:18px;max-width:700px}
+.age-strip{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:24px 0 18px}.age-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;font-weight:700;color:#294762;cursor:pointer}.age-chip.active{background:var(--green2);border-color:#9ddcb6;color:#087a3e}
+.recipe-controls{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fbfcfd;box-shadow:0 5px 18px rgba(16,35,61,.04)}.search-box{display:flex;gap:10px}.search-box input{flex:1;padding:14px 16px;border:1px solid var(--line);border-radius:12px;font:inherit}.filter-row{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;margin-top:10px}.filter-row select{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:#294762}.results-head{display:flex;justify-content:space-between;align-items:end;margin:28px 0 14px}.results-head h2{margin:0;font-size:27px}.results-head span{color:var(--muted);font-size:14px}
+.recipe-grid-new{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding-bottom:40px}.recipe-card-new{position:relative;border:1px solid var(--line);border-radius:17px;overflow:hidden;background:#fff;box-shadow:0 5px 16px rgba(16,35,61,.05);transition:transform .15s,box-shadow .15s}.recipe-card-new:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(16,35,61,.09)}.recipe-img{position:relative;height:175px;background:#f2f5f7}.recipe-img img{width:100%;height:100%;object-fit:cover;display:block}.score-badge{position:absolute;top:10px;left:10px;background:var(--green);color:#fff;padding:6px 9px;border-radius:9px;font-weight:800;font-size:14px}.save-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#fff;color:#f04455;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.12)}.recipe-body{padding:14px}.recipe-body h3{margin:0 0 5px;font-size:19px}.recipe-desc{color:var(--muted);font-size:13px;line-height:1.42;min-height:37px}.recipe-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.recipe-tag{font-size:11px;padding:5px 7px;border-radius:8px;background:#f5f8fa;color:#49627a}.recipe-meta-new{display:flex;justify-content:space-between;gap:6px;color:#526986;font-size:11px;margin-top:9px}.view-recipe{display:block;margin-top:12px;text-align:center;padding:9px;border-radius:10px;background:var(--green);color:#fff;font-weight:800;font-size:13px}
+.empty-state{display:none;padding:35px;text-align:center;border:1px dashed var(--line);border-radius:16px;color:var(--muted)}
+@media(max-width:1000px){.recipe-grid-new{grid-template-columns:repeat(3,1fr)}.filter-row{grid-template-columns:repeat(2,1fr)}.filter-row .btn{grid-column:span 2}.recipes-hero h1{font-size:40px}}
+@media(max-width:700px){.recipes-wrap{width:calc(100% - 24px)}.recipes-hero{padding:24px 0 16px}.recipes-hero h1{font-size:34px}.recipes-hero p{font-size:16px}.age-strip{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.age-chip{white-space:nowrap}.search-box{display:block}.search-box .btn{width:100%;margin-top:8px}.filter-row{grid-template-columns:1fr 1fr}.recipe-grid-new{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.recipe-img{height:145px}.recipe-body{padding:11px}.recipe-body h3{font-size:16px}.recipe-desc{font-size:12px}.recipe-meta-new{font-size:10px}.results-head h2{font-size:22px}.results-head{align-items:flex-start;gap:8px;flex-direction:column}}
+@media(max-width:390px){.recipe-grid-new{grid-template-columns:1fr}.recipe-img{height:190px}.filter-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="recipes-page">
+<div id="nav"></div>
+<main class="recipes-wrap">
+<section class="recipes-hero">
+<h1>Explore Recipes</h1>
+<p>Find nutritious, tasty recipes matched to your child's age, meal moment and season.</p>
+<div class="age-strip" id="ageStrip">
+<button class="age-chip active" data-age="">All ages</button><button class="age-chip" data-age="1">1–2 years</button><button class="age-chip" data-age="4">3–5 years</button><button class="age-chip" data-age="7">6–8 years</button><button class="age-chip" data-age="10">9–12 years</button>
+</div>
+<div class="recipe-controls">
+<div class="search-box"><input id="q" placeholder="Search recipes, ingredients or keywords..."><button class="btn btn-green" id="searchBtn">Search</button></div>
+<div class="filter-row">
+<select id="meal"><option value="">All meal moments</option><option>Breakfast</option><option>Lunch</option><option>Lunchbox</option><option>4 PM Snack</option><option>Dinner</option></select>
+<select id="season"><option>All Seasons</option><option>Summer</option><option>Monsoon</option><option>Winter</option></select>
+<select id="diet"><option>All diets</option><option>Veg</option><option>Jain</option><option>Non-Veg</option></select>
+<select id="sort"><option value="score">Highest KidPoshan Score</option><option value="time">Quickest first</option><option value="name">A–Z</option></select>
+<button class="btn btn-soft" id="clearBtn">Clear</button>
+</div></div>
+</section>
+<section>
+<div class="results-head"><h2 id="heading">Recipes for your family</h2><span id="count"></span></div>
+<div id="grid" class="recipe-grid-new"></div><div id="empty" class="empty-state">No recipes match these filters yet. Try another age, meal moment or season.</div>
+</section>
+</main>
+<div id="foot"></div>
+<script src="/assets/js/app.js"></script>
+<script>
+$('#nav').innerHTML=KP.nav('recipes');$('#foot').innerHTML=KP.footer();
+const demo=[
+{id:'aloo-tikki',slug:'aloo-tikki',name:'Aloo Tikki',score:88,age_min:5,age_max:8,meal_moment:'4 PM Snack',season:'Winter',prep_minutes:20,diet:'Veg',description:'Crispy outside, soft inside. A comforting homemade snack.',image_url:'/assets/images/aloo-tikki.jpg'},
+{id:'veg-khichdi',slug:'vegetable-khichdi',name:'Vegetable Khichdi',score:83,age_min:2,age_max:8,meal_moment:'Lunch',season:'All Seasons',prep_minutes:25,diet:'Veg',description:'A wholesome, easy-to-digest one-pot meal with vegetables.',image_url:'/assets/images/veg-khichdi.jpg'},
+{id:'paneer-toast',slug:'paneer-peas-toast',name:'Paneer & Peas Toast',score:86,age_min:5,age_max:8,meal_moment:'Breakfast',season:'Winter',prep_minutes:10,diet:'Veg',description:'Protein-rich, tasty and quick for busy mornings.',image_url:'/assets/images/paneer-toast.jpg'},
+{id:'ragi-bites',slug:'ragi-energy-bites',name:'Ragi Energy Bites',score:88,age_min:5,age_max:8,meal_moment:'4 PM Snack',season:'Winter',prep_minutes:10,diet:'Veg',description:'No-cook, nutrient-dense bites made for little hands.',image_url:'/assets/images/ragi-bites.jpg'},
+{id:'carrot-cookies',slug:'carrot-oat-cookies',name:'Carrot Oat Cookies',score:80,age_min:5,age_max:8,meal_moment:'4 PM Snack',season:'All Seasons',prep_minutes:20,diet:'Veg',description:'Naturally sweet, oat-based cookies for a homemade treat.',image_url:'/assets/images/carrot-cookies.jpg'},
+{id:'apple-oats',slug:'apple-cinnamon-oats',name:'Apple Cinnamon Oats',score:82,age_min:2,age_max:8,meal_moment:'Breakfast',season:'Winter',prep_minutes:12,diet:'Veg',description:'Warm, creamy oats with apple and gentle cinnamon.',image_url:'/assets/images/apple-oats.jpg'},
+{id:'beetroot-cutlet',slug:'beetroot-cutlet',name:'Beetroot Cutlet',score:76,age_min:5,age_max:8,meal_moment:'4 PM Snack',season:'Winter',prep_minutes:25,diet:'Veg',description:'Colourful vegetable cutlets with a soft, kid-friendly centre.',image_url:'/assets/images/beetroot-cutlet.jpg'}
+];
+let selectedAge='';
+function esc(v){return KP.escape(v)}
+function card(r){return `<a class="recipe-card-new" href="/recipe.html?slug=${encodeURIComponent(r.slug)}"><div class="recipe-img"><img src="${esc(r.image_url)}" alt="${esc(r.name)}" onerror="this.src='/assets/images/aloo-tikki.jpg'"><span class="score-badge">${r.score}</span><button class="save-btn" type="button" aria-label="Save recipe" onclick="event.preventDefault();event.stopPropagation()">♡</button></div><div class="recipe-body"><h3>${esc(r.name)}</h3><div class="recipe-desc">${esc(r.description)}</div><div class="recipe-tags"><span class="recipe-tag">👤 ${r.age_min}–${r.age_max} years</span><span class="recipe-tag">☀ ${esc(r.meal_moment)}</span></div><div class="recipe-meta-new"><span>⏱ ${r.prep_minutes} mins</span><span>🥕 ${esc(r.diet||'Veg')}</span></div><span class="view-recipe">View Recipe →</span></div></a>`}
+function localFilter(list){let q=$('#q').value.trim().toLowerCase(),meal=$('#meal').value,season=$('#season').value,diet=$('#diet').value;let out=list.filter(r=>(!q||`${r.name} ${r.description} ${r.meal_moment}`.toLowerCase().includes(q))&&(!meal||r.meal_moment===meal)&&(!season||r.season===season||r.season==='All Seasons')&&(!diet||r.diet===diet)&&(!selectedAge||(r.age_min<=Number(selectedAge)&&r.age_max>=Number(selectedAge))));let s=$('#sort').value;if(s==='score')out.sort((a,b)=>b.score-a.score);if(s==='time')out.sort((a,b)=>a.prep_minutes-b.prep_minutes);if(s==='name')out.sort((a,b)=>a.name.localeCompare(b.name));return out}
+async function load(){let list=demo;try{const p=new URLSearchParams();const d=await KP.api('/recipes?'+p);if(Array.isArray(d.recipes)&&d.recipes.length)list=d.recipes}catch(e){}let out=localFilter(list);$('#count').textContent=`${out.length} recipe${out.length===1?'':'s'} found`;$('#grid').innerHTML=out.map(card).join('');$('#empty').style.display=out.length?'none':'block'}
+$('#searchBtn').onclick=load;$('#clearBtn').onclick=()=>{$('#q').value='';$('#meal').value='';$('#season').value='All Seasons';$('#diet').value='All diets';$('#sort').value='score';selectedAge='';$$('.age-chip').forEach(x=>x.classList.toggle('active',!x.dataset.age));load()};$('#q').onkeyup=e=>{if(e.key==='Enter')load()};['meal','season','diet','sort'].forEach(id=>$('#'+id).onchange=load);$$('.age-chip').forEach(b=>b.onclick=()=>{selectedAge=b.dataset.age;$$('.age-chip').forEach(x=>x.classList.toggle('active',x===b));load()});load();
+</script>
+</body></html>
