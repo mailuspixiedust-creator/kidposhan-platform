@@ -332,3 +332,56 @@
   .shopping-block { grid-template-columns: minmax(0, 1fr) 98px; padding: 15px; }
   .shopping-block img { width: 98px; height: 128px; }
 }
+
+
+/* KIDPOSHAN iPHONE FINAL — compact, balanced landing screen */
+@media (max-width: 767px) {
+  .home-shell { width: calc(100% - 32px); max-width: 680px; margin: 0 auto; padding-bottom: 20px; }
+  .home-top { gap: 12px; padding: 12px 0 10px; }
+  .home-brand-block { padding: 8px 0 12px; }
+  .home-logo { gap: 7px; }
+  .home-logo .logo-mark { width: 50px; height: 50px; }
+  .home-logo strong { font-size: clamp(35px, 9.6vw, 44px); letter-spacing: -1.8px; }
+  .home-logo small { font-size: 12px; margin-top: 3px; }
+
+  /* Keep all three benefits on ONE LINE on phone */
+  .home-tagline-row { flex-wrap: nowrap !important; width: 100%; margin-top: 12px; align-items: center; justify-content: space-between; }
+  .home-tagline-row > div { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 2px 6px; gap: 5px; justify-content: center; font-size: clamp(9px, 2.65vw, 12px); line-height: 1.08; }
+  .home-tagline-row > div:last-child { border-right: 0; }
+  .benefit-icon { font-size: 20px; flex: 0 0 auto; }
+
+  /* Compact login card: same visual hierarchy, much less vertical space */
+  .home-login-card { padding: 16px 16px 13px; border-radius: 16px; }
+  .home-login-card h1 { font-size: 27px; margin-bottom: 5px; }
+  .home-login-card > p { font-size: 13px; line-height: 1.3; margin: 0 0 10px; }
+  .login-tabs { margin: 9px 0; }
+  .login-tabs button, .home-input, .home-green-btn, .home-outline-btn { min-height: 40px; }
+  .home-input { padding: 9px 11px; }
+  .home-green-btn, .home-outline-btn { padding: 9px 12px; }
+  .login-or { margin: 7px 0; }
+  .home-login-card small { font-size: 11px; }
+
+  /* 2 x 2 feature cards — no clipped card at the bottom */
+  .feature-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; margin-top: 0; padding-bottom: 18px; }
+  .feature-card { min-height: 148px; height: 148px; padding: 13px 14px; border-radius: 14px; }
+  .feature-icon, .feature-icon img { width: 48px; height: 48px; }
+  .feature-card h2 { font-size: 17px; margin: 7px 0 4px; line-height: 1.1; }
+  .feature-card p { font-size: 11px; line-height: 1.25; max-width: calc(100% - 24px); }
+  .round-arrow { width: 30px; height: 30px; right: 8px; bottom: 8px; font-size: 17px; }
+}
+
+@media (max-width: 390px) {
+  .home-shell { width: calc(100% - 24px); }
+  .home-logo .logo-mark { width: 45px; height: 45px; }
+  .home-logo strong { font-size: 34px; }
+  .home-logo small { font-size: 11px; }
+  .home-tagline-row > div { padding: 2px 3px; font-size: 9px; }
+  .benefit-icon { font-size: 18px; }
+  .home-login-card { padding: 14px 13px 11px; }
+  .home-login-card h1 { font-size: 25px; }
+  .home-login-card > p { font-size: 12px; }
+  .feature-card { height: 142px; min-height: 142px; padding: 12px; }
+  .feature-icon, .feature-icon img { width: 44px; height: 44px; }
+  .feature-card h2 { font-size: 16px; }
+  .feature-card p { font-size: 10px; }
+}
