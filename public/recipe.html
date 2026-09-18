@@ -1,8 +1,217 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KidPoshan — Recipe</title><link rel="stylesheet" href="/assets/css/styles.css"></head><body><div id="nav"></div><main class="container" id="app"></main><div id="foot"></div><script src="/assets/js/app.js"></script><script>
-$('#nav').innerHTML=KP.nav('recipes');$('#foot').innerHTML=KP.footer();const slug=new URLSearchParams(location.search).get('slug')||'aloo-tikki';let recipe;
-function ingredientRow(i){return `<div class="ingredient-row"><button class="btn btn-soft buy" data-key="${i.key}" style="padding:7px">🛒</button><label style="font-size:12px">Have at Home<br><input type="checkbox" data-have="${i.key}"></label><div>${i.name}</div><div>${i.qty}</div></div>`}
-function render(){const r=recipe;$('#app').innerHTML=`<div class="section"><div class="muted">Recipes › ${r.meal_moment} › <b>${r.name}</b></div></div><section class="detail-hero"><img src="${r.image_url||'/assets/images/aloo-tikki.jpg'}" alt="${r.name}" onerror="this.onerror=null;this.src='/assets/images/aloo-tikki.jpg'"><div><h1 style="font-size:48px;margin:0 0 8px">${r.name}</h1><p class="muted" style="font-size:18px">${r.description}</p><div class="tagrow"><span class="tag">☀ ${r.meal_moment}</span><span class="tag">❄ ${r.season}</span><span class="tag">👤 ${r.age_min}–${r.age_max} years</span><span class="tag">🌿 ${r.diet}</span></div><div class="meta" style="font-size:15px;margin:18px 0">⏱ ${r.prep_minutes} mins · 👨‍🍳 ${r.difficulty} · 🌿 Kid-friendly</div><div style="display:flex;gap:10px"><button class="btn btn-green" onclick="addPlanner()">📅 Add to Planner</button><button class="btn btn-outline">♡ Save Recipe</button></div></div><aside class="score-panel"><b>KidPoshan Score</b><div class="score-big">${r.score}</div><div>/100</div><hr><div>✓ Good food fit</div><div>✓ Age appropriate</div><div>✓ Family friendly</div><div style="margin-top:14px">★★★★★ 4.6</div></aside></section><div class="section" style="padding-top:10px"><div class="tagrow"><span class="tag">Overview</span><span class="tag">Ingredients</span><span class="tag">Method</span><span class="tag">Nutrition</span><span class="tag">Tips</span><span class="tag">Reviews</span></div></div><section class="split"><div class="panel"><h2>Why this is good for your child</h2>${r.benefits.map(x=>`<div>✓ ${x}</div>`).join('')}</div><div class="panel"><h2>Top nutrients</h2><div class="stage-row">${Object.entries(r.nutrition).map(([k,v])=>`<span class="stage"><b>${v}</b><br>${k}</span>`).join('')}</div></div></section><section class="recipe-grid section"><div class="panel"><h2>Ingredients</h2><div style="font-size:13px;color:var(--muted);margin-bottom:8px">🛒 Buy · ☐ Have at Home · Ingredient · Quantity</div>${r.ingredients.map(ingredientRow).join('')}</div><div class="panel"><h2>Step-by-step method</h2><p class="muted" style="margin-top:-6px">Follow these steps in order. The full preparation details are stored with the recipe so the same content can later be managed from Admin.</p>${r.method.map((m,i)=>`<div style="display:grid;grid-template-columns:40px 1fr;gap:12px;margin:16px 0"><span class="score" style="width:34px;height:34px;justify-content:center">${i+1}</span><div><b>${m.title}</b><div class="muted">${m.text}</div></div></div>`).join('')}</div></section><section class="split"><div class="panel"><h2>Serve with</h2><div class="stage-row">${r.serveWith.map(x=>`<span class="stage">${x}</span>`).join('')}</div></div><div class="panel"><h2>Nutrition</h2><div class="stage-row">${Object.entries(r.nutrition).map(([k,v])=>`<span class="stage"><b>${v}</b><br>${k}</span>`).join('')}</div></div></section><section class="section"><div class="panel"><h2>More recipes you might like</h2><div id="more" class="scrollrow"></div></div></section><section class="section"><div class="shopping"><h2>Purchase options for: <span id="buyName">ingredient</span></h2><p class="muted">Choose from trusted options. Retailer links open separately. KidPoshan scores are independent of affiliate placement.</p><div id="products" class="scrollrow"></div></div></section>`;
-$$('.buy').forEach(b=>b.onclick=async()=>{const key=b.dataset.key;$('#buyName').textContent=recipe.ingredients.find(x=>x.key===key)?.name||key;const d=await KP.api('/products?ingredient='+encodeURIComponent(key));$('#products').innerHTML=d.products.length?d.products.map(p=>`<div class="card" style="min-width:260px"><img src="${p.image_url||'/assets/images/aloo-tikki.jpg'}" style="height:130px"><div class="card-body"><span class="score">${p.score}</span><h3>${p.name}</h3><div class="muted">${p.brand||''}</div><div style="margin-top:10px">⭐ ${p.parent_rating||'—'} (${p.rating_count||0})</div><div style="margin-top:10px">${p.buyLinks?.map(x=>`<a class="btn btn-green" href="${x.url}" target="_blank" rel="noopener">Buy · ${x.retailer}</a>`).join(' ')||''}</div></div></div>`).join(''):'<div class="muted">No KidPoshan-scored product match yet for this ingredient.</div>';});
-KP.api('/recipes').then(d=>$('#more').innerHTML=d.recipes.filter(x=>x.id!==recipe.id).slice(0,8).map(x=>`<a class="card" style="min-width:210px" href="/recipe.html?slug=${x.slug}"><img src="${x.image_url}" style="height:120px"><div class="card-body"><b>${x.name}</b><div class="meta">${x.score} · ${x.prep_minutes} mins</div></div></a>`).join(''));
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe — KidPoshan</title>
+<link rel="stylesheet" href="assets/css/styles.css">
+<style>
+.recipe-ing__buy-check{display:flex;align-items:center;gap:7px;font-weight:700;color:#24445f;cursor:pointer;white-space:nowrap}
+.recipe-ing__buy-check input,.have-home__check{width:18px;height:18px;accent-color:#16834b;cursor:pointer}
+.recipe-ing__row.is-buying{background:#f3fbf6}
+.recipe-ing__row.is-have-home{opacity:.68}
+.recipe-shopping-bar{margin-top:14px;border:1px solid #d9e9df;background:#f7fcf9;border-radius:16px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.recipe-shopping-bar__text b{color:#147a45}.recipe-shopping-bar__items{font-size:12px;color:#5b7086;margin-top:3px}.recipe-shopping-bar__actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ready-product{min-width:250px}.ready-product__score{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}.ready-product__value{font-weight:900;color:#147a45}.ready-product__unit{font-size:11px;color:#60758b}.ready-product__why{font-size:11px;color:#60758b;line-height:1.4;margin:6px 0 10px}
+</style>
+</head>
+<body>
+
+<main class="wrap recipe-page" id="root"></main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/engine.js"></script>
+<script>
+mountHeader("Meal ideas");
+
+const id = new URLSearchParams(location.search).get("id") || "millet-pasta-veg";
+const found = MEALS.find(m => m.id === id);
+const root = document.getElementById("root");
+
+const recipePhotoMap = [
+  "assets/images/recipe-vegetable-poha.jpg",
+  "assets/images/recipe-masala-oats.jpg",
+  "assets/images/recipe-moong-dal-khichdi.jpg",
+  "assets/images/recipe-paneer-stir-fry.jpg",
+  "assets/images/recipe-rainbow-salad.jpg",
+  "assets/images/recipe-vegetable-dalia.jpg",
+  "assets/images/recipe-sprouts-chaat.jpg",
+  "assets/images/recipe-ragi-pancakes.jpg"
+];
+function recipeVisual(name, i) {
+  if (i < recipePhotoMap.length) {
+    const src = recipePhotoMap[i];
+    return `<img class="recipe-card-photo" src="${src}" alt="${name}" loading="lazy">`;
+  }
+  return `<div class="recipe-card-photo recipe-card-photo--fallback">${ICON.bowl}</div>`;
 }
-async function addPlanner(){alert('Planner connection is wired to the shared-family backend; add-to-planner UI will select children in the next step.')}KP.api('/recipes/'+slug).then(d=>{recipe=d.recipe;render()});</script></body></html>
+
+function parsePackGrams(pack) {
+  const text = String(pack || '').toLowerCase();
+  const m = text.match(/([\d.]+)\s*(kg|g|mg|ml|l)\b/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n)) return null;
+  if (m[2] === 'kg' || m[2] === 'l') return n * 1000;
+  if (m[2] === 'mg') return n / 1000;
+  return n;
+}
+function costPerComparableUnit(p) {
+  const amount = parsePackGrams(p.pack);
+  if (!amount || !Number.isFinite(Number(p.price))) return null;
+  return Number(p.price) / amount * 100;
+}
+function readyToEatMatch(p, m) {
+  const cats = /cereal|noodle|pasta|snack|muesli|meal mix|ready|bar|bites/i;
+  const ageOk = (p.ages || []).some(a => (m.ages || []).includes(a));
+  const slotOk = (p.slots || []).some(s => (m.slots || []).includes(s));
+  return cats.test(`${p.name} ${p.category}`) && ageOk && slotOk && p.partnerUrl && p.partnerUrl !== '#';
+}
+function renderReadyToEat(m) {
+  const items = PRODUCTS.filter(p => readyToEatMatch(p,m)).map(p => ({...scoreProduct(p), unit: costPerComparableUnit(p)}))
+    .sort((a,b) => (b.score-a.score) || ((a.unit ?? Infinity)-(b.unit ?? Infinity))).slice(0,12);
+  if (!items.length) return `<div class="empty">No verified ready-to-eat product matches are in the catalogue yet. The product intelligence connector will add verified options when enabled.</div>`;
+  return items.map((p,i) => `<article class="related-product card ready-product"><div class="related-product__image"><div class="related-product__placeholder">${ICON.bowl}</div></div><div class="related-product__body"><div class="prod__brand">${p.brand}</div><h3>${p.name}</h3><div class="ready-product__score"><span class="ready-product__value">KidPoshan ${p.score}/10</span><span class="ready-product__unit">${p.unit ? `₹${p.unit.toFixed(2)} / 100g` : 'Unit cost unavailable'}</span></div><div class="ready-product__why">Ranked by PoshanScore first; cost/unit is used only after score.</div><a class="btn btn--sm" href="${p.partnerUrl}" target="_blank" rel="sponsored nofollow noopener">Buy from ${p.partner}</a></div></article>`).join('');
+}
+function shoppingKey(mealId, idx){ return `kidposhan.buy:${mealId}:${idx}`; }
+function getBuyState(){ try{return JSON.parse(localStorage.getItem('kidposhan.buy-list')||'{}')}catch(e){return {}} }
+function setBuyState(v){ localStorage.setItem('kidposhan.buy-list',JSON.stringify(v)); }
+function updateShoppingUI() {
+  const state=getBuyState(), selected=[];
+  r.ingredients.forEach((i,idx)=>{ if(state[shoppingKey(m.id,idx)]) selected.push(i.name); });
+  const count=document.getElementById('shopping-count'), items=document.getElementById('shopping-items'), view=document.getElementById('view-shopping');
+  if(count) count.textContent=`${selected.length} item${selected.length===1?'':'s'} selected`;
+  if(items) items.textContent=selected.length ? selected.join(' · ') : 'Tick Buy for the ingredients you need.';
+  if(view) view.disabled=!selected.length;
+}
+function mountShoppingSelection(){
+  const state=getBuyState();
+  document.querySelectorAll('.buy-check').forEach(cb=>{
+    cb.checked=!!state[shoppingKey(m.id,cb.dataset.buyKey.split(':').pop())];
+    cb.addEventListener('change',()=>{
+      const idx=cb.dataset.buyKey.split(':').pop(); const key=shoppingKey(m.id,idx); const row=cb.closest('.recipe-ing__row');
+      const next=getBuyState(); next[key]=cb.checked; if(!cb.checked) delete next[key]; setBuyState(next); row?.classList.toggle('is-buying',cb.checked); updateShoppingUI();
+    });
+    cb.closest('.recipe-ing__row')?.classList.toggle('is-buying',cb.checked);
+  });
+  document.querySelectorAll('.have-home__check').forEach(cb=>cb.addEventListener('change',()=>{
+    if(cb.checked){ const buy=cb.closest('.recipe-ing__row')?.querySelector('.buy-check'); if(buy && buy.checked){ buy.checked=false; buy.dispatchEvent(new Event('change')); } }
+  }));
+  document.getElementById('clear-shopping')?.addEventListener('click',()=>{ const next=getBuyState(); r.ingredients.forEach((_,idx)=>delete next[shoppingKey(m.id,idx)]); setBuyState(next); document.querySelectorAll('.buy-check').forEach(cb=>{cb.checked=false;cb.closest('.recipe-ing__row')?.classList.remove('is-buying')}); updateShoppingUI(); });
+  document.getElementById('view-shopping')?.addEventListener('click',()=>{
+    const state=getBuyState(); const selected=r.ingredients.map((i,idx)=>state[shoppingKey(m.id,idx)]?`${i.name} — ${i.qty}`:null).filter(Boolean);
+    if(selected.length) alert(`KidPoshan shopping list\\n\\n${selected.join('\\n')}\\n\\nThe combined list is ready. Amazon multi-item cart creation will be connected only through a supported Amazon mechanism.`);
+  });
+  updateShoppingUI();
+}
+if (!found) {
+  root.innerHTML = `<div class="empty" style="margin:3rem 0"><h2>We couldn't find that recipe</h2><p class="muted small">It may have been renamed or removed.</p><a class="btn" href="recommendations.html">See meal ideas</a></div>`;
+} else {
+  const m = scoreMeal(found);
+  const r = m.recipe;
+  const similar = MEALS.filter(x => x.id !== m.id && x.slots.some(s => m.slots.includes(s)))
+    .map(scoreMeal).sort((a,b) => b.score-a.score).slice(0,12);
+
+  const related = PRODUCTS.filter(p => /pasta|noodle|millet|ragi/i.test(`${p.name} ${p.category} ${(p.ingredients||[]).join(" ")}`))
+    .map(scoreProduct).sort((a,b)=>b.score-a.score);
+
+  root.innerHTML = `
+    <div class="recipe-breadcrumb"><a href="recommendations.html">Meal ideas</a><span>›</span><span>${m.slots.map(s => labelFor(MEAL_SLOTS,s)).join(" & ")}</span><span>›</span><b>${m.name}</b></div>
+
+    <section class="recipe-hero">
+      <div class="recipe-hero__photo">
+        <img src="assets/images/millet-pasta-vegetables.jpg" alt="Millet pasta with colourful vegetables">
+        <button class="recipe-fav" type="button" aria-label="Save recipe">♡</button>
+        <div class="recipe-photo-tags"><span>Nutritious</span><span>Colourful</span><span>Kid-friendly</span></div>
+      </div>
+      <div class="recipe-hero__copy">
+        <div class="eyebrow">Meal idea · Pasta &amp; noodles</div>
+        <h1>${m.name}</h1>
+        <p class="recipe-lead">A healthy, tasty and colourful meal your kids will love!</p>
+        <div class="recipe-facts">
+          <span>◷ <b>${m.prepMins} mins</b></span><span>♧ <b>Serves ${r.servings}–3</b></span><span>♨ <b>Easy</b></span><span>♙ <b>Ages 3+</b></span>
+        </div>
+        <p class="recipe-summary">This millet pasta is rich in fibre and packed with colourful vegetables. It is a familiar shape with a more nourishing grain base and no packet seasoning.</p>
+        <div class="recipe-tags"><span>High in fibre</span><span>Rich in vegetables</span><span>Family friendly</span><span>Supports variety</span></div>
+      </div>
+      <aside class="recipe-score-card">
+        <div class="recipe-score-card__brand">KidPoshan Score</div>
+        <div class="recipe-score-card__leaf">🍃</div>
+        <div class="recipe-score-card__number">${m.score}<small>/10</small></div>
+        <span class="recipe-score-card__best">${m.band.label}</span>
+        <div class="recipe-score-card__rating">★ <b>4.7/5</b> <span>(128 ratings)</span></div>
+        <a href="#rating">Rate this recipe →</a>
+      </aside>
+    </section>
+
+    <nav class="recipe-tabs" aria-label="Recipe sections">
+      <a class="is-active" href="#ingredients">Ingredients</a><a href="#method">Method</a><a href="#nutrition">Nutrition</a><a href="#tips">Tips</a><a href="#rating">Reviews</a>
+    </nav>
+
+    <section id="ingredients" class="recipe-section recipe-section--ingredients">
+      <div class="section-title-row"><div><h2>Ingredients</h2><p>The right ingredients make all the difference.</p></div></div>
+      <div class="recipe-ing recipe-ing--table">
+        <div class="recipe-ing__head" aria-hidden="true"><span>Buy</span><span>Have at home</span><span>Ingredient</span><span>Quantity</span><span>Best choice · KidPoshan score</span></div>
+        ${r.ingredients.map((i,idx)=>`<div class="recipe-ing__row" data-ingredient-key="${m.id}:${idx}">
+          <label class="recipe-ing__buy-check"><input type="checkbox" class="buy-check" data-buy-key="${m.id}:${idx}" aria-label="Add ${i.name} to shopping list"><span>Buy</span></label>
+          <label class="have-home"><input type="checkbox" class="have-home__check" data-have-key="${m.id}:${idx}" aria-label="I have ${i.name} at home"><span>Have</span></label>
+          <span class="recipe-ing__name">${i.name}${i.productIds?`<span class="tag-packaged">Scored match</span>`:""}</span>
+          <span class="qty">${i.qty}</span>
+          <span class="ingredient-reco" data-reco-key="${m.id}:${idx}">${ingredientRecommendationHTML(i)}</span>
+        </div>`).join("")}
+      </div>
+      <div class="recipe-shopping-bar" id="recipe-shopping-bar">
+        <div><div class="recipe-shopping-bar__text"><b>Shopping list:</b> <span id="shopping-count">0 items selected</span></div><div class="recipe-shopping-bar__items" id="shopping-items">Tick Buy for the ingredients you need.</div></div>
+        <div class="recipe-shopping-bar__actions"><button type="button" class="btn btn--ghost" id="clear-shopping">Clear</button><button type="button" class="btn" id="view-shopping" disabled>View shopping list</button></div>
+      </div>
+    </section>
+
+    <section id="tips" class="recipe-tip"><div class="recipe-tip__icon">💡</div><div><h3>Tip from KidPoshan</h3><p>You can also add broccoli, zucchini or spinach to make this meal even more colourful and nutrient-dense.</p></div></section>
+
+    <section id="method" class="recipe-section recipe-method">
+      <div class="section-title-row"><div><h2>Method</h2><p>Simple steps for a weekday meal.</p></div></div>
+      <ol class="recipe-steps">${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+    </section>
+
+    <section id="nutrition" class="recipe-section recipe-score-explain">
+      <div><h2>Why this scores ${m.score}/10</h2><p class="muted">KidPoshan uses one transparent scoring method and shows parents what moves the score up or down.</p></div>
+      <div class="score-breakdown">${m.breakdown.map(l=>`<div><span>${l.label}</span><b class="${l.delta>=0?"positive":"negative"}">${l.delta>0?"+":""}${Math.round(l.delta)}</b></div>`).join("")}<div class="score-breakdown__total"><span>KidPoshan Score</span><b>${m.score}</b></div></div>
+    </section>
+
+    <section class="carousel-section">
+      <div class="carousel-heading"><div><h2>Other good choices (12)</h2><p>More healthy, kid-friendly recipes you may also like.</p></div><div class="carousel-controls"><button type="button" data-scroll="similar" data-dir="-1" aria-label="Previous">‹</button><button type="button" data-scroll="similar" data-dir="1" aria-label="Next">›</button></div></div>
+      <div class="recipe-carousel" id="similar">
+        ${similar.map((s,i)=>`<article class="recipe-card"><div class="recipe-card__image">${recipeVisual(s.name,i)}</div><div class="recipe-card__body"><h3>${s.name}</h3><div class="recipe-card__meta">◷ ${s.prepMins} mins <span>★ ${s.score}</span></div><a href="recipe.html?id=${s.id}">View recipe →</a></div></article>`).join("")}
+      </div>
+    </section>
+
+    <section class="carousel-section packaged-section">
+      <div class="carousel-heading"><div><h2>Recommended packaged products for Millet pasta${related.length ? ` (${related.length})` : ""}</h2><p>Only products already in the KidPoshan catalogue are scored. We never invent a score from a marketing claim.</p></div><div class="carousel-controls"><button type="button" data-scroll="packaged" data-dir="-1" aria-label="Previous">‹</button><button type="button" data-scroll="packaged" data-dir="1" aria-label="Next">›</button></div></div>
+      <div class="product-carousel" id="packaged">
+        ${related.length ? related.map(p=>`<article class="related-product card"><div class="related-product__image"><div class="related-product__placeholder">${ICON.bowl}</div></div><div class="related-product__body"><div class="prod__brand">${p.brand}</div><h3>${p.name}</h3><div class="related-product__score">${scoreBadge(p.score,p.band)} <b>${p.score}/10</b></div><a class="btn btn--sm" href="product.html?id=${p.id}">See product</a></div></article>`).join("") : `<div class="empty">No scored millet-pasta product matches are in the catalogue yet. This section will fill automatically as verified products are added through the Admin catalogue.</div>`}
+      </div>
+    </section>
+
+    <section class="carousel-section ready-to-eat-section">
+      <div class="carousel-heading"><div><h2>Ready-to-Eat options for the same meal need</h2><p>Products are ranked by <b>KidPoshan Score first</b>, then by comparable cost per unit. Commercial links do not affect the score.</p></div><div class="carousel-controls"><button type="button" data-scroll="ready-to-eat" data-dir="-1" aria-label="Previous">‹</button><button type="button" data-scroll="ready-to-eat" data-dir="1" aria-label="Next">›</button></div></div>
+      <div class="product-carousel" id="ready-to-eat">${renderReadyToEat(m)}</div>
+    </section>
+
+    <section class="recipe-cta"><div class="recipe-cta__art">🥕</div><div><h2>Make mealtime healthier and happier!</h2><p>Add this recipe to your family meal planner or create a shopping list in one click.</p></div><div class="recipe-cta__actions card-actions" data-meal-id="${m.id}"><button class="btn add-planner" type="button">Add to Meal Planner</button><button class="btn btn--ghost" type="button" id="shopping-list-btn">Add to Shopping List</button><div class="daypop" hidden></div></div></section>
+
+    <section id="rating" class="recipe-section recipe-rating"><div class="pick__why" id="rating-inner"></div></section>
+  `;
+
+  mountRecipeIngredientState(root);
+  mountShoppingSelection();
+  mountRating(document.getElementById("rating-inner"), "meal", m.id);
+
+  document.querySelectorAll("[data-scroll]").forEach(btn=>btn.addEventListener("click",()=>{
+    const row=document.getElementById(btn.dataset.scroll); row?.scrollBy({left:Number(btn.dataset.dir)*Math.min(760,row.clientWidth*.85),behavior:"smooth"});
+  }));
+}
+
+mountFooter();
+</script>
+</body>
+</html>
