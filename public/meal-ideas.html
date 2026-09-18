@@ -1,6 +1,134 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meal Ideas — KidPoshan</title><style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#17352a;background:#fff}.wrap{max-width:1180px;margin:auto;padding:0 24px}header{border-bottom:1px solid #e7eee9;background:#fff;position:sticky;top:0;z-index:5}.nav{min-height:70px;display:flex;align-items:center;gap:24px}.brand{font-weight:800;color:#1f6b4f;text-decoration:none;font-size:22px}nav{display:flex;gap:18px;flex:1}nav a{color:#40574d;text-decoration:none;font-size:14px}nav a.active{color:#1f6b4f;font-weight:700}.nav-search{width:230px;border:1px solid #dce6df;border-radius:12px;padding:10px 13px}.guest{font-size:13px;color:#65756d}main{padding:34px 0 60px}h1{font-size:36px;margin:0 0 8px}.sub{color:#687a71;margin:0 0 25px}.panel{background:#f5f9f6;border:1px solid #e1ebe5;border-radius:18px;padding:18px 20px;margin-bottom:30px}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.panel-title{font-weight:750;font-size:17px}.hint{font-size:13px;color:#73827b}.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.field label{display:block;font-size:12px;color:#64776e;margin-bottom:6px}.field select{width:100%;background:#fff;border:1px solid #d6e2da;border-radius:11px;padding:11px 12px;color:#29443a}.actions{display:flex;align-items:center;gap:12px;margin-top:15px}.search-btn{border:0;background:#1f6b4f;color:#fff;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer}.search-btn:disabled{background:#b8c9c0;cursor:not-allowed}.clear{border:1px solid #cbdad1;background:#fff;border-radius:10px;padding:9px 15px;cursor:pointer;color:#476057}.start-state{padding:44px 24px;text-align:center;border:1px dashed #cddbd3;border-radius:16px;background:#f8fbf9;color:#61746a}.start-state strong{display:block;font-size:18px;color:#29483b;margin-bottom:7px}.result-line{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.section-title{font-size:21px;font-weight:750}.count{font-size:13px;color:#73827b;margin-left:8px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{border:1px solid #e2ebe5;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 3px 14px rgba(20,60,42,.06);text-decoration:none;color:inherit}.card img{width:100%;height:165px;object-fit:cover;background:#eef4ef}.body{padding:14px}.body h3{font-size:17px;margin:0 0 7px}.meta{font-size:12px;color:#708078;margin-bottom:9px}.tags{display:flex;gap:6px;margin-bottom:9px}.tag{font-size:11px;padding:5px 8px;border-radius:999px;background:#f0f6f2;color:#496057}.score{font-weight:800;color:#1f6b4f;font-size:14px}.empty{display:none;padding:38px;text-align:center;border:1px dashed #cddbd3;border-radius:16px;background:#f5f9f6;color:#61746a}@media(max-width:900px){.filters{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.wrap{padding:0 15px}.nav{flex-wrap:wrap;padding:10px 0}.filters{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}h1{font-size:29px}.panel-head{align-items:flex-start;gap:10px}}
-</style></head><body><header><div class="wrap nav"><a class="brand" href="/">KidPoshan</a><nav><a href="/">Home</a><a class="active" href="/meal-ideas">Meal Ideas</a><a href="/recipes">Recipes</a><a href="/planner">Planner</a><a href="/learn">Learn</a></nav><input class="nav-search" id="navSearch" placeholder="Search"><span class="guest">Guest</span></div></header><main><div class="wrap"><h1>Meal Ideas</h1><p class="sub">Tell us who the meal is for, when they will eat it and the season. We'll show meals that fit.</p><section class="panel"><div class="panel-head"><div class="panel-title">Find meals for your family</div><span class="hint">Choose at least one filter, then search.</span></div><div class="filters"><div class="field"><label>Age</label><select id="age"><option value="">Any age</option><option value="2-5">2–5 years</option><option value="5-8">5–8 years</option><option value="9-12">9–12 years</option></select></div><div class="field"><label>Part of day</label><select id="meal"><option value="">Any time</option><option>Breakfast</option><option>School Lunchbox</option><option>Lunch</option><option>4 PM Snack</option><option>Dinner</option></select></div><div class="field"><label>Season</label><select id="season"><option value="">Any season</option><option>Summer</option><option>Monsoon</option><option>Winter</option><option>All Seasons</option></select></div><div class="field"><label>Food preference</label><select id="pref"><option value="">Any</option><option>Veg</option><option>Jain</option><option>Non-Veg</option></select></div></div><div class="actions"><button class="search-btn" id="searchBtn" disabled>Search meals</button><button class="clear" id="clear">Clear filters</button></div></section><div id="startState" class="start-state"><strong>What would you like your child to eat?</strong>Choose one or more filters above and click <b>Search meals</b> to see matching meal ideas.</div><div id="results" style="display:none"><div class="result-line"><div class="section-title">Meals possible <span class="count" id="count"></span></div><div class="hint" id="summary"></div></div><div class="grid" id="grid"></div><div class="empty" id="empty">No meals match these choices. Try changing one filter.</div></div></div></main><script>
-const demo=[{id:'r-aloo',name:'Aloo Tikki',score:88,age_min:5,age_max:8,meal_type:'4 PM Snack',season:'Winter',diet:'Veg',image_url:'/assets/images/aloo-tikki.jpg'},{id:'r-ragi',name:'Ragi Energy Bites',score:88,age_min:5,age_max:8,meal_type:'4 PM Snack',season:'Winter',diet:'Veg',image_url:'/assets/images/ragi-energy-bites.jpg'},{id:'r-paneer',name:'Paneer & Peas Toast',score:86,age_min:5,age_max:8,meal_type:'4 PM Snack',season:'Winter',diet:'Veg',image_url:'/assets/images/paneer-peas-toast.jpg'},{id:'r-khichdi',name:'Vegetable Khichdi',score:83,age_min:2,age_max:8,meal_type:'Lunch',season:'All Seasons',diet:'Veg',image_url:'/assets/images/vegetable-khichdi.jpg'},{id:'r-apple',name:'Apple Cinnamon Oats',score:82,age_min:2,age_max:8,meal_type:'Breakfast',season:'Winter',diet:'Veg',image_url:'/assets/images/apple-cinnamon-oats.jpg'},{id:'r-cookies',name:'Carrot Oat Cookies',score:80,age_min:5,age_max:8,meal_type:'4 PM Snack',season:'All Seasons',diet:'Veg',image_url:'/assets/images/carrot-oat-cookies.jpg'},{id:'r-beet',name:'Beetroot Cutlet',score:76,age_min:5,age_max:8,meal_type:'4 PM Snack',season:'Winter',diet:'Veg',image_url:'/assets/images/beetroot-cutlet.jpg'}];
-const $=s=>document.querySelector(s);function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}function norm(list){return(Array.isArray(list)?list:[]).map(r=>({id:r.id||r.slug,name:r.name||'Recipe',score:Number(r.score||0),age_min:Number(r.age_min??r.min_age??0),age_max:Number(r.age_max??r.max_age??99),meal_type:r.meal_type||r.meal||r.slot_name||'',season:r.season||'All Seasons',diet:r.diet||r.food_preference||'Veg',image_url:r.image_url||r.image||r.photo_url||''}));}function selected(){return{age:$('#age').value,meal:$('#meal').value,season:$('#season').value,pref:$('#pref').value}}function matchesAge(r,v){if(!v)return true;const[a,b]=v.split('-').map(Number);return r.age_min<=b&&r.age_max>=a}function apply(list){const f=selected();return list.filter(r=>matchesAge(r,f.age)&&(!f.meal||r.meal_type===f.meal)&&(!f.season||r.season===f.season||r.season==='All Seasons')&&(!f.pref||r.diet===f.pref))}function card(r){return`<a class="card" href="/recipe?id=${encodeURIComponent(r.id)}"><img src="${esc(r.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(r.name)}"><div class="body"><h3>${esc(r.name)}</h3><div class="meta">${esc(r.meal_type)} · ${esc(r.season)}</div><div class="tags"><span class="tag">${esc(r.diet)}</span><span class="tag">${esc(r.age_min)}–${esc(r.age_max)} yrs</span></div><div class="score">KidPoshan Score ${esc(r.score)}</div></div></a>`}function updateButton(){const f=selected();$('#searchBtn').disabled=!(f.age||f.meal||f.season||f.pref)}async function searchMeals(){const f=selected();if(!(f.age||f.meal||f.season||f.pref))return;let list=demo.slice();try{const p=new URLSearchParams();if(f.age){const[a,b]=f.age.split('-');p.set('min_age',a);p.set('max_age',b)}if(f.meal)p.set('meal_type',f.meal);if(f.season)p.set('season',f.season);if(f.pref)p.set('diet',f.pref);const resp=await fetch('/api/recipes?'+p,{credentials:'include'});if(resp.ok){const d=await resp.json();const api=norm(d.recipes??d);if(api.length)list=api}}catch(e){console.warn('Meal Ideas API unavailable; using built-in data.',e)}const out=apply(list);$('#startState').style.display='none';$('#results').style.display='block';$('#grid').innerHTML=out.map(card).join('');$('#count').textContent=`${out.length} meal${out.length===1?'':'s'} possible`;$('#empty').style.display=out.length?'none':'block';const parts=[];if(f.age)parts.push($('#age').selectedOptions[0].text);if(f.meal)parts.push(f.meal);if(f.season)parts.push(f.season);if(f.pref)parts.push(f.pref);$('#summary').textContent=parts.join(' · ')}['age','meal','season','pref'].forEach(id=>$('#'+id).addEventListener('change',updateButton));$('#searchBtn').addEventListener('click',searchMeals);$('#clear').addEventListener('click',()=>{['age','meal','season','pref'].forEach(id=>$('#'+id).value='');$('#results').style.display='none';$('#startState').style.display='block';updateButton()});$('#navSearch').addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});updateButton();
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meal Ideas — KidPoshan</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#17352a;background:#fff}
+.wrap{max-width:1180px;margin:auto;padding:0 24px}
+header{border-bottom:1px solid #e7eee9;background:#fff;position:sticky;top:0;z-index:5}
+.nav{min-height:70px;display:flex;align-items:center;gap:24px}
+.brand{font-weight:800;color:#1f6b4f;text-decoration:none;font-size:22px;white-space:nowrap}
+nav{display:flex;gap:22px;flex:1;align-items:center}
+nav a{color:#40574d;text-decoration:none;font-size:14px;white-space:nowrap}
+nav a.active{color:#1f6b4f;font-weight:700}
+.nav-search{width:230px;border:1px solid #dce6df;border-radius:12px;padding:10px 13px}
+.guest{font-size:13px;color:#65756d;white-space:nowrap}
+main{padding:34px 0 60px}
+h1{font-size:36px;margin:0 0 8px;letter-spacing:-.6px}
+.sub{color:#687a71;margin:0 0 25px}
+.panel{background:#f5f9f6;border:1px solid #e1ebe5;border-radius:18px;padding:20px;margin-bottom:30px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.panel-title{font-weight:750;font-size:17px}
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.field label{display:block;font-size:12px;color:#64776e;margin-bottom:6px}
+.field select{width:100%;background:#fff;border:1px solid #d6e2da;border-radius:11px;padding:11px 12px;color:#29443a}
+.actions{display:flex;align-items:center;gap:12px;margin-top:16px}
+.search-btn{border:0;background:#1f6b4f;color:#fff;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer}
+.search-btn:disabled{background:#b8c9c0;cursor:not-allowed}
+.clear{border:1px solid #cbdad1;background:#fff;border-radius:10px;padding:9px 15px;cursor:pointer;color:#476057}
+.hint{font-size:13px;color:#73827b}
+.result-line{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.section-title{font-size:21px;font-weight:750}
+.count{font-size:13px;color:#73827b;margin-left:8px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.card{border:1px solid #e2ebe5;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 3px 14px rgba(20,60,42,.06);text-decoration:none;color:inherit;display:block}
+.card img{width:100%;height:165px;object-fit:cover;background:#eef4ef}
+.body{padding:14px}.body h3{font-size:17px;margin:0 0 7px}.meta{font-size:12px;color:#708078;margin-bottom:9px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.tag{font-size:11px;padding:5px 8px;border-radius:999px;background:#f0f6f2;color:#496057}
+.score{font-weight:800;color:#1f6b4f;font-size:14px}
+.start-state{padding:48px 24px;text-align:center;border:1px dashed #cddbd3;border-radius:16px;background:#f8fbf9;color:#61746a}
+.start-state strong{display:block;font-size:18px;color:#29483b;margin-bottom:7px}
+.empty{display:none;padding:38px;text-align:center;border:1px dashed #cddbd3;border-radius:16px;background:#f5f9f6;color:#61746a}
+#results{display:none}
+
+@media(max-width:900px){
+ .wrap{padding:0 18px}
+ .nav{gap:18px}
+ nav{gap:16px}
+ .nav-search{width:180px}
+ .filters{grid-template-columns:repeat(2,1fr)}
+ .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:560px){
+ header{position:relative}
+ .wrap{padding:0 16px}
+ .nav{display:grid;grid-template-columns:1fr auto;grid-template-areas:"brand guest" "links links" "search search";gap:0;min-height:0;padding:13px 0 12px}
+ .brand{grid-area:brand;font-size:22px;align-self:center}
+ .guest{grid-area:guest;align-self:center;font-size:13px}
+ nav{grid-area:links;display:flex;gap:25px;flex:none;width:100%;overflow-x:auto;overflow-y:hidden;padding:14px 2px 4px;scrollbar-width:none;border-top:1px solid #f0f4f1;margin-top:12px}
+ nav::-webkit-scrollbar{display:none}
+ nav a{font-size:15px;line-height:1;padding:3px 0}
+ nav a.active{font-weight:750}
+ .nav-search{grid-area:search;width:100%;margin-top:11px;padding:10px 13px}
+ main{padding:28px 0 50px}
+ h1{font-size:30px}
+ .sub{font-size:15px;line-height:1.45;margin-bottom:20px}
+ .panel{padding:17px 16px;border-radius:17px}
+ .panel-head{display:block;margin-bottom:13px}
+ .panel-title{font-size:17px;margin-bottom:4px}
+ .filters{grid-template-columns:1fr;gap:11px}
+ .actions{margin-top:14px;flex-wrap:wrap}
+ .search-btn{flex:1;min-width:145px}
+ .clear{flex:0 0 auto}
+ .start-state{padding:38px 18px}
+ .start-state strong{font-size:17px}
+ .grid{grid-template-columns:1fr 1fr;gap:12px}
+ .card img{height:125px}
+ .body{padding:11px}
+ .body h3{font-size:15px}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap nav">
+<a class="brand" href="/">KidPoshan</a>
+<nav><a href="/">Home</a><a class="active" href="/meal-ideas">Meal Ideas</a><a href="/recipes">Recipes</a><a href="/planner">Planner</a><a href="/learn">Learn</a></nav>
+<input class="nav-search" id="navSearch" placeholder="Search">
+<span class="guest">Guest</span>
+</div></header>
+<main><div class="wrap">
+<h1>Meal Ideas</h1>
+<p class="sub">Tell us who the meal is for, when they will eat it and the season. We'll show meals that fit.</p>
+<section class="panel">
+<div class="panel-head"><div class="panel-title">Find meals for your family</div><span class="hint">Choose at least one filter, then search.</span></div>
+<div class="filters">
+<div class="field"><label>Age</label><select id="age"><option value="">Any age</option><option value="2-5">2–5 years</option><option value="5-8">5–8 years</option><option value="9-12">9–12 years</option></select></div>
+<div class="field"><label>Part of day</label><select id="meal"><option value="">Any time</option><option>Breakfast</option><option>School Lunchbox</option><option>Lunch</option><option>4 PM Snack</option><option>Dinner</option></select></div>
+<div class="field"><label>Season</label><select id="season"><option value="">Any season</option><option>Summer</option><option>Monsoon</option><option>Winter</option><option>All Seasons</option></select></div>
+<div class="field"><label>Food preference</label><select id="pref"><option value="">Any</option><option>Veg</option><option>Jain</option><option>Non-Veg</option></select></div>
+</div>
+<div class="actions"><button class="search-btn" id="searchBtn" disabled>Search meals</button><button class="clear" id="clear">Clear filters</button></div>
+</section>
+<div id="startState" class="start-state"><strong>What would you like your child to eat?</strong>Choose one or more filters above and click <b>Search meals</b> to see matching meal ideas.</div>
+<div id="results">
+<div class="result-line"><div class="section-title">Meals possible <span class="count" id="count"></span></div><div class="hint" id="summary"></div></div>
+<div class="grid" id="grid"></div><div class="empty" id="empty">No meals match these choices. Try changing one filter.</div>
+</div>
+</div></main>
+<script>
+const demo=[
+{id:"r-aloo",name:"Aloo Tikki",score:88,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/aloo-tikki.jpg"},
+{id:"r-ragi",name:"Ragi Energy Bites",score:88,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/ragi-energy-bites.jpg"},
+{id:"r-paneer",name:"Paneer & Peas Toast",score:86,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/paneer-peas-toast.jpg"},
+{id:"r-khichdi",name:"Vegetable Khichdi",score:83,age_min:2,age_max:8,meal_type:"Lunch",season:"All Seasons",diet:"Veg",image_url:"/assets/images/vegetable-khichdi.jpg"},
+{id:"r-apple",name:"Apple Cinnamon Oats",score:82,age_min:2,age_max:8,meal_type:"Breakfast",season:"Winter",diet:"Veg",image_url:"/assets/images/apple-cinnamon-oats.jpg"},
+{id:"r-cookies",name:"Carrot Oat Cookies",score:80,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"All Seasons",diet:"Veg",image_url:"/assets/images/carrot-oat-cookies.jpg"},
+{id:"r-beet",name:"Beetroot Cutlet",score:76,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/beetroot-cutlet.jpg"}];
+const $=s=>document.querySelector(s);
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function norm(list){return(Array.isArray(list)?list:[]).map(r=>({id:r.id||r.slug,name:r.name||"Recipe",score:Number(r.score||0),age_min:Number(r.age_min??r.min_age??0),age_max:Number(r.age_max??r.max_age??99),meal_type:r.meal_type||r.meal||r.slot_name||"",season:r.season||"All Seasons",diet:r.diet||r.food_preference||"Veg",image_url:r.image_url||r.image||r.photo_url||""}));}
+function matchesAge(r,v){if(!v)return true;const[a,b]=v.split("-").map(Number);return r.age_min<=b&&r.age_max>=a;}
+function selected(){return{age:$("#age").value,meal:$("#meal").value,season:$("#season").value,pref:$("#pref").value};}
+function apply(list){const f=selected();return list.filter(r=>matchesAge(r,f.age)&&(!f.meal||r.meal_type===f.meal)&&(!f.season||r.season===f.season||r.season==="All Seasons")&&(!f.pref||r.diet===f.pref));}
+function card(r){return`<a class="card" href="/recipe?id=${encodeURIComponent(r.id)}"><img src="${esc(r.image_url||"/assets/images/recipe-placeholder.jpg")}" alt="${esc(r.name)}" onerror="this.style.visibility='hidden'"><div class="body"><h3>${esc(r.name)}</h3><div class="meta">${esc(r.meal_type)} · ${esc(r.season)}</div><div class="tags"><span class="tag">${esc(r.diet)}</span><span class="tag">${esc(r.age_min)}–${esc(r.age_max)} yrs</span></div><div class="score">KidPoshan Score ${esc(r.score)}</div></div></a>`;}
+function updateButton(){const f=selected();$("#searchBtn").disabled=!(f.age||f.meal||f.season||f.pref);}
+async function searchMeals(){const f=selected();if(!(f.age||f.meal||f.season||f.pref))return;let list=demo.slice();try{const p=new URLSearchParams();if(f.age){const[a,b]=f.age.split("-");p.set("min_age",a);p.set("max_age",b)}if(f.meal)p.set("meal_type",f.meal);if(f.season)p.set("season",f.season);if(f.pref)p.set("diet",f.pref);const resp=await fetch("/api/recipes?"+p.toString(),{credentials:"include"});if(resp.ok){const d=await resp.json();const api=norm(d.recipes??d);if(api.length)list=api}}catch(e){console.warn("Meal Ideas API unavailable; using built-in data.",e)}const out=apply(list);$("#startState").style.display="none";$("#results").style.display="block";$("#grid").innerHTML=out.map(card).join("");$("#count").textContent=`${out.length} meal${out.length===1?"":"s"} possible`;$("#empty").style.display=out.length?"none":"block";const parts=[];if(f.age)parts.push($("#age").selectedOptions[0].text);if(f.meal)parts.push(f.meal);if(f.season)parts.push(f.season);if(f.pref)parts.push(f.pref);$("#summary").textContent=parts.join(" · ");}
+["age","meal","season","pref"].forEach(id=>$("#"+id).addEventListener("change",updateButton));
+$("#searchBtn").addEventListener("click",searchMeals);
+$("#clear").addEventListener("click",()=>{["age","meal","season","pref"].forEach(id=>$("#"+id).value="");$("#results").style.display="none";$("#startState").style.display="block";updateButton()});
+updateButton();
+</script>
+</body></html>
