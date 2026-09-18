@@ -1,6 +1,66 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KidPoshan — Meal Ideas</title><link rel="stylesheet" href="/assets/css/styles.css"></head><body><div id="nav"></div><main class="container"><section class="section"><h1 style="font-size:46px;margin-bottom:6px">Find the right food for right now</h1><p class="muted" style="font-size:18px">A simple step-by-step way to turn your situation into a useful meal recommendation.</p></section><section class="decision" id="steps"></section><div style="margin:16px 0"><button id="go" class="btn btn-green">Get Meal Ideas →</button></div><div class="panel" id="summary" style="margin:16px 0"></div><section id="results" class="rec-grid"></section><section class="section"><h2>More ideas you might like</h2><div id="more" class="scrollrow"></div></section></main><div id="foot"></div><script src="/assets/js/app.js"></script><script>
-$('#nav').innerHTML=KP.nav('meals');$('#foot').innerHTML=KP.footer();const opts=[{title:'1. Season',k:'season',items:['Summer','Monsoon','Winter','All Seasons']},{title:'2. Meal Moment',k:'meal',items:['Breakfast','Lunchbox','4 PM Snack','Dinner']},{title:"3. Child's Stage",k:'age',items:['<2 years','2–4 years','5–8 years','9–12 years']},{title:'4. Time & Energy',k:'time',items:['<5 mins','5–15 mins','15–30 mins','30+ mins']},{title:'5. Diet Preference',k:'diet',items:['Veg','Jain','Non-Veg']}];const state={season:'Winter',meal:'4 PM Snack',age:'5–8 years',time:'5–15 mins',diet:'Veg'};function ageNum(a){return a.startsWith('9')?10:a.startsWith('5')?6:a.startsWith('2')?3:1}
-function render(){document.querySelector('#steps').innerHTML=opts.map(o=>`<div class="decision-box"><b>${o.title}</b><div class="meta" style="margin-bottom:8px"></div>${o.items.map(x=>`<button class="stage ${state[o.k]===x?'selected':''}" style="display:block;margin:6px 0;width:100%;background:${state[o.k]===x?'var(--green2)':'#fff'};border:1px solid ${state[o.k]===x?'var(--green)':'var(--line)'}" onclick="state['${o.k}']='${x}';render()">${x}</button>`).join('')}</div>`).join('');}
-render();$('#go').onclick=load;async function load(){let season=state.season, meal=state.meal, diet=state.diet, age=ageNum(state.age);const d=await KP.api(`/recipes?season=${encodeURIComponent(season)}&meal=${encodeURIComponent(meal)}&diet=${encodeURIComponent(diet)}&age=${age}`);let rs=d.recipes;if(!rs.length){const any=await KP.api('/recipes');rs=any.recipes.filter(r=>r.diet===diet||diet==='Veg').slice(0,5)}const best=rs[0], better=rs.slice(1,3), backup=rs[3]||rs[rs.length-1];$('#summary').innerHTML=`<b>Here are your personalised recommendations!</b><div class="muted">${season} · ${meal} · ${state.age} · ${state.time} · ${diet}</div>`;$('#results').innerHTML=`<div class="rec-panel best"><h2>🏆 Best match for you</h2>${card(best)}</div><div class="rec-panel better"><h2>⭐ Better alternatives</h2>${better.map(card).join('')}</div><div class="rec-panel backup"><h2>🛟 Backup option</h2>${card(backup)}</div>`;const more=(await KP.api('/recipes')).recipes.slice(0,8);$('#more').innerHTML=more.map(cardSmall).join('')}
-function card(r){return `<a class="card" href="/recipe.html?slug=${r.slug}"><img src="${r.image_url}"><div class="card-body"><span class="score">${r.score}</span><h3>${r.name}</h3><div class="muted">${r.description}</div><div class="meta">👤 ${r.age_min}–${r.age_max} yrs · ⏰ ${r.meal_moment} · ⏱ ${r.prep_minutes} mins</div><div style="margin-top:10px"><span class="btn btn-green">View recipe →</span></div></div></a>`}function cardSmall(r){return `<a class="card" style="min-width:210px" href="/recipe.html?slug=${r.slug}"><img src="${r.image_url}" style="height:120px"><div class="card-body"><b>${r.name}</b><div class="meta">${r.score} · ${r.prep_minutes} mins</div></div></a>`}
-load();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meal Ideas — KidPoshan</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#17352a;background:#fff}
+.wrap{max-width:1180px;margin:auto;padding:0 24px}header{border-bottom:1px solid #e7eee9;background:#fff;position:sticky;top:0;z-index:5}
+.nav{min-height:70px;display:flex;align-items:center;gap:24px}.brand{font-weight:800;color:#1f6b4f;text-decoration:none;font-size:22px}
+nav{display:flex;gap:18px;flex:1}nav a{color:#40574d;text-decoration:none;font-size:14px}nav a.active{color:#1f6b4f;font-weight:700}
+.nav-search{width:230px;border:1px solid #dce6df;border-radius:12px;padding:10px 13px}.guest{font-size:13px;color:#65756d}
+main{padding:34px 0 60px}h1{font-size:36px;margin:0 0 8px;letter-spacing:-.6px}.sub{color:#687a71;margin:0 0 25px}
+.panel{background:#f5f9f6;border:1px solid #e1ebe5;border-radius:18px;padding:20px;margin-bottom:30px}.panel-title{font-weight:750;font-size:17px;margin-bottom:15px}
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.field label{display:block;font-size:12px;color:#64776e;margin-bottom:6px}
+.field select{width:100%;background:#fff;border:1px solid #d6e2da;border-radius:11px;padding:11px 12px;color:#29443a}.actions{display:flex;align-items:center;gap:12px;margin-top:15px}
+button{font:inherit}.clear{border:1px solid #cbdad1;background:#fff;border-radius:10px;padding:9px 15px;cursor:pointer;color:#476057}
+.result-line{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.section-title{font-size:21px;font-weight:750}
+.count{font-size:13px;color:#73827b;margin-left:8px}.hint{font-size:13px;color:#73827b}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{border:1px solid #e2ebe5;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 3px 14px rgba(20,60,42,.06);text-decoration:none;color:inherit;display:block}
+.card img{width:100%;height:165px;object-fit:cover;background:#eef4ef}.body{padding:14px}.body h3{font-size:17px;margin:0 0 7px}.meta{font-size:12px;color:#708078;margin-bottom:9px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}.tag{font-size:11px;padding:5px 8px;border-radius:999px;background:#f0f6f2;color:#496057}.score{font-weight:800;color:#1f6b4f;font-size:14px}
+.empty{display:none;padding:38px;text-align:center;border:1px dashed #cddbd3;border-radius:16px;background:#f5f9f6;color:#61746a}.note{margin-top:22px;font-size:12px;color:#77867f}
+@media(max-width:900px){.filters{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}nav{gap:10px}.nav-search{width:170px}}
+@media(max-width:560px){.wrap{padding:0 15px}.nav{min-height:62px;gap:10px;flex-wrap:wrap;padding:10px 0}nav{order:2;width:100%;overflow:auto}.nav-search{order:3;width:100%}.filters{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr;gap:12px}h1{font-size:29px}.card img{height:130px}.body{padding:11px}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav">
+<a class="brand" href="/">KidPoshan</a>
+<nav><a href="/">Home</a><a class="active" href="/meal-ideas">Meal Ideas</a><a href="/recipes">Recipes</a><a href="/planner">Planner</a><a href="/learn">Learn</a></nav>
+<input class="nav-search" id="navSearch" placeholder="Search">
+<span class="guest">Guest</span>
+</div></header>
+<main><div class="wrap">
+<h1>Meal Ideas</h1>
+<p class="sub">Tell us who the meal is for, when they will eat it and the season. We'll show meals that fit.</p>
+<section class="panel"><div class="panel-title">Find meals for your family</div>
+<div class="filters">
+<div class="field"><label>Age</label><select id="age"><option value="">Any age</option><option value="2-5">2–5 years</option><option value="5-8">5–8 years</option><option value="9-12">9–12 years</option></select></div>
+<div class="field"><label>Part of day</label><select id="meal"><option value="">Any time</option><option>Breakfast</option><option>School Lunchbox</option><option>Lunch</option><option>4 PM Snack</option><option>Dinner</option></select></div>
+<div class="field"><label>Season</label><select id="season"><option value="">Any season</option><option>Summer</option><option>Monsoon</option><option>Winter</option><option>All Seasons</option></select></div>
+<div class="field"><label>Food preference</label><select id="pref"><option value="">Any</option><option>Veg</option><option>Jain</option><option>Non-Veg</option></select></div>
+</div><div class="actions"><button class="clear" id="clear">Clear filters</button><span class="hint">Filters update the meal ideas instantly.</span></div></section>
+<div class="result-line"><div class="section-title">Meals possible <span class="count" id="count"></span></div><div class="hint" id="summary"></div></div>
+<div class="grid" id="grid"></div><div class="empty" id="empty">No meals match these choices. Try changing one filter.</div>
+<div class="note">Each meal card opens the full recipe, where you can view ingredients, method, nutrition and add it to your planner.</div>
+</div></main>
+<script>
+const demo=[
+{id:"r-aloo",name:"Aloo Tikki",score:88,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/aloo-tikki.jpg"},
+{id:"r-ragi",name:"Ragi Energy Bites",score:88,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/ragi-energy-bites.jpg"},
+{id:"r-paneer",name:"Paneer & Peas Toast",score:86,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/paneer-peas-toast.jpg"},
+{id:"r-khichdi",name:"Vegetable Khichdi",score:83,age_min:2,age_max:8,meal_type:"Lunch",season:"All Seasons",diet:"Veg",image_url:"/assets/images/vegetable-khichdi.jpg"},
+{id:"r-apple",name:"Apple Cinnamon Oats",score:82,age_min:2,age_max:8,meal_type:"Breakfast",season:"Winter",diet:"Veg",image_url:"/assets/images/apple-cinnamon-oats.jpg"},
+{id:"r-cookies",name:"Carrot Oat Cookies",score:80,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"All Seasons",diet:"Veg",image_url:"/assets/images/carrot-oat-cookies.jpg"},
+{id:"r-beet",name:"Beetroot Cutlet",score:76,age_min:5,age_max:8,meal_type:"4 PM Snack",season:"Winter",diet:"Veg",image_url:"/assets/images/beetroot-cutlet.jpg"}];
+const $=s=>document.querySelector(s);
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function norm(list){return (Array.isArray(list)?list:[]).map(r=>({id:r.id||r.slug,name:r.name||"Recipe",score:Number(r.score||0),age_min:Number(r.age_min??r.min_age??0),age_max:Number(r.age_max??r.max_age??99),meal_type:r.meal_type||r.meal||r.slot_name||"",season:r.season||"All Seasons",diet:r.diet||r.food_preference||"Veg",image_url:r.image_url||r.image||r.photo_url||""}));}
+function matchesAge(r,v){if(!v)return true;const[a,b]=v.split("-").map(Number);return r.age_min<=b&&r.age_max>=a;}
+function filter(list){const age=$("#age").value,meal=$("#meal").value,season=$("#season").value,pref=$("#pref").value,q=$("#navSearch").value.trim().toLowerCase();return list.filter(r=>matchesAge(r,age)&&(!meal||r.meal_type===meal)&&(!season||r.season===season||r.season==="All Seasons")&&(!pref||r.diet===pref)&&(!q||(`${r.name} ${r.meal_type} ${r.season}`).toLowerCase().includes(q)));}
+function card(r){return `<a class="card" href="/recipe?id=${encodeURIComponent(r.id)}"><img src="${esc(r.image_url||"/assets/images/recipe-placeholder.jpg")}" alt="${esc(r.name)}" onerror="this.style.visibility='hidden'"><div class="body"><h3>${esc(r.name)}</h3><div class="meta">${esc(r.meal_type)} · ${esc(r.season)}</div><div class="tags"><span class="tag">${esc(r.diet)}</span><span class="tag">${esc(r.age_min)}–${esc(r.age_max)} yrs</span></div><div class="score">KidPoshan Score ${esc(r.score)}</div></div></a>`;}
+async function load(){let list=demo.slice();try{const resp=await fetch("/api/recipes",{credentials:"include"});if(resp.ok){const data=await resp.json();const api=norm(data.recipes??data);if(api.length)list=api;}}catch(e){console.warn("Meal Ideas API unavailable; using built-in data.",e);}const out=filter(list);$("#grid").innerHTML=out.map(card).join("");$("#count").textContent=`${out.length} meal${out.length===1?"":"s"} possible` ;$("#empty").style.display=out.length?"none":"block";const parts=[];if($("#age").value)parts.push($("#age").selectedOptions[0].text);if($("#meal").value)parts.push($("#meal").value);if($("#season").value)parts.push($("#season").value);if($("#pref").value)parts.push($("#pref").value);$("#summary").textContent=parts.join(" · ");}
+["age","meal","season","pref"].forEach(id=>$("#"+id).addEventListener("change",load));$("#clear").addEventListener("click",()=>{["age","meal","season","pref"].forEach(id=>$("#"+id).value="");load();});$("#navSearch").addEventListener("input",load);load();
+</script>
+</body></html>
