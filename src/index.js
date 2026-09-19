@@ -1,3 +1,4 @@
+import { researchProducts } from './product-intelligence.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
 const bad = (msg, status=400) => json({error:msg}, status);
 const now = () => Math.floor(Date.now()/1000);
@@ -60,6 +61,18 @@ async function api(request, env){
     const r=await env.DB.prepare(`SELECT r.*,m.url AS image_url FROM recipes r LEFT JOIN media_assets m ON m.id=r.image_media_id WHERE r.id=? OR r.slug=? LIMIT 1`).bind(rm[1],rm[1]).first();
     if(!r)return bad('Recipe not found.',404); return json({recipe:recipeOut(r)});
   }
+if(p==='/api/product-intelligence/research' && request.method==='POST'){
+  const u=await getSessionUser(request,env);
+  if(!u)return bad('Please log in to use Product Intelligence.',401);
+  const b=await request.json();
+  try{
+    const result=await researchProducts(env,b);
+    await env.DB.prepare(`INSERT INTO product_research_runs(id,user_id,query_text,age,meal,season,preference,provider,model,result_count,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(uid('pirun'),u.id,String(b.query||''),b.age?Number(b.age):null,b.meal||null,b.season||null,b.preference||null,'gemini',result.model,result.products.length,'completed',now()).run();
+    return json(result);
+  }catch(e){
+    return json({error:e.message},502);
+  }
+}
   if(p==='/api/products' && request.method==='GET'){
     const ingredient=(url.searchParams.get('ingredient')||'').trim(); let sql=`SELECT p.*,m.url AS image_url, GROUP_CONCAT(pb.retailer||'::'||pb.url,'|') AS buy_links FROM products p LEFT JOIN media_assets m ON m.id=p.image_media_id LEFT JOIN product_buy_links pb ON pb.product_id=p.id WHERE p.status='published'`; const args=[];
     if(ingredient){sql+=` AND lower(p.ingredient) LIKE ?`;args.push('%'+ingredient.toLowerCase()+'%');}
