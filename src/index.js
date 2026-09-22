@@ -1,4 +1,5 @@
 import { researchProducts } from './product-intelligence.js';
+import { searchWeb } from './web-search.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
 const bad = (msg, status=400) => json({error:msg}, status);
 const now = () => Math.floor(Date.now()/1000);
@@ -61,8 +62,54 @@ async function api(request, env){
     const r=await env.DB.prepare(`SELECT r.*,m.url AS image_url FROM recipes r LEFT JOIN media_assets m ON m.id=r.image_media_id WHERE r.id=? OR r.slug=? LIMIT 1`).bind(rm[1],rm[1]).first();
     if(!r)return bad('Recipe not found.',404); return json({recipe:recipeOut(r)});
   }
+if(p==='/api/discovery/search' && request.method==='POST'){
+  const u = await getSessionUser(request, env);
+  if(!u) return bad('Please log in to use Discovery Search.', 401);
+
+  const b = await request.json();
+  const query = String(b.query || '').trim();
+
+  if(!query){
+    return bad('Search query is required.', 400);
+  }
+
+  try{
+    const result = await searchWeb(env, query, {
+      search_depth: b.search_depth || 'advanced',
+      topic: b.topic || 'general',
+      max_results: b.max_results ? Number(b.max_results) : 8
+    });
+
+    return json(result);
+  }catch(e){
+    return json({error:e.message}, 502);
+  }
+}
+if(p==='/api/discovery/search' && request.method==='POST'){
+  const u = await getSessionUser(request, env);
+  if(!u) return bad('Please log in to use Discovery Search.', 401);
+
+  const b = await request.json();
+  const query = String(b.query || '').trim();
+
+  if(!query){
+    return bad('Search query is required.', 400);
+  }
+
+  try{
+    const result = await searchWeb(env, query, {
+      search_depth: b.search_depth || 'advanced',
+      topic: b.topic || 'general',
+      max_results: b.max_results ? Number(b.max_results) : 8
+    });
+
+    return json(result);
+  }catch(e){
+    return json({error:e.message}, 502);
+  }
+}
 if(p==='/api/product-intelligence/research' && request.method==='POST'){
-  const u=await getSessionUser(request,env);
+  const u=await getSessionUser(request,env);	
   if(!u)return bad('Please log in to use Product Intelligence.',401);
   const b=await request.json();
   try{
