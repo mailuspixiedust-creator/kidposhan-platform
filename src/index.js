@@ -1,5 +1,6 @@
 import { researchProducts } from './product-intelligence.js';
 import { searchWeb } from './web-search.js';
+import { runWebDiscovery } from './discovery.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
 const bad = (msg, status=400) => json({error:msg}, status);
 const now = () => Math.floor(Date.now()/1000);
@@ -64,17 +65,24 @@ async function api(request, env){
   }
 if(p==='/api/discovery/search' && request.method==='POST'){
   const u = await getSessionUser(request, env);
-  if(!u) return bad('Please log in to use Discovery Search.', 401);
+  if(!u) return bad('Please log in to use Discovery Search.',401);
 
   const b = await request.json();
   const query = String(b.query || '').trim();
 
   if(!query){
-    return bad('Search query is required.', 400);
+    return bad('Search query is required.',400);
   }
 
   try{
-    const result = await searchWeb(env, query, {
+    const result = await runWebDiscovery(env, {
+      user_id: u.id,
+      query,
+      discovery_type: b.discovery_type || 'product',
+      age: b.age,
+      meal: b.meal,
+      season: b.season,
+      preference: b.preference,
       search_depth: b.search_depth || 'advanced',
       topic: b.topic || 'general',
       max_results: b.max_results ? Number(b.max_results) : 8
@@ -82,30 +90,7 @@ if(p==='/api/discovery/search' && request.method==='POST'){
 
     return json(result);
   }catch(e){
-    return json({error:e.message}, 502);
-  }
-}
-if(p==='/api/discovery/search' && request.method==='POST'){
-  const u = await getSessionUser(request, env);
-  if(!u) return bad('Please log in to use Discovery Search.', 401);
-
-  const b = await request.json();
-  const query = String(b.query || '').trim();
-
-  if(!query){
-    return bad('Search query is required.', 400);
-  }
-
-  try{
-    const result = await searchWeb(env, query, {
-      search_depth: b.search_depth || 'advanced',
-      topic: b.topic || 'general',
-      max_results: b.max_results ? Number(b.max_results) : 8
-    });
-
-    return json(result);
-  }catch(e){
-    return json({error:e.message}, 502);
+    return json({error:e.message},502);
   }
 }
 if(p==='/api/product-intelligence/research' && request.method==='POST'){
