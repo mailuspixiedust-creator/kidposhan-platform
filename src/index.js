@@ -132,7 +132,7 @@ if(p==='/api/product-intelligence/research' && request.method==='POST'){
       b.meal || null,
       b.season || null,
       b.preference || null,
-      'gemini',
+      'tavily-page-extractor',
       'completed',
       result.products.length,
       ts
@@ -293,7 +293,7 @@ if(p==='/api/product-intelligence/research' && request.method==='POST'){
       b.meal || null,
       b.season || null,
       b.preference || null,
-      'gemini',
+      'tavily-page-extractor',
       result.model,
       result.products.length,
       'completed',
