@@ -94,18 +94,222 @@ if(p==='/api/discovery/search' && request.method==='POST'){
   }
 }
 if(p==='/api/product-intelligence/research' && request.method==='POST'){
-  const u=await getSessionUser(request,env);	
+  const u=await getSessionUser(request,env);
   if(!u)return bad('Please log in to use Product Intelligence.',401);
+
   const b=await request.json();
+
   try{
     const result=await researchProducts(env,b);
-    await env.DB.prepare(`INSERT INTO product_research_runs(id,user_id,query_text,age,meal,season,preference,provider,model,result_count,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(uid('pirun'),u.id,String(b.query||''),b.age?Number(b.age):null,b.meal||null,b.season||null,b.preference||null,'gemini',result.model,result.products.length,'completed',now()).run();
-    return json(result);
+
+    const runId=uid('discovery');
+    const ts=now();
+
+    // Record the research run
+    await env.DB.prepare(`
+      INSERT INTO discovery_runs
+      (
+        id,
+        user_id,
+        query_text,
+        discovery_type,
+        age,
+        meal,
+        season,
+        preference,
+        provider,
+        status,
+        result_count,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      runId,
+      u.id,
+      String(b.query||''),
+      'product',
+      b.age ? Number(b.age) : null,
+      b.meal || null,
+      b.season || null,
+      b.preference || null,
+      'gemini',
+      'completed',
+      result.products.length,
+      ts
+    ).run();
+
+    // Save each researched product.
+    // Product identity = Brand + SKU.
+    // Manufacturing locations are deliberately NOT part of the identity.
+    for(const p of result.products){
+
+      const brand=String(p.brand||'').trim();
+      const sku=String(p.sku||'').trim();
+      const name=String(p.name||'').trim();
+
+      if(!name) continue;
+
+      const normalizedBrand=brand.toLowerCase().replace(/\s+/g,' ').trim();
+      const normalizedSku=sku.toLowerCase().replace(/\s+/g,' ').trim();
+
+      const productKey =
+        normalizedBrand && normalizedSku
+          ? `${normalizedBrand}|${normalizedSku}`
+          : `${normalizedBrand}|${name.toLowerCase().replace(/\s+/g,' ').trim()}`;
+
+      // Prevent the same Brand + SKU from being inserted twice.
+      const existing=await env.DB.prepare(`
+        SELECT id
+        FROM discovered_products
+        WHERE product_key=?
+        LIMIT 1
+      `).bind(productKey).first();
+
+      let productId=existing?.id;
+
+      if(!productId){
+        productId=uid('product');
+
+        await env.DB.prepare(`
+          INSERT INTO discovered_products
+          (
+            id,
+            run_id,
+            name,
+            brand,
+            sku,
+            category,
+            pack_size_value,
+            pack_size_unit,
+            manufacturer_url,
+            product_url,
+            ingredients_text,
+            nutrition_json,
+            product_facts_json,
+            evidence_json,
+            availability_json,
+            buy_links_json,
+            confidence,
+            kidposhan_score,
+            score_status,
+            status,
+            created_at,
+            updated_at,
+            product_key,
+            variant,
+            identity_status
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          productId,
+          runId,
+          name,
+          brand,
+          sku,
+          p.category || '',
+          null,
+          null,
+          null,
+          p.source_urls?.[0] || null,
+          JSON.stringify(p.ingredients || []),
+          JSON.stringify(p.nutrition || {}),
+          JSON.stringify({
+            pack_size:p.pack_size || '',
+            verification_status:p.verification_status || ''
+          }),
+          JSON.stringify({
+            source_urls:p.source_urls || [],
+            source_notes:p.source_notes || []
+          }),
+          null,
+          null,
+          null,
+          null,
+          'not_scored',
+          'candidate',
+          ts,
+          ts,
+          productKey,
+          null,
+          p.verification_status || 'unverified'
+        ).run();
+      }
+
+      // Save source/evidence records for this product.
+      for(const sourceUrl of (p.source_urls || [])){
+        if(!sourceUrl) continue;
+
+        await env.DB.prepare(`
+          INSERT INTO product_evidence
+          (
+            id,
+            product_id,
+            evidence_type,
+            source_url,
+            field_name,
+            extracted_value,
+            evidence_text,
+            confidence,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          uid('evidence'),
+          productId,
+          'product_research',
+          sourceUrl,
+          null,
+          null,
+          null,
+          null,
+          ts
+        ).run();
+      }
+    }
+
+    // Keep the existing research-run history as well.
+    await env.DB.prepare(`
+      INSERT INTO product_research_runs
+      (
+        id,
+        user_id,
+        query_text,
+        age,
+        meal,
+        season,
+        preference,
+        provider,
+        model,
+        result_count,
+        status,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      uid('pirun'),
+      u.id,
+      String(b.query||''),
+      b.age ? Number(b.age) : null,
+      b.meal || null,
+      b.season || null,
+      b.preference || null,
+      'gemini',
+      result.model,
+      result.products.length,
+      'completed',
+      ts
+    ).run();
+
+    return json({
+      ...result,
+      discovery_run_id:runId,
+      persisted_products:result.products.length
+    });
+
   }catch(e){
     return json({error:e.message},502);
   }
-}
-  if(p==='/api/products' && request.method==='GET'){
+}  if(p==='/api/products' && request.method==='GET'){
     const ingredient=(url.searchParams.get('ingredient')||'').trim(); let sql=`SELECT p.*,m.url AS image_url, GROUP_CONCAT(pb.retailer||'::'||pb.url,'|') AS buy_links FROM products p LEFT JOIN media_assets m ON m.id=p.image_media_id LEFT JOIN product_buy_links pb ON pb.product_id=p.id WHERE p.status='published'`; const args=[];
     if(ingredient){sql+=` AND lower(p.ingredient) LIKE ?`;args.push('%'+ingredient.toLowerCase()+'%');}
     sql+=` GROUP BY p.id ORDER BY p.score DESC LIMIT 50`; const {results}=await env.DB.prepare(sql).bind(...args).all();

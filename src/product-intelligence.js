@@ -1,4 +1,4 @@
-const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+const GEMINI_DEFAULT_MODEL = "gemini-3.6-flash";
 
 function clean(v) { return typeof v === "string" ? v.trim() : ""; }
 function arr(v) { return Array.isArray(v) ? v : []; }
