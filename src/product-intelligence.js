@@ -4,21 +4,8 @@ function clean(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
 
-function arr(v) {
-  return Array.isArray(v) ? v : [];
-}
-
 function normalizeText(v) {
-  return clean(v)
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function brandName(brand) {
-  if (typeof brand === 'string') return clean(brand);
-  if (brand && typeof brand === 'object') return clean(brand.name);
-  return '';
+  return clean(v).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function firstValue(...values) {
@@ -29,13 +16,17 @@ function firstValue(...values) {
   return '';
 }
 
+function brandName(brand) {
+  if (typeof brand === 'string') return clean(brand);
+  if (brand && typeof brand === 'object') return clean(brand.name);
+  return '';
+}
+
 function extractProductObjects(value, out = []) {
   if (!value) return out;
 
   if (Array.isArray(value)) {
-    for (const item of value) {
-      extractProductObjects(item, out);
-    }
+    for (const item of value) extractProductObjects(item, out);
     return out;
   }
 
@@ -50,41 +41,34 @@ function extractProductObjects(value, out = []) {
     out.push(value);
   }
 
-  if (value['@graph']) {
-    extractProductObjects(value['@graph'], out);
-  }
-
-  if (value.mainEntity) {
-    extractProductObjects(value.mainEntity, out);
-  }
-
-  if (value.itemListElement) {
-    extractProductObjects(value.itemListElement, out);
-  }
+  if (value['@graph']) extractProductObjects(value['@graph'], out);
+  if (value.mainEntity) extractProductObjects(value.mainEntity, out);
+  if (value.itemListElement) extractProductObjects(value.itemListElement, out);
 
   return out;
 }
 
 function parseJsonLd(html) {
   const products = [];
+
   const regex =
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
 
   let match;
 
   while ((match = regex.exec(html))) {
-    let text = match[1]
+    let jsonText = match[1]
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .trim();
 
-    if (!text) continue;
+    if (!jsonText) continue;
 
     try {
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(jsonText);
       extractProductObjects(parsed, products);
     } catch {
-      // Some sites contain malformed JSON-LD. Ignore that block.
+      // Ignore malformed JSON-LD
     }
   }
 
@@ -92,6 +76,31 @@ function parseJsonLd(html) {
 }
 
 function extractMeta(html, property) {
+function extractImageUrl(product, html) {
+  const image = product?.image;
+
+  if (typeof image === 'string' && image.trim()) {
+    return image.trim();
+  }
+
+  if (Array.isArray(image) && image.length > 0) {
+    const first = image[0];
+
+    if (typeof first === 'string' && first.trim()) {
+      return first.trim();
+    }
+
+    if (first && typeof first === 'object' && first.url) {
+      return clean(first.url);
+    }
+  }
+
+  if (image && typeof image === 'object' && image.url) {
+    return clean(image.url);
+  }
+
+  return extractMeta(html, 'og:image');
+}
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   const patterns = [
@@ -113,42 +122,29 @@ function extractMeta(html, property) {
   return '';
 }
 
+/*
+ * Remove scripts, styles, forms, SVGs and obvious UI junk.
+ * This prevents things like "I am interested..." from becoming
+ * ingredient/product text.
+ */
 function stripHtml(html) {
   return clean(
     html
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+      .replace(/<form[\s\S]*?<\/form>/gi, ' ')
+      .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+      .replace(/<button[\s\S]*?<\/button>/gi, ' ')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&nbsp;/gi, ' ')
       .replace(/&amp;/gi, '&')
+      .replace(/&#39;/gi, "'")
+      .replace(/&quot;/gi, '"')
       .replace(/\s+/g, ' ')
   );
-}
-
-function extractLabeled(text, labels) {
-  for (const label of labels) {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    const patterns = [
-      new RegExp(
-        `${escaped}\\s*[:#-]\\s*([^|;,]{2,100})`,
-        'i'
-      ),
-      new RegExp(
-        `${escaped}\\s+([^|;,]{2,100})`,
-        'i'
-      )
-    ];
-
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match?.[1]) {
-        return clean(match[1]);
-      }
-    }
-  }
-
-  return '';
 }
 
 function extractPackSize(text, name = '') {
@@ -158,12 +154,7 @@ function extractPackSize(text, name = '') {
     /\b(\d+(?:\.\d+)?)\s*(kg|g|mg|ml|l|litre|liter|litres|liters)\b/i
   );
 
-  if (!match) {
-    return {
-      value: '',
-      unit: ''
-    };
-  }
+  if (!match) return { value: '', unit: '' };
 
   return {
     value: match[1],
@@ -210,7 +201,7 @@ function extractNutrition(text) {
       /protein\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*g/i
     ],
     carbohydrate_g: [
-      /(?:carbohydrate|carbohydrates)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*g/i
+      /carbohydrate[s]?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*g/i
     ],
     sugars_g: [
       /(?:total\s*)?sugars?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*g/i
@@ -235,6 +226,7 @@ function extractNutrition(text) {
   for (const [field, regexes] of Object.entries(patterns)) {
     for (const regex of regexes) {
       const match = text.match(regex);
+
       if (match?.[1]) {
         nutrition[field] = clean(match[1]);
         break;
@@ -285,6 +277,67 @@ function getIdentifier(product) {
   };
 }
 
+/*
+ * Trade / B2B pages must never become consumer products.
+ */
+function isTradePage(url = '', title = '', text = '') {
+  const source = `${url} ${title} ${text}`.toLowerCase();
+
+  const tradeTerms = [
+    'manufacturer',
+    'manufacturers',
+    'wholesaler',
+    'wholesalers',
+    'supplier',
+    'suppliers',
+    'exporter',
+    'exporters',
+    'bulk order',
+    'bulk orders',
+    'india mart',
+    'indiamart',
+    'tradeindia',
+    'directory',
+    'distributor',
+    'distributors',
+    'b2b'
+  ];
+
+  return tradeTerms.some(term => source.includes(term));
+}
+
+/*
+ * We want consumer retail / brand sources.
+ */
+function isPreferredRetailSource(url = '') {
+  const host = (() => {
+    try {
+      return new URL(url).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+
+  const preferred = [
+    'amazon.in',
+    'blinkit.com',
+    'zepto.com',
+    'bigbasket.com',
+    'flipkart.com',
+    'swiggy.com',
+    'instamart',
+    'jiomart.com',
+    'dmart.in',
+    'naturebasket.co.in',
+    'tataconsumer.com',
+    'slurrpfarm.com',
+    '24mantra.com',
+    'organictattva.com'
+  ];
+
+  return preferred.some(domain => host === domain || host.endsWith(`.${domain}`));
+}
+
 async function fetchPage(url) {
   try {
     const response = await fetch(url, {
@@ -292,7 +345,7 @@ async function fetchPage(url) {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (compatible; KidPoshanProductResearch/1.0)',
-        'Accept':
+        Accept:
           'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8'
       },
       redirect: 'follow'
@@ -306,12 +359,10 @@ async function fetchPage(url) {
       };
     }
 
-    const html = await response.text();
-
     return {
       ok: true,
       status: response.status,
-      html
+      html: await response.text()
     };
   } catch {
     return {
@@ -325,9 +376,13 @@ async function fetchPage(url) {
 function productFromPage(result, page) {
   const html = page.html || '';
   const text = stripHtml(html);
-  const jsonProducts = parseJsonLd(html);
 
-  let product = jsonProducts[0] || {};
+  if (isTradePage(result.url, result.title, text)) {
+    return null;
+  }
+
+  const jsonProducts = parseJsonLd(html);
+  const product = jsonProducts[0] || {};
 
   const name = firstValue(
     product.name,
@@ -338,15 +393,24 @@ function productFromPage(result, page) {
 
   const brand = firstValue(
     brandName(product.brand),
-    extractMeta(html, 'product:brand'),
-    extractLabeled(text, ['Brand', 'Brand Name'])
+    extractMeta(html, 'product:brand')
   );
 
   const identifier = getIdentifier(product);
+const imageUrl = extractImageUrl(product, html);
 
-  const sku = identifier.type === 'sku'
-    ? identifier.value
-    : '';
+  /*
+   * STRICT IDENTITY RULE:
+   * No explicit identifier = no product identity.
+   */
+  if (!brand || !identifier.value) {
+    return null;
+  }
+
+  const sku =
+    identifier.type === 'sku'
+      ? identifier.value
+      : '';
 
   const pack = extractPackSize(
     `${product.description || ''} ${text}`,
@@ -360,8 +424,7 @@ function productFromPage(result, page) {
   const nutrition = extractNutrition(text);
 
   const category = firstValue(
-    product.category,
-    extractLabeled(text, ['Category', 'Product Category'])
+    product.category
   );
 
   const productUrl = firstValue(
@@ -369,25 +432,14 @@ function productFromPage(result, page) {
     result.url
   );
 
-  const productKeyBrand = normalizeText(brand);
-  const productKeyIdentifier = normalizeText(
-    identifier.value
-  );
-
   const productKey =
-    productKeyBrand && productKeyIdentifier
-      ? `${productKeyBrand}|${productKeyIdentifier}`
-      : '';
-
-  const identityStatus =
-    brand && identifier.value
-      ? 'verified'
-      : 'unverified';
+    `${normalizeText(brand)}|${normalizeText(identifier.value)}`;
 
   return {
     name,
     brand,
     sku,
+  image_url: imageUrl,
     pack_size: pack.value
       ? `${pack.value} ${pack.unit}`
       : '',
@@ -396,17 +448,13 @@ function productFromPage(result, page) {
     nutrition,
     source_urls: [productUrl].filter(Boolean),
     source_notes: [
-      identifier.type
-        ? `Product identifier extracted from page structured data: ${identifier.type}.`
-        : 'No explicit SKU, MPN or GTIN found on the page.',
+      `Explicit product identifier extracted from page structured data: ${identifier.type}.`,
+      'Consumer product page passed trade-page filtering.',
       jsonProducts.length
         ? 'Product structured data found on page.'
-        : 'No Product JSON-LD found; fallback page metadata/text extraction used.'
+        : 'Product metadata/text extraction used.'
     ],
-    verification_status:
-      identityStatus === 'verified'
-        ? 'verified'
-        : 'partially_verified',
+    verification_status: 'verified',
     product_key: productKey,
     identifier_type: identifier.type,
     identifier_value: identifier.value,
@@ -415,111 +463,122 @@ function productFromPage(result, page) {
   };
 }
 
-function productFromTavilyResult(result) {
-  const raw = result.raw_content || result.snippet || '';
-  const text = clean(raw);
-
-  const name = clean(result.title);
-
-  const brand = extractLabeled(text, [
-    'Brand',
-    'Brand Name',
-    'Manufacturer Brand'
-  ]);
-
-  const identifier = extractLabeled(text, [
-    'SKU',
-    'Product SKU',
-    'MPN',
-    'Model Number',
-    'GTIN',
-    'EAN',
-    'UPC'
-  ]);
-
-  const identifierType = /sku/i.test(identifier)
-    ? 'sku'
-    : '';
-
-  const pack = extractPackSize(text, name);
-
-  const productKey =
-    brand && identifier
-      ? `${normalizeText(brand)}|${normalizeText(identifier)}`
-      : '';
-
-  return {
-    name,
-    brand,
-    sku: identifierType === 'sku' ? identifier : '',
-    pack_size: pack.value
-      ? `${pack.value} ${pack.unit}`
-      : '',
-    category: '',
-    ingredients: extractIngredients(text),
-    nutrition: extractNutrition(text),
-    source_urls: [result.url].filter(Boolean),
-    source_notes: [
-      'Fallback extraction from Tavily indexed page content.'
-    ],
-    verification_status:
-      brand && identifier
-        ? 'partially_verified'
-        : 'insufficient',
-    product_key: productKey,
-    identifier_type: identifierType,
-    identifier_value: identifier,
-    product_url: result.url,
-    kidposhan_score: null
-  };
-}
-
 function dedupeProducts(products) {
   const map = new Map();
 
   for (const product of products) {
-    const key =
-      product.product_key ||
-      `${normalizeText(product.brand)}|${normalizeText(product.name)}|${product.product_url}`;
+    if (!product?.product_key) continue;
 
-    if (!key || key === '||') continue;
-
-    const existing = map.get(key);
+    const existing = map.get(product.product_key);
 
     if (!existing) {
-      map.set(key, product);
+      map.set(product.product_key, product);
       continue;
     }
 
-    // Prefer the record with a verified identity.
-    if (
-      product.verification_status === 'verified' &&
-      existing.verification_status !== 'verified'
-    ) {
-      map.set(key, product);
-    }
+    const existingSources = existing.source_urls || [];
+    const newSources = product.source_urls || [];
+
+    existing.source_urls = [
+      ...new Set([...existingSources, ...newSources])
+    ];
   }
 
   return [...map.values()];
 }
 
-export async function researchProducts(env, input = {}) {
-  const query = clean(input?.query) || 'packaged food for children';
+async function runTargetedSearches(env, query) {
+  const searches = [
+    {
+      query: `${query} packaged food brand India`,
+      domains: []
+    },
+    {
+      query: `site:amazon.in ${query}`,
+      domains: ['amazon.in']
+    },
+    {
+      query: `site:blinkit.com ${query}`,
+      domains: ['blinkit.com']
+    },
+    {
+      query: `site:zepto.com ${query}`,
+      domains: ['zepto.com']
+    },
+    {
+      query: `site:bigbasket.com ${query}`,
+      domains: ['bigbasket.com']
+    },
+    {
+      query: `site:flipkart.com ${query}`,
+      domains: ['flipkart.com']
+    },
+    {
+      query: `site:swiggy.com/instamart ${query}`,
+      domains: ['swiggy.com']
+    }
+  ];
 
-  const search = await searchWeb(env, query, {
-    search_depth: 'advanced',
-    topic: 'general',
-    max_results: input?.max_results
-      ? Number(input.max_results)
-      : 8
+  const allResults = [];
+
+  for (const search of searches) {
+    try {
+      const result = await searchWeb(env, search.query, {
+        search_depth: 'advanced',
+        topic: 'general',
+        max_results: 6,
+        include_domains: search.domains
+      });
+
+      for (const item of result.results || []) {
+        if (item?.url) {
+          allResults.push(item);
+        }
+      }
+    } catch {
+      // Continue with the other discovery lanes.
+    }
+  }
+
+  const unique = new Map();
+
+  for (const result of allResults) {
+    const key = result.url;
+
+    if (!unique.has(key)) {
+      unique.set(key, result);
+    }
+  }
+
+  return [...unique.values()];
+}
+
+export async function researchProducts(env, input = {}) {
+  const query =
+    clean(input?.query) ||
+    'packaged food for children';
+
+  const candidates = await runTargetedSearches(
+    env,
+    query
+  );
+
+  /*
+   * Retail/brand sources first.
+   */
+  candidates.sort((a, b) => {
+    const aPreferred = isPreferredRetailSource(a.url) ? 1 : 0;
+    const bPreferred = isPreferredRetailSource(b.url) ? 1 : 0;
+
+    return bPreferred - aPreferred;
   });
 
-  const candidates = arr(search.results)
-    .filter(result => clean(result.url))
-    .slice(0, 8);
+  const selectedCandidates = candidates
+    .filter(result => !isTradePage(result.url, result.title))
+    .slice(0, 30);
 
   const fetched = await Promise.all(
-    candidates.map(async result => ({
+    selectedCandidates.map(async result => ({
       result,
       page: await fetchPage(result.url)
     }))
@@ -528,24 +587,15 @@ export async function researchProducts(env, input = {}) {
   const products = [];
 
   for (const item of fetched) {
-    if (item.page.ok && item.page.html) {
-      const product = productFromPage(
-        item.result,
-        item.page
-      );
+    if (!item.page.ok || !item.page.html) continue;
 
-      if (product.name) {
-        products.push(product);
-        continue;
-      }
-    }
-
-    const fallback = productFromTavilyResult(
-      item.result
+    const product = productFromPage(
+      item.result,
+      item.page
     );
 
-    if (fallback.name) {
-      products.push(fallback);
+    if (product) {
+      products.push(product);
     }
   }
 
@@ -556,20 +606,28 @@ export async function researchProducts(env, input = {}) {
     provider: 'tavily-page-extractor',
     model: 'deterministic',
     query,
+
     research_notes: [
-      'Products are discovered using Tavily.',
+      'Discovery uses multiple consumer-retail search lanes.',
+      'Retail and brand websites are preferred.',
+      'Trade, wholesale and manufacturer-directory pages are rejected.',
       'Product pages are fetched directly by the Cloudflare Worker.',
-      'Structured Product data is preferred when published by the page.',
-      'No SKU, MPN or GTIN is invented when the page does not provide one.',
-      'Product identity is based on Brand + explicit product identifier.',
-      'Manufacturing location is not part of product identity.'
+      'Product structured data is preferred.',
+      'No SKU, MPN or GTIN is invented.',
+      'Product identity requires Brand + explicit product identifier.',
+      'Manufacturing location is not part of product identity.',
+      'Products without an explicit identifier are not promoted to product identity.'
     ],
+
     products: uniqueProducts,
-    citations: candidates.map(result => ({
+
+    citations: selectedCandidates.map(result => ({
       url: result.url,
       title: result.title || ''
     })),
+
     score_status: 'not_scored',
+
     score_message:
       'Products are extracted without inventing a KidPoshan Score.'
   };

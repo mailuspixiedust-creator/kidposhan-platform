@@ -11,6 +11,9 @@ export async function searchWeb(env, query, options = {}) {
     include_answer: false,
     include_raw_content: true,
     include_images: false
+...(options.include_domains?.length
+    ? { include_domains: options.include_domains }
+    : {})
   };
 
   const response = await fetch('https://api.tavily.com/search', {
