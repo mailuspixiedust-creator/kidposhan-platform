@@ -7,21 +7,7 @@
 <link rel="stylesheet" href="/assets/css/styles.css">
 <style>
   .recipe-shopping{margin-top:18px}
-  .ingredient-head,.ingredient-row{
-    display:grid;
-    grid-template-columns:90px 125px minmax(180px,1.3fr) 120px minmax(220px,1.5fr);
-    gap:12px;align-items:center;padding:12px 10px;border-bottom:1px solid #e7edf1
-  }
-  .ingredient-head{font-size:12px;font-weight:800;color:#536b7f;background:#f7fafb;border-radius:10px 10px 0 0}
-  .ingredient-row{font-size:14px}
-  .ingredient-row.is-buying{background:#f3fbf6}
-  .ingredient-row.is-have{opacity:.7}
-  .buy-box,.have-box{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;cursor:pointer}
-  .buy-box input,.have-box input{width:18px;height:18px;accent-color:#16834b;cursor:pointer}
-  .product-reco{display:flex;flex-direction:column;gap:5px}
-  .product-reco__top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .product-score{font-weight:900;color:#147a45}
-  .product-meta{font-size:11px;color:var(--muted)}
+  .recipe-shopping{margin-top:18px}
   .shopping-bar{margin-top:14px;border:1px solid #d9e9df;background:#f7fcf9;border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
   .shopping-items{font-size:12px;color:var(--muted);margin-top:3px}
   .ready-note{margin-bottom:12px}
@@ -31,9 +17,45 @@
   .ready-card .card-body{padding:12px}
   .rank-note{font-size:11px;color:var(--muted);line-height:1.4}
   .empty-state{padding:20px;border:1px dashed #cfdbe3;border-radius:12px;color:var(--muted)}
-  @media(max-width:850px){
-    .ingredient-head,.ingredient-row{min-width:780px}
-    .ingredient-wrap{overflow-x:auto}
+
+  .ingredient-checklist{margin-top:14px;border:1px solid #e0e9e3;border-radius:14px;overflow:hidden;background:#fff}
+  .ingredient-check-header,.ingredient-check-row{display:grid;grid-template-columns:minmax(190px,1fr) 120px 100px 100px;gap:12px;align-items:center;padding:12px 14px}
+  .ingredient-check-header{font-size:12px;font-weight:800;color:#536b7f;background:#f7fafb;border-bottom:1px solid #e7edf1}
+  .ingredient-check-row{font-size:14px;border-bottom:1px solid #edf1ee}
+  .ingredient-check-row:last-child{border-bottom:0}
+  .ingredient-check-row.is-buying{background:#f5fbf7}
+  .ingredient-name{font-weight:800}
+  .ingredient-qty{font-size:12px;color:#718078}
+  .check-cell{display:flex;align-items:center;justify-content:center}
+  .check-cell input{width:20px;height:20px;accent-color:#16834b;cursor:pointer}
+  .buy-location{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .buy-location input{width:130px;padding:8px 10px;border:1px solid #d6e2da;border-radius:9px}
+  .buy-location button{border:0;background:#1f6b4f;color:#fff;border-radius:9px;padding:8px 10px;font-weight:750}
+  .buy-note{font-size:12px;color:#718078}
+  .buy-results{margin-top:16px;border-top:1px solid #e6eee9;padding-top:14px}
+  .buy-results-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .buy-results-title h3{margin:0}
+  .buy-products{display:flex;gap:12px;overflow-x:auto;padding:12px 2px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain}
+  .buy-product{flex:0 0 230px;border:1px solid #dfe9e3;border-radius:14px;background:#fff;overflow:hidden;scroll-snap-align:start}
+  .buy-product img{width:100%;height:130px;object-fit:contain;background:#f6f9f7}
+  .buy-body{padding:11px}
+  .buy-brand{font-size:11px;color:#6b7c74}
+  .buy-name{font-weight:800;margin:4px 0;line-height:1.25}
+  .buy-meta{font-size:11px;color:#718078;margin:5px 0}
+  .buy-price{font-size:18px;font-weight:900;color:#173e2d;margin:8px 0 2px}
+  .buy-unit{font-size:11px;color:#718078}
+  .buy-retailer{font-weight:850;margin-top:8px}
+  .buy-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .buy-actions a,.add-buy{font-size:11px;border:1px solid #cfe0d5;color:#1f6b4f;background:#fff;border-radius:8px;padding:7px 8px;text-decoration:none;font-weight:800;cursor:pointer}
+  .buy-actions .primary-buy{background:#1f6b4f;color:#fff}
+  .buy-actions .secondary-buy{background:#fff}
+  .combined-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e7edf1;padding:9px 0}
+  @media(max-width:700px){
+    .ingredient-check-header,.ingredient-check-row{grid-template-columns:minmax(150px,1fr) 72px 72px 72px;gap:7px;padding:10px 8px}
+    .ingredient-check-header{font-size:11px}
+    .ingredient-check-row{font-size:13px}
+    .buy-location input{flex:1;width:auto}
+    .buy-product{flex-basis:210px}
   }
 </style>
 </head>
@@ -48,6 +70,7 @@ $('#nav').innerHTML=KP.nav('recipes');
 $('#foot').innerHTML=KP.footer();
 
 const params=new URLSearchParams(location.search);
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 const recipeRef=params.get('id') || params.get('slug') || 'aloo-tikki';
 let recipe=null;
 let selectedBuy={};
@@ -60,6 +83,9 @@ function loadShopping(){
 }
 function saveShopping(v){localStorage.setItem(STORAGE,JSON.stringify(v))}
 selectedBuy=loadShopping();
+let recipeHome={};
+try{recipeHome=JSON.parse(localStorage.getItem(STORAGE+'.home')||'{}')}catch(e){recipeHome={}}
+
 
 function unitCost(p){
   const raw=String(p.pack_size||p.pack||p.size||'').toLowerCase();
@@ -78,102 +104,128 @@ function productSort(a,b){
   return (ua==null?Infinity:ua)-(ub==null?Infinity:ub);
 }
 
-function safeImg(url,fallback){
-  return url || fallback || '/assets/images/aloo-tikki.jpg';
-}
+function safeImg(url,fallback){return url||fallback||'/assets/images/aloo-tikki.jpg';}
 
-function ingredientRow(i,index){
-  const key=i.key || i.name.toLowerCase();
-  const checked=!!selectedBuy[key];
-  return `
-    <div class="ingredient-row ${checked?'is-buying':''}" data-key="${key}">
-      <label class="buy-box">
-        <input type="checkbox" class="buy-check" data-key="${key}" ${checked?'checked':''}>
-        <span>Buy</span>
-      </label>
-      <label class="have-box">
-        <input type="checkbox" class="have-check" data-key="${key}">
-        <span>Have at home</span>
-      </label>
-      <div><b>${i.name}</b></div>
-      <div>${i.qty||'—'}</div>
-      <div class="product-reco" id="reco-${index}">
-        <span class="product-meta">Select Buy to find verified product choices.</span>
-      </div>
-    </div>`;
-}
-
+function currentPincode(){return localStorage.getItem(STORAGE+'.pincode')||'';}
+function ingredientKey(i){return i.key||String(i.name||'').toLowerCase().trim();}
 function renderShoppingBar(){
-  const keys=Object.keys(selectedBuy);
-  const chosen=recipe.ingredients.filter(i=>selectedBuy[i.key||i.name.toLowerCase()]);
+  const chosen=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]);
   $('#shopping-count').textContent=`${chosen.length} item${chosen.length===1?'':'s'} selected`;
-  $('#shopping-items').textContent=chosen.length ? chosen.map(i=>`${i.name} — ${i.qty}`).join(' · ') : 'Tick Buy for the ingredients you need.';
+  $('#shopping-items').textContent=chosen.length ? chosen.map(i=>`${i.name} — ${i.qty||''}`).join(' · ') : 'Tick To Buy for the ingredients you need.';
   $('#view-shopping').disabled=!chosen.length;
 }
-
 function renderShoppingList(){
-  const chosen=recipe.ingredients.filter(i=>selectedBuy[i.key||i.name.toLowerCase()]);
-  $('#shopping-list-panel').innerHTML=chosen.length
-    ? `<div class="panel"><h3>Combined shopping list</h3>${chosen.map(i=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid #e7edf1;padding:9px 0"><span>${i.name}</span><b>${i.qty}</b></div>`).join('')}</div>`
-    : '';
+  const chosen=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]);
+  $('#shopping-list-panel').innerHTML=chosen.length?`<div class="panel"><h3>Combined shopping list</h3>${chosen.map(i=>`<div class="combined-row"><span>${esc(i.name)}</span><b>${esc(i.qty||'')}</b></div>`).join('')}</div>`:'';
 }
-
-async function loadIngredientProducts(key,index){
-  const box=document.getElementById('reco-'+index);
+function isRawIngredient(ingredient){
+  if(ingredient?.type)return String(ingredient.type).toLowerCase()==='raw';
+  const raw=/^(potato|potatoes|carrot|carrots|onion|onions|tomato|tomatoes|green chilli|green chilies|chilli|chili|coriander|coriander leaves|mint|peas|green peas|ginger|garlic|lemon|lemons|lime|spinach|palak|cucumber|capsicum|bell pepper|banana|apple|mango|flour|rice|atta|wheat|jeera|cumin|salt|sugar|oil|milk|curd|yogurt|egg|eggs)$/i;
+  return raw.test(String(ingredient?.name||'').replace(/\([^)]*\)/g,'').trim());
+}
+function retailerLabel(x){return x.retailer||x.retailer_name||x.platform||'Retailer';}
+function buyUrl(x){return x.buy_url||x.affiliate_url||x.url||x.source_url||'#';}
+function priceLabel(x){
+  const price=Number(x.price);
+  if(!Number.isFinite(price))return 'Price not verified';
+  const symbol=String(x.currency||'INR').toUpperCase()==='INR'?'₹':String(x.currency||'');
+  return `${symbol}${price%1===0?price:price.toFixed(2)}`;
+}
+function rawOfferCard(o,ingredient){
+  const unit=o.unit_label||o.unit||o.pack_size||o.pack_size_unit||'';
+  const status=o.availability_status||o.availability||'';
+  return `<article class="buy-product">
+    <img src="${esc(o.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(o.product_name||ingredient.name)}" onerror="this.src='/assets/images/recipe-placeholder.jpg'">
+    <div class="buy-body">
+      <div class="buy-retailer">${esc(retailerLabel(o))}</div>
+      <div class="buy-name">${esc(o.product_name||ingredient.name)}</div>
+      <div class="buy-price">${esc(priceLabel(o))}</div>
+      <div class="buy-unit">${esc(unit || 'unit not verified')}${status?` · ${esc(status)}`:''}</div>
+      <div class="buy-actions"><a class="primary-buy" href="${esc(buyUrl(o))}" target="_blank" rel="sponsored nofollow noopener">Buy</a><button class="add-buy" data-add-key="${esc(ingredientKey(ingredient))}">Add to list</button></div>
+    </div>
+  </article>`;
+}
+function packagedProductCard(p,ingredient){
+  const links=(p.buyLinks||[]).map(x=>`<a class="primary-buy" href="${esc(x.buy_url||x.affiliate_url||x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.retailer)}</a>`).join('');
+  return `<article class="buy-product"><img src="${esc(p.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(p.name)}" onerror="this.src='/assets/images/recipe-placeholder.jpg'"><div class="buy-body"><div class="buy-brand">${esc(p.brand||'')}</div><div class="buy-name">${esc(p.name)}</div><div class="buy-meta">${esc(p.sku||'')} · ${esc(p.pack_size||'Pack size not verified')}</div><div class="buy-meta"><b>KidPoshan Score:</b> ${p.score==null?'Not scored':esc(p.score)+'/100'}</div><div class="buy-actions">${links}<button class="add-buy" data-add-key="${esc(ingredientKey(ingredient))}">Add to list</button></div></div></article>`;
+}
+function attachAddButtons(){
+  document.querySelectorAll('[data-add-key]').forEach(b=>b.addEventListener('click',()=>{
+    selectedBuy[b.dataset.addKey]=true;saveShopping(selectedBuy);renderShoppingChecklist();renderShoppingBar();renderShoppingList();
+    b.textContent='Added';
+  }));
+}
+function renderShoppingChecklist(){
+  const box=$('#ingredientChecklist');
   if(!box)return;
-  box.innerHTML='<span class="product-meta">Checking verified KidPoshan products…</span>';
-  try{
-    const d=await KP.api('/products?ingredient='+encodeURIComponent(key));
-    const list=(d.products||[]).sort(productSort);
-    if(!list.length){
-      box.innerHTML='<span class="product-meta">No verified scored product match yet.</span>';
-      return;
-    }
-    const p=list[0];
-    const cost=unitCost(p);
-    box.innerHTML=`
-      <div class="product-reco__top">
-        <span class="product-score">KidPoshan Score ${p.score ?? '—'}/100</span>
-        ${cost!=null?`<span class="product-meta">₹${cost.toFixed(2)} / 100g</span>`:''}
-      </div>
-      <b>${p.name}</b>
-      <span class="product-meta">${p.brand||''} · Highest score first; cost/unit breaks ties.</span>
-      ${p.buyLinks?.length?`<div style="display:flex;gap:6px;flex-wrap:wrap">${p.buyLinks.map(x=>`<a class="btn btn-green" style="padding:6px 9px;font-size:11px" href="${x.url}" target="_blank" rel="sponsored nofollow noopener">Buy · ${x.retailer}</a>`).join('')}</div>`:''}`;
-  }catch(e){
-    box.innerHTML='<span class="product-meta">Product check unavailable right now.</span>';
-  }
+  box.innerHTML=`<div class="ingredient-check-header"><div>Ingredient</div><div>Quantity</div><div>At Home</div><div>To Buy</div></div>`+
+    (recipe.ingredients||[]).map(i=>{
+      const key=ingredientKey(i), atHome=!!recipeHome[key], toBuy=!!selectedBuy[key];
+      return `<div class="ingredient-check-row ${toBuy?'is-buying':''}" data-ingredient-row="${esc(key)}"><div><div class="ingredient-name">${esc(i.name)}</div></div><div class="ingredient-qty">${esc(i.qty||'')}</div><div class="check-cell"><input type="checkbox" data-home-key="${esc(key)}" ${atHome?'checked':''}></div><div class="check-cell"><input type="checkbox" data-buy-key="${esc(key)}" ${toBuy?'checked':''}></div></div>`;
+    }).join('');
+  box.querySelectorAll('[data-home-key]').forEach(cb=>cb.addEventListener('change',()=>{
+    const key=cb.dataset.homeKey;
+    recipeHome[key]=cb.checked;
+    if(cb.checked){selectedBuy[key]=false;saveShopping(selectedBuy);}
+    localStorage.setItem(STORAGE+'.home',JSON.stringify(recipeHome));
+    renderShoppingChecklist();renderShoppingBar();renderShoppingList();renderBuyResults();
+  }));
+  box.querySelectorAll('[data-buy-key]').forEach(cb=>cb.addEventListener('change',()=>{
+    const key=cb.dataset.buyKey;
+    selectedBuy[key]=cb.checked;
+    if(cb.checked){recipeHome[key]=false;localStorage.setItem(STORAGE+'.home',JSON.stringify(recipeHome));}
+    saveShopping(selectedBuy);renderShoppingChecklist();renderShoppingBar();renderShoppingList();renderBuyResults();
+  }));
 }
-
+async function fetchIngredientOffers(ingredient){
+  const pincode=$('#recipePincode').value.trim();
+  const params=new URLSearchParams({ingredient:ingredient.name,limit:'30'});
+  if(pincode)params.set('location',pincode);
+  const endpoint=isRawIngredient(ingredient)?'/api/ingredient-offers':'/api/products';
+  if(!isRawIngredient(ingredient))params.set('ingredient',ingredient.name);
+  const d=await fetch(endpoint+'?'+params.toString(),{credentials:'include'}).then(r=>{if(!r.ok)throw new Error('Product service unavailable');return r.json()});
+  return d;
+}
+async function renderBuyResults(){
+  const box=$('#buy-results');
+  if(!box)return;
+  const toBuy=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]&&!recipeHome[ingredientKey(i)]);
+  if(!toBuy.length){box.innerHTML='<div class="buy-note">Tick <b>To Buy</b> for an ingredient to see the available ecommerce choices here.</div>';return;}
+  box.innerHTML=toBuy.map(i=>`<div class="buy-results-block" data-result-key="${esc(ingredientKey(i))}"><div class="buy-results-title"><h3>Buy ${esc(i.name)}</h3><span class="buy-note">${esc(i.qty||'')}</span></div><div class="buy-products"><div class="buy-note">Checking retailer choices…</div></div></div>`).join('');
+  for(const ingredient of toBuy){
+    const block=box.querySelector(`[data-result-key="${CSS.escape(ingredientKey(ingredient))}"]`);
+    const cards=block?.querySelector('.buy-products');
+    try{
+      const d=await fetchIngredientOffers(ingredient);
+      const list=d.offers||[];
+      if(!list.length){
+        cards.innerHTML=`<div class="buy-note">No location-specific choices verified yet for ${esc(ingredient.name)}. Enter your pincode and check availability.</div>`;
+      }else if(isRawIngredient(ingredient)){
+        cards.innerHTML=list.map(o=>rawOfferCard(o,ingredient)).join('');
+      }else{
+        cards.innerHTML=list.map(p=>packagedProductCard(p,ingredient)).join('');
+      }
+    }catch(e){cards.innerHTML='<div class="buy-note">Could not load retailer choices right now.</div>';}
+  }
+  attachAddButtons();
+}
 async function loadReadyToEat(){
   const box=$('#ready-grid');
   try{
-    const d=await KP.api('/products');
-    productsCache=(d.products||[]);
-    const eligible=productsCache.filter(p=>{
-      const ageOk = p.age_min==null || (recipe.age_min>=Number(p.age_min) && recipe.age_max<=Number(p.age_max||99));
-      const mealOk = !p.meal_moment || String(p.meal_moment).toLowerCase()===String(recipe.meal_moment).toLowerCase();
-      const ready=/(ready|cereal|snack|bar|bites|muesli|noodle|pasta|meal|mix|instant)/i.test(`${p.name} ${p.category||''}`);
-      return ready && ageOk && mealOk && p.buyLinks?.length;
-    }).sort(productSort).slice(0,12);
+    const pincode=$('#recipePincode')?.value.trim()||currentPincode();
+    const q=new URLSearchParams({type:'ready_to_eat',q:`${recipe.name} ${recipe.meal_moment||''}`,limit:'12'});
+    if(pincode)q.set('pincode',pincode);
+    const d=await fetch('/api/products?'+q.toString(),{credentials:'include'}).then(r=>{if(!r.ok)throw new Error('Product service unavailable');return r.json()});
+    const eligible=(d.products||[]);
     if(!eligible.length){
-      box.innerHTML='<div class="empty-state">No verified ready-to-eat product matches are currently in the KidPoshan catalogue for this recipe. This section will populate as verified products are added through the Product Intelligence Engine.</div>';
+      box.innerHTML='<div class="empty-state">No verified ready-to-eat products are currently in the KidPoshan catalogue for this meal. Run Product Intelligence research to add Brand + SKU products.</div>';
       return;
     }
-    box.innerHTML=eligible.map(p=>`
-      <article class="card ready-card">
-        <img src="${safeImg(p.image_url)}" alt="${p.name}">
-        <div class="card-body">
-          <span class="score">${p.score ?? '—'}</span>
-          <h3>${p.name}</h3>
-          <div class="muted">${p.brand||''}</div>
-          <div style="margin:8px 0;font-weight:800;color:#147a45">KidPoshan Score ${p.score ?? '—'}/100</div>
-          <div class="rank-note">Priority: KidPoshan Score first. Minimum comparable cost/unit is used only after score.</div>
-          <div style="margin-top:10px">${p.buyLinks.map(x=>`<a class="btn btn-green" href="${x.url}" target="_blank" rel="sponsored nofollow noopener">Buy from ${x.retailer}</a>`).join(' ')}</div>
-        </div>
-      </article>`).join('');
-  }catch(e){
-    box.innerHTML='<div class="empty-state">Ready-to-eat product data could not be checked right now.</div>';
-  }
+    box.innerHTML=eligible.map(p=>{
+      const links=(p.buyLinks||[]).length?p.buyLinks.map(x=>`<a class="btn btn-green" href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">Buy from ${esc(x.retailer)}</a>`).join(' '):'<div class="rank-note">No location-specific retailer availability confirmed yet.</div>';
+      return `<article class="card ready-card"><img src="${esc(safeImg(p.image_url))}" alt="${esc(p.name)}"><div class="card-body"><div class="muted">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="rank-note">SKU: ${esc(p.sku||'—')} · ${esc(p.pack_size||'Pack size not verified')}</div><div style="margin:8px 0;font-weight:800;color:#147a45">KidPoshan Score ${p.score==null?'Not scored':esc(p.score)}/100</div><div style="margin-top:10px">${links}</div></div></article>`;
+    }).join('');
+  }catch(e){box.innerHTML='<div class="empty-state">Ready-to-eat product data could not be checked right now.</div>';}
 }
 
 function render(){
@@ -208,16 +260,15 @@ function render(){
       </div>
     </section>
 
-    <section class="section recipe-shopping">
+    <section class="section recipe-shopping to-buy">
       <div class="panel">
-        <h2>Ingredients & Shopping</h2>
-        <p class="muted">Choose <b>Buy</b> for ingredients you need. Use <b>Have at home</b> separately. Product suggestions use the existing KidPoshan Score; cost/unit is only the tie-breaker.</p>
-        <div class="ingredient-wrap">
-          <div class="ingredient-head"><span>Buy</span><span>Have at home</span><span>Ingredient</span><span>Quantity</span><span>Best verified choice</span></div>
-          ${(r.ingredients||[]).map(ingredientRow).join('')}
-        </div>
+        <h2>To Buy</h2>
+        <p class="muted">Keep the ingredient list here. Tick <b>At Home</b> or <b>To Buy</b>. Only the products and retailer choices for ingredients marked <b>To Buy</b> appear below as horizontally scrollable cards.</p>
+        <div class="buy-location"><span class="buy-note">Delivery pincode</span><input id="recipePincode" inputmode="numeric" maxlength="6" placeholder="e.g. 700001"><button id="saveRecipePincode">Check availability</button></div>
+        <div id="ingredientChecklist" class="ingredient-checklist"></div>
+        <div id="buy-results" class="buy-results"></div>
         <div class="shopping-bar">
-          <div><b>Shopping list:</b> <span id="shopping-count">0 items selected</span><div id="shopping-items" class="shopping-items">Tick Buy for the ingredients you need.</div></div>
+          <div><b>Shopping list:</b> <span id="shopping-count">0 items selected</span><div id="shopping-items" class="shopping-items">Tick To Buy for the ingredients you need.</div></div>
           <div style="display:flex;gap:8px"><button class="btn btn-outline" id="clear-shopping">Clear</button><button class="btn btn-green" id="view-shopping" disabled>View combined list</button></div>
         </div>
         <div id="shopping-list-panel" style="margin-top:12px"></div>
@@ -243,50 +294,23 @@ function render(){
     </section>
   `;
 
-  document.querySelectorAll('.buy-check').forEach(cb=>{
-    cb.addEventListener('change',async()=>{
-      const key=cb.dataset.key;
-      if(cb.checked) selectedBuy[key]=true; else delete selectedBuy[key];
-      saveShopping(selectedBuy);
-      cb.closest('.ingredient-row')?.classList.toggle('is-buying',cb.checked);
-      renderShoppingBar(); renderShoppingList();
-      if(cb.checked){
-        const idx=[...recipe.ingredients].findIndex(i=>(i.key||i.name.toLowerCase())===key);
-        if(idx>=0) loadIngredientProducts(key,idx);
-      }
-    });
-  });
-
-  document.querySelectorAll('.have-check').forEach(cb=>{
-    cb.addEventListener('change',()=>{
-      const row=cb.closest('.ingredient-row');
-      row?.classList.toggle('is-have',cb.checked);
-      if(cb.checked){
-        const buy=row?.querySelector('.buy-check');
-        if(buy?.checked){buy.checked=false;buy.dispatchEvent(new Event('change'))}
-      }
-    });
-  });
-
-  $('#clear-shopping').onclick=()=>{
-    selectedBuy={};saveShopping(selectedBuy);
-    document.querySelectorAll('.buy-check').forEach(cb=>{cb.checked=false;cb.closest('.ingredient-row')?.classList.remove('is-buying')});
-    renderShoppingBar();renderShoppingList();
+  renderShoppingChecklist();
+  $('#recipePincode').value=currentPincode();
+  $('#saveRecipePincode').onclick=()=>{
+    localStorage.setItem(STORAGE+'.pincode',$('#recipePincode').value.trim());
+    renderBuyResults();
+    loadReadyToEat();
   };
-
-  $('#view-shopping').onclick=()=>{renderShoppingList();document.getElementById('shopping-list-panel')?.scrollIntoView({behavior:'smooth',block:'center'})};
-
+  $('#clear-shopping').onclick=()=>{selectedBuy={};saveShopping(selectedBuy);renderShoppingBar();renderShoppingList();};
+  $('#view-shopping').onclick=()=>{renderShoppingList();document.getElementById('shopping-list-panel')?.scrollIntoView({behavior:'smooth',block:'center'});};
   renderShoppingBar();renderShoppingList();
+  renderBuyResults();
   loadReadyToEat();
 
-  document.querySelectorAll('.buy-check:checked').forEach(cb=>{
-    const idx=[...recipe.ingredients].findIndex(i=>(i.key||i.name.toLowerCase())===cb.dataset.key);
-    if(idx>=0)loadIngredientProducts(cb.dataset.key,idx);
-  });
 
   KP.api('/recipes').then(d=>{
     $('#more').innerHTML=(d.recipes||[]).filter(x=>x.id!==recipe.id).slice(0,8).map(x=>`
-      <a class="card ready-card" href="/recipe.html?slug=${encodeURIComponent(x.slug)}">
+      <a class="card ready-card" href="/recipe?slug=${encodeURIComponent(x.slug)}">
         <img src="${safeImg(x.image_url)}" alt="${x.name}">
         <div class="card-body"><b>${x.name}</b><div class="meta">${x.score} · ${x.prep_minutes} mins</div></div>
       </a>`).join('');

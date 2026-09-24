@@ -73,6 +73,9 @@ h1{font-size:36px;margin:0 0 8px;letter-spacing:-.6px}
  .start-state{padding:38px 18px}.start-state strong{font-size:17px}
  .grid{grid-template-columns:1fr 1fr;gap:12px}.card img{height:125px}.body{padding:11px}.body h3{font-size:15px}
 }
+
+.ready-panel{margin-top:28px}.ready-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.ready-title{font-size:21px;font-weight:800}.location-row{display:flex;gap:8px;align-items:center;margin:12px 0}.location-row input{width:130px;border:1px solid #d6e2da;border-radius:10px;padding:9px 10px}.location-row button{border:0;background:#1f6b4f;color:#fff;border-radius:10px;padding:9px 12px;font-weight:700}.product-strip{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory}.product-card{min-width:240px;max-width:260px;border:1px solid #e0e9e3;border-radius:15px;background:#fff;overflow:hidden;scroll-snap-align:start}.product-card img{width:100%;height:145px;object-fit:contain;background:#f6f9f7}.product-body{padding:12px}.product-brand{font-size:12px;color:#66786f}.product-name{font-weight:750;margin:4px 0}.product-sku{font-size:11px;color:#77857f}.product-score{font-weight:850;color:#1f6b4f;margin:8px 0}.retailers{display:flex;gap:6px;flex-wrap:wrap}.retailer-btn{font-size:11px;text-decoration:none;border:1px solid #cfe0d5;color:#1f6b4f;border-radius:8px;padding:7px 8px;font-weight:750}.product-note{font-size:11px;color:#78877f;line-height:1.4}.ready-empty{padding:18px;border:1px dashed #cddbd3;border-radius:14px;color:#687a71;background:#f8fbf9}
+@media(max-width:560px){.ready-head{display:block}.location-row input{flex:1;width:auto}.product-card{min-width:220px}}
 </style>
 </head>
 <body>
@@ -99,6 +102,12 @@ h1{font-size:36px;margin:0 0 8px;letter-spacing:-.6px}
 <div id="results">
 <div class="result-line"><div class="section-title">Meals possible <span class="count" id="count"></span></div><div class="hint" id="summary"></div></div>
 <div class="grid" id="grid"></div><div class="empty" id="empty">No meals match these choices. Try changing one filter.</div>
+<section class="ready-panel" id="readyPanel" style="display:none">
+  <div class="ready-head"><div><div class="ready-title">Ready-to-Eat / Buyable Options</div><div class="hint">Packaged alternatives related to the meal ideas above.</div></div></div>
+  <div class="location-row"><span class="hint">Delivery pincode</span><input id="buyPincode" inputmode="numeric" maxlength="6" placeholder="e.g. 700001"><button id="savePincode">Check availability</button></div>
+  <div id="readyStatus" class="hint"></div>
+  <div class="product-strip" id="readyProducts"></div>
+</section>
 </div>
 </div></main>
 <script>
@@ -118,7 +127,44 @@ function selected(){return{age:$("#age").value,meal:$("#meal").value,season:$("#
 function apply(list){const f=selected();return list.filter(r=>matchesAge(r,f.age)&&(!f.meal||r.meal_type===f.meal)&&(!f.season||r.season===f.season||r.season==="All Seasons")&&(!f.pref||r.diet===f.pref));}
 function card(r){return`<a class="card" href="/recipe?id=${encodeURIComponent(r.id)}"><img src="${esc(r.image_url||"/assets/images/recipe-placeholder.jpg")}" alt="${esc(r.name)}" onerror="this.style.visibility='hidden'"><div class="body"><h3>${esc(r.name)}</h3><div class="meta">${esc(r.meal_type)} · ${esc(r.season)}</div><div class="tags"><span class="tag">${esc(r.diet)}</span><span class="tag">${esc(r.age_min)}–${esc(r.age_max)} yrs</span></div><div class="score">KidPoshan Score ${esc(r.score)}</div></div></a>`;}
 function updateButton(){const f=selected();$("#searchBtn").disabled=!(f.age||f.meal||f.season||f.pref);}
-async function searchMeals(){const f=selected();if(!(f.age||f.meal||f.season||f.pref))return;let list=demo.slice();try{const p=new URLSearchParams();if(f.age){const[a,b]=f.age.split("-");p.set("min_age",a);p.set("max_age",b)}if(f.meal)p.set("meal_type",f.meal);if(f.season)p.set("season",f.season);if(f.pref)p.set("diet",f.pref);const resp=await fetch("/api/recipes?"+p.toString(),{credentials:"include"});if(resp.ok){const d=await resp.json();const api=norm(d.recipes??d);if(api.length)list=api}}catch(e){console.warn("Meal Ideas API unavailable; using built-in data.",e)}const out=apply(list);$("#startState").style.display="none";$("#results").style.display="block";$("#grid").innerHTML=out.map(card).join("");$("#count").textContent=`${out.length} meal${out.length===1?"":"s"} possible`;$("#empty").style.display=out.length?"none":"block";const parts=[];if(f.age)parts.push($("#age").selectedOptions[0].text);if(f.meal)parts.push(f.meal);if(f.season)parts.push(f.season);if(f.pref)parts.push(f.pref);$("#summary").textContent=parts.join(" · ");}
+function savedPincode(){return localStorage.getItem('kidposhan.pincode')||'';}
+function productCard(p){
+  const links=(p.buyLinks||[]).length ? p.buyLinks.map(x=>`<a class="retailer-btn" href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">Buy · ${esc(x.retailer)}</a>`).join('') : '<span class="product-note">No location-specific retailer availability confirmed yet.</span>';
+  return `<article class="product-card"><img src="${esc(p.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(p.name)}" onerror="this.src='/assets/images/recipe-placeholder.jpg'"><div class="product-body"><div class="product-brand">${esc(p.brand||'')}</div><div class="product-name">${esc(p.name)}</div><div class="product-sku">SKU: ${esc(p.sku||'—')} · ${esc(p.pack_size||'Pack size not verified')}</div><div class="product-score">KidPoshan Score ${p.score==null?'Not scored':esc(p.score)}</div><div class="retailers">${links}</div></div></article>`;
+}
+async function loadReadyProducts(recipes){
+  const panel=$('#readyPanel'); panel.style.display='block';
+  const box=$('#readyProducts'); const status=$('#readyStatus');
+  const pincode=$('#buyPincode').value.trim();
+  const mealNames=recipes.slice(0,5).map(x=>x.name).filter(Boolean);
+  status.textContent='Checking the KidPoshan product catalogue…'; box.innerHTML='';
+  if(!mealNames.length){status.textContent='';box.innerHTML='<div class="ready-empty">No meal ideas are available to match with buyable products.</div>';return;}
+  try{
+    const responses=await Promise.all(mealNames.map(name=>{
+      const q=new URLSearchParams({q:name,limit:'6'});
+      if(pincode)q.set('location',pincode);
+      return fetch('/api/products?'+q.toString(),{credentials:'include'}).then(r=>{if(!r.ok)throw new Error('Product service unavailable');return r.json()});
+    }));
+    const seen=new Set();
+    const products=[];
+    for(const d of responses){
+      for(const product of (d.products||[])){
+        if(!product.id || seen.has(product.id))continue;
+        seen.add(product.id);
+        products.push(product);
+        if(products.length>=12)break;
+      }
+      if(products.length>=12)break;
+    }
+    if(!products.length){box.innerHTML='<div class="ready-empty">No verified buyable products matching these meal ideas are in the catalogue yet. Run Product Intelligence research to add Brand + SKU products.</div>';status.textContent='';return;}
+    box.innerHTML=products.map(productCard).join('');
+    status.textContent=pincode ? `Retail availability checked for pincode ${pincode}.` : 'Enter a delivery pincode to check local retailer availability.';
+  }catch(e){status.textContent=e.message||'Could not load products.';box.innerHTML='<div class="ready-empty">The buyable product service could not be reached.</div>';}
+}
+
+async function searchMeals(){const f=selected();if(!(f.age||f.meal||f.season||f.pref))return;let list=demo.slice();try{const p=new URLSearchParams();if(f.age){const[a,b]=f.age.split("-");p.set("min_age",a);p.set("max_age",b)}if(f.meal)p.set("meal_type",f.meal);if(f.season)p.set("season",f.season);if(f.pref)p.set("diet",f.pref);const resp=await fetch("/api/recipes?"+p.toString(),{credentials:"include"});if(resp.ok){const d=await resp.json();const api=norm(d.recipes??d);if(api.length)list=api}}catch(e){console.warn("Meal Ideas API unavailable; using built-in data.",e)}const out=apply(list);$("#startState").style.display="none";$("#results").style.display="block";$("#grid").innerHTML=out.map(card).join("");$("#count").textContent=`${out.length} meal${out.length===1?"":"s"} possible`;$("#empty").style.display=out.length?"none":"block";const parts=[];if(f.age)parts.push($("#age").selectedOptions[0].text);if(f.meal)parts.push(f.meal);if(f.season)parts.push(f.season);if(f.pref)parts.push(f.pref);$("#summary").textContent=parts.join(" · ");loadReadyProducts(out);}
+$("#buyPincode").value=savedPincode();
+$("#savePincode").addEventListener("click",()=>{localStorage.setItem('kidposhan.pincode',$('#buyPincode').value.trim());const f=selected();let list=demo.slice();loadReadyProducts(apply(list));});
 ["age","meal","season","pref"].forEach(id=>$("#"+id).addEventListener("change",updateButton));
 $("#searchBtn").addEventListener("click",searchMeals);
 $("#clear").addEventListener("click",()=>{["age","meal","season","pref"].forEach(id=>$("#"+id).value="");$("#results").style.display="none";$("#startState").style.display="block";updateButton()});

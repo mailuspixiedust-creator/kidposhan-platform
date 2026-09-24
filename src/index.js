@@ -1,4 +1,5 @@
 import { researchProducts } from './product-intelligence.js';
+import { researchIngredientOffers } from './ingredient-intelligence.js';
 import { searchWeb } from './web-search.js';
 import { runWebDiscovery } from './discovery.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
@@ -93,6 +94,23 @@ if(p==='/api/discovery/search' && request.method==='POST'){
     return json({error:e.message},502);
   }
 }
+if(p==='/api/ingredient-intelligence/research' && request.method==='POST'){
+  const u=await getSessionUser(request,env);
+  if(!u)return bad('Please log in to use Ingredient Intelligence.',401);
+
+  const b=await request.json();
+
+  try{
+    const result=await researchIngredientOffers(env,{
+      ingredient:b.ingredient,
+      location:b.location || b.pincode
+    });
+
+    return json(result);
+  }catch(e){
+    return json({error:e.message},502);
+  }
+}
 if(p==='/api/product-intelligence/research' && request.method==='POST'){
   const u=await getSessionUser(request,env);
   if(!u)return bad('Please log in to use Product Intelligence.',401);
@@ -147,15 +165,16 @@ if(p==='/api/product-intelligence/research' && request.method==='POST'){
       const sku=String(p.sku||'').trim();
       const name=String(p.name||'').trim();
 
-      if(!name) continue;
+      // Product identity is strictly Brand + SKU.
+      // Do not create a product identity from product name alone.
+      if(!name || !brand || !sku) continue;
 
       const normalizedBrand=brand.toLowerCase().replace(/\s+/g,' ').trim();
       const normalizedSku=sku.toLowerCase().replace(/\s+/g,' ').trim();
 
-      const productKey =
-        normalizedBrand && normalizedSku
-          ? `${normalizedBrand}|${normalizedSku}`
-          : `${normalizedBrand}|${name.toLowerCase().replace(/\s+/g,' ').trim()}`;
+      if(!normalizedBrand || !normalizedSku) continue;
+
+      const productKey=`${normalizedBrand}|${normalizedSku}`;
 
       // Prevent the same Brand + SKU from being inserted twice.
       const existing=await env.DB.prepare(`
@@ -235,6 +254,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   null,
   p.verification_status || 'unverified'
 ).run();
+      }
 
       // Save source/evidence records for this product.
       for(const sourceUrl of (p.source_urls || [])){
@@ -310,11 +330,222 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   }catch(e){
     return json({error:e.message},502);
   }
-if(p==='/api/products' && request.method==='GET'){
-    const ingredient=(url.searchParams.get('ingredient')||'').trim(); let sql=`SELECT p.*,m.url AS image_url, GROUP_CONCAT(pb.retailer||'::'||pb.url,'|') AS buy_links FROM products p LEFT JOIN media_assets m ON m.id=p.image_media_id LEFT JOIN product_buy_links pb ON pb.product_id=p.id WHERE p.status='published'`; const args=[];
-    if(ingredient){sql+=` AND lower(p.ingredient) LIKE ?`;args.push('%'+ingredient.toLowerCase()+'%');}
-    sql+=` GROUP BY p.id ORDER BY p.score DESC LIMIT 50`; const {results}=await env.DB.prepare(sql).bind(...args).all();
-    return json({products:results.map(p=>({...p,buyLinks:(p.buy_links||'').split('|').filter(Boolean).map(x=>{const [retailer,url]=x.split('::');return {retailer,url}})}))});
+} if(p==='/api/products' && request.method==='GET'){
+    const q=(url.searchParams.get('ingredient')||url.searchParams.get('q')||'').trim().toLowerCase();
+    const location=(url.searchParams.get('location')||url.searchParams.get('pincode')||'').trim();
+    const limit=Math.min(Math.max(Number(url.searchParams.get('limit')||50),1),100);
+
+    let sql=`
+      SELECT
+        p.id,
+        p.name,
+        p.brand,
+        p.sku,
+        p.category,
+        p.pack_size_value,
+        p.pack_size_unit,
+        p.product_url,
+        p.image_url,
+        p.ingredients_text,
+        p.nutrition_json,
+        p.product_facts_json,
+        p.kidposhan_score,
+        p.score_status,
+        p.status,
+        p.product_key,
+        p.identity_status
+      FROM discovered_products p
+      WHERE p.status IN ('candidate','published')
+        AND p.brand IS NOT NULL AND trim(p.brand)<>''
+        AND p.sku IS NOT NULL AND trim(p.sku)<>''
+    `;
+    const args=[];
+
+    if(q){
+      sql+=` AND (
+        lower(p.name) LIKE ? OR
+        lower(p.brand) LIKE ? OR
+        lower(p.sku) LIKE ? OR
+        lower(COALESCE(p.category,'')) LIKE ? OR
+        lower(COALESCE(p.ingredients_text,'')) LIKE ?
+      )`;
+      const needle='%'+q+'%';
+      args.push(needle,needle,needle,needle,needle);
+    }
+
+    sql+=` ORDER BY COALESCE(p.kidposhan_score,0) DESC, p.name LIMIT ?`;
+    args.push(limit);
+
+    const {results}=await env.DB.prepare(sql).bind(...args).all();
+
+    const products=[];
+    for(const pRow of results){
+      let offerSql=`
+        SELECT
+          id,
+          retailer_name,
+          retailer_type,
+          url,
+          price,
+          currency,
+          pack_size_value,
+          pack_size_unit,
+          availability_status,
+          location,
+          affiliate_url,
+          source_url,
+          evidence_text,
+          checked_at
+        FROM product_offers
+        WHERE product_id=?
+      `;
+      const offerArgs=[pRow.id];
+
+      // Location is an exact-match filter. If no matching location is found,
+      // do not fall back to another city/pincode and call it locally available.
+      if(location){
+        offerSql+=` AND lower(trim(COALESCE(location,'')))=lower(trim(?))`;
+        offerArgs.push(location);
+      }
+
+      offerSql+=` ORDER BY CASE WHEN lower(COALESCE(availability_status,'')) IN ('available','in_stock','yes') THEN 0 ELSE 1 END, checked_at DESC`;
+      const {results:offers}=await env.DB.prepare(offerSql).bind(...offerArgs).all();
+
+      products.push({
+        id:pRow.id,
+        name:pRow.name,
+        brand:pRow.brand,
+        sku:pRow.sku,
+        category:pRow.category,
+        pack_size_value:pRow.pack_size_value,
+        pack_size_unit:pRow.pack_size_unit,
+        product_url:pRow.product_url,
+        image_url:pRow.image_url,
+        ingredients_text:pRow.ingredients_text,
+        nutrition_json:pRow.nutrition_json,
+        product_facts_json:pRow.product_facts_json,
+        score:pRow.kidposhan_score,
+        kidposhan_score:pRow.kidposhan_score,
+        score_status:pRow.score_status,
+        identity_status:pRow.identity_status,
+        availability_verified:Boolean(location && offers.length),
+        requested_location:location||null,
+        offers:offers.map(o=>({
+          id:o.id,
+          retailer_name:o.retailer_name,
+          retailer_type:o.retailer_type,
+          url:o.url,
+          price:o.price,
+          currency:o.currency,
+          pack_size_value:o.pack_size_value,
+          pack_size_unit:o.pack_size_unit,
+          availability_status:o.availability_status,
+          location:o.location,
+          affiliate_url:o.affiliate_url,
+          source_url:o.source_url,
+          evidence_text:o.evidence_text,
+          checked_at:o.checked_at,
+          buy_url:o.affiliate_url || o.url
+        })),
+        // Compatibility for the current recipe page while it is being migrated.
+        buyLinks:offers.map(o=>({
+          retailer:o.retailer_name,
+          url:o.affiliate_url || o.url,
+          affiliate_url:o.affiliate_url,
+          availability_status:o.availability_status,
+          location:o.location
+        }))
+      });
+    }
+
+    return json({products, location:location||null});
+  }
+  if(p==='/api/ingredient-offers' && request.method==='GET'){
+    const raw=(url.searchParams.get('ingredient')||'').trim();
+    const location=(url.searchParams.get('location')||url.searchParams.get('pincode')||'').trim();
+    const limit=Math.min(Math.max(Number(url.searchParams.get('limit')||30),1),100);
+    if(!raw)return bad('Missing ingredient.');
+
+    // Match the ingredient itself, not the recipe preparation text.
+    const ingredientKey=raw
+      .toLowerCase()
+      .replace(/\([^)]*\)/g,' ')
+      .replace(/\b(boiled|mashed|grated|chopped|finely|roughly|sliced|diced|crushed|peeled|washed)\b/g,' ')
+      .replace(/[^a-z0-9]+/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+
+    let sql=`
+      SELECT
+        id,
+        ingredient_key,
+        ingredient_name,
+        product_name,
+        retailer_name,
+        retailer_type,
+        url,
+        affiliate_url,
+        image_url,
+        price,
+        currency,
+        unit_value,
+        unit,
+        unit_label,
+        availability_status,
+        location,
+        source_url,
+        evidence_text,
+        checked_at
+      FROM ingredient_offers
+      WHERE (
+        lower(ingredient_key)=? OR
+        lower(ingredient_name)=? OR
+        lower(ingredient_name) LIKE ?
+      )
+    `;
+    const args=[ingredientKey,ingredientKey,'%'+ingredientKey+'%'];
+
+    if(location){
+      // Exact location match only. Never show another pincode as locally available.
+      sql+=` AND lower(trim(COALESCE(location,'')))=lower(trim(?))`;
+      args.push(location);
+    }
+
+    sql+=` ORDER BY
+      CASE WHEN lower(COALESCE(availability_status,'')) IN ('available','in_stock','yes') THEN 0 ELSE 1 END,
+      CASE WHEN price IS NULL THEN 1 ELSE 0 END,
+      price ASC,
+      checked_at DESC
+      LIMIT ?`;
+    args.push(limit);
+
+    const {results}=await env.DB.prepare(sql).bind(...args).all();
+    return json({
+      ingredient:raw,
+      ingredient_key:ingredientKey,
+      location:location||null,
+      offers:results.map(o=>({
+        id:o.id,
+        ingredient_name:o.ingredient_name,
+        product_name:o.product_name,
+        retailer_name:o.retailer_name,
+        retailer_type:o.retailer_type,
+        url:o.url,
+        affiliate_url:o.affiliate_url,
+        buy_url:o.affiliate_url || o.url,
+        image_url:o.image_url,
+        price:o.price,
+        currency:o.currency,
+        unit_value:o.unit_value,
+        unit:o.unit,
+        unit_label:o.unit_label,
+        availability_status:o.availability_status,
+        location:o.location,
+        source_url:o.source_url,
+        evidence_text:o.evidence_text,
+        checked_at:o.checked_at
+      }))
+    });
   }
   if(p==='/api/ratings' && request.method==='GET'){
     const t=url.searchParams.get('target_type'), id=url.searchParams.get('target_id'); if(!t||!id)return bad('Missing target.');
