@@ -76,6 +76,30 @@ function parseJsonLd(html) {
 }
 
 function extractMeta(html, property) {
+  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const patterns = [
+    new RegExp(
+      `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["']`,
+      'i'
+    ),
+    new RegExp(
+      `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["']`,
+      'i'
+    )
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+
+    if (match?.[1]) {
+      return clean(match[1]);
+    }
+  }
+
+  return '';
+}
+
 function extractImageUrl(product, html) {
   const image = product?.image;
 
@@ -100,29 +124,7 @@ function extractImageUrl(product, html) {
   }
 
   return extractMeta(html, 'og:image');
-}
-  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  const patterns = [
-    new RegExp(
-      `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["']`,
-      'i'
-    ),
-    new RegExp(
-      `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["']`,
-      'i'
-    )
-  ];
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) return clean(match[1]);
-  }
-
-  return '';
-}
-
-/*
+}  /*
  * Remove scripts, styles, forms, SVGs and obvious UI junk.
  * This prevents things like "I am interested..." from becoming
  * ingredient/product text.
@@ -271,7 +273,7 @@ function getIdentifier(product) {
     };
   }
 
-  return {
+    return {
     value: '',
     type: ''
   };
@@ -397,7 +399,7 @@ function productFromPage(result, page) {
   );
 
   const identifier = getIdentifier(product);
-const imageUrl = extractImageUrl(product, html);
+  const imageUrl = extractImageUrl(product, html);
 
   /*
    * STRICT IDENTITY RULE:

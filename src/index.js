@@ -172,68 +172,69 @@ if(p==='/api/product-intelligence/research' && request.method==='POST'){
 
         await env.DB.prepare(`
           INSERT INTO discovered_products
-          (
-            id,
-            run_id,
-            name,
-            brand,
-            sku,
-            category,
-            pack_size_value,
-            pack_size_unit,
-            manufacturer_url,
-            product_url,
-            ingredients_text,
-            nutrition_json,
-            product_facts_json,
-            evidence_json,
-            availability_json,
-            buy_links_json,
-            confidence,
-            kidposhan_score,
-            score_status,
-            status,
-            created_at,
-            updated_at,
-            product_key,
-            variant,
-            identity_status
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          productId,
-          runId,
-          name,
-          brand,
-          sku,
-          p.category || '',
-          null,
-          null,
-          null,
-          p.source_urls?.[0] || null,
-          JSON.stringify(p.ingredients || []),
-          JSON.stringify(p.nutrition || {}),
-          JSON.stringify({
-            pack_size:p.pack_size || '',
-            verification_status:p.verification_status || ''
-          }),
-          JSON.stringify({
-            source_urls:p.source_urls || [],
-            source_notes:p.source_notes || []
-          }),
-          null,
-          null,
-          null,
-          null,
-          'not_scored',
-          'candidate',
-          ts,
-          ts,
-          productKey,
-          null,
-          p.verification_status || 'unverified'
-        ).run();
-      }
+(
+  id,
+  run_id,
+  name,
+  brand,
+  sku,
+  category,
+  pack_size_value,
+  pack_size_unit,
+  manufacturer_url,
+  product_url,
+  image_url,
+  ingredients_text,
+  nutrition_json,
+  product_facts_json,
+  evidence_json,
+  availability_json,
+  buy_links_json,
+  confidence,
+  kidposhan_score,
+  score_status,
+  status,
+  created_at,
+  updated_at,
+  product_key,
+  variant,
+  identity_status
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`).bind(
+  productId,
+  runId,
+  name,
+  brand,
+  sku,
+  p.category || '',
+  null,
+  null,
+  null,
+  p.source_urls?.[0] || null,
+  p.image_url || null,
+  JSON.stringify(p.ingredients || []),
+  JSON.stringify(p.nutrition || {}),
+  JSON.stringify({
+    pack_size: p.pack_size || '',
+    verification_status: p.verification_status || ''
+  }),
+  JSON.stringify({
+    source_urls: p.source_urls || [],
+    source_notes: p.source_notes || []
+  }),
+  null,
+  null,
+  null,
+  null,
+  'not_scored',
+  'candidate',
+  ts,
+  ts,
+  productKey,
+  null,
+  p.verification_status || 'unverified'
+).run();
 
       // Save source/evidence records for this product.
       for(const sourceUrl of (p.source_urls || [])){
