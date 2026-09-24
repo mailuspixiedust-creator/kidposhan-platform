@@ -310,7 +310,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   }catch(e){
     return json({error:e.message},502);
   }
-}  if(p==='/api/products' && request.method==='GET'){
+if(p==='/api/products' && request.method==='GET'){
     const ingredient=(url.searchParams.get('ingredient')||'').trim(); let sql=`SELECT p.*,m.url AS image_url, GROUP_CONCAT(pb.retailer||'::'||pb.url,'|') AS buy_links FROM products p LEFT JOIN media_assets m ON m.id=p.image_media_id LEFT JOIN product_buy_links pb ON pb.product_id=p.id WHERE p.status='published'`; const args=[];
     if(ingredient){sql+=` AND lower(p.ingredient) LIKE ?`;args.push('%'+ingredient.toLowerCase()+'%');}
     sql+=` GROUP BY p.id ORDER BY p.score DESC LIMIT 50`; const {results}=await env.DB.prepare(sql).bind(...args).all();
