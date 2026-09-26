@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KidPoshan — Recipe</title>
+<link rel="stylesheet" href="/assets/css/styles.css">
+<style>
+  .recipe-shopping{margin-top:18px}
+  .recipe-shopping{margin-top:18px}
+  .shopping-bar{margin-top:14px;border:1px solid #d9e9df;background:#f7fcf9;border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+  .shopping-items{font-size:12px;color:var(--muted);margin-top:3px}
+  .ready-note{margin-bottom:12px}
+  .ready-grid{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
+  .ready-card{min-width:245px;max-width:270px}
+  .ready-card img{width:100%;height:135px;object-fit:cover;border-radius:12px 12px 0 0}
+  .ready-card .card-body{padding:12px}
+  .rank-note{font-size:11px;color:var(--muted);line-height:1.4}
+  .empty-state{padding:20px;border:1px dashed #cfdbe3;border-radius:12px;color:var(--muted)}
+
+  .ingredient-checklist{margin-top:14px;border:1px solid #e0e9e3;border-radius:14px;overflow:hidden;background:#fff}
+  .ingredient-check-header,.ingredient-check-row{display:grid;grid-template-columns:minmax(190px,1fr) 120px 100px 100px;gap:12px;align-items:center;padding:12px 14px}
+  .ingredient-check-header{font-size:12px;font-weight:800;color:#536b7f;background:#f7fafb;border-bottom:1px solid #e7edf1}
+  .ingredient-check-row{font-size:14px;border-bottom:1px solid #edf1ee}
+  .ingredient-check-row:last-child{border-bottom:0}
+  .ingredient-check-row.is-buying{background:#f5fbf7}
+  .ingredient-name{font-weight:800}
+  .ingredient-qty{font-size:12px;color:#718078}
+  .check-cell{display:flex;align-items:center;justify-content:center}
+  .check-cell input{width:20px;height:20px;accent-color:#16834b;cursor:pointer}
+  .buy-location{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .buy-location input{width:130px;padding:8px 10px;border:1px solid #d6e2da;border-radius:9px}
+  .buy-location button{border:0;background:#1f6b4f;color:#fff;border-radius:9px;padding:8px 10px;font-weight:750}
+  .buy-note{font-size:12px;color:#718078}
+  .buy-results{margin-top:16px;border-top:1px solid #e6eee9;padding-top:14px}
+  .buy-results-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .buy-results-title h3{margin:0}
+  .retailer-tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 2px;margin-top:4px}
+  .retailer-tab{border:1px solid #cfe0d5;background:#fff;color:#476057;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+  .retailer-tab.active{background:#1f6b4f;color:#fff;border-color:#1f6b4f}
+  .live-meta{font-size:11px;color:#718078;margin:5px 0}
+  .live-status{font-size:11px;font-weight:800}
+  .live-status.ok{color:#147a45}
+  .live-status.off{color:#a44b2b}
+  .buy-products{display:flex;gap:12px;overflow-x:auto;padding:12px 2px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain}
+  .buy-product{flex:0 0 230px;border:1px solid #dfe9e3;border-radius:14px;background:#fff;overflow:hidden;scroll-snap-align:start}
+  .buy-product img{width:100%;height:130px;object-fit:contain;background:#f6f9f7}
+  .buy-body{padding:11px}
+  .buy-brand{font-size:11px;color:#6b7c74}
+  .buy-name{font-weight:800;margin:4px 0;line-height:1.25}
+  .buy-meta{font-size:11px;color:#718078;margin:5px 0}
+  .buy-price{font-size:18px;font-weight:900;color:#173e2d;margin:8px 0 2px}
+  .buy-unit{font-size:11px;color:#718078}
+  .buy-retailer{font-weight:850;margin-top:8px}
+  .buy-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .buy-actions a,.add-buy{font-size:11px;border:1px solid #cfe0d5;color:#1f6b4f;background:#fff;border-radius:8px;padding:7px 8px;text-decoration:none;font-weight:800;cursor:pointer}
+  .buy-actions .primary-buy{background:#1f6b4f;color:#fff}
+  .buy-actions .secondary-buy{background:#fff}
+  .combined-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e7edf1;padding:9px 0}
+  @media(max-width:700px){
+    .ingredient-check-header,.ingredient-check-row{grid-template-columns:minmax(150px,1fr) 72px 72px 72px;gap:7px;padding:10px 8px}
+    .ingredient-check-header{font-size:11px}
+    .ingredient-check-row{font-size:13px}
+    .buy-location input{flex:1;width:auto}
+    .buy-product{flex-basis:210px}
+  }
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main class="container" id="app"></main>
+<div id="foot"></div>
+
+<script src="/assets/js/app.js"></script>
+<script>
+$('#nav').innerHTML=KP.nav('recipes');
+$('#foot').innerHTML=KP.footer();
+
+const params=new URLSearchParams(location.search);
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+const recipeRef=params.get('id') || params.get('slug') || 'aloo-tikki';
+let recipe=null;
+let selectedBuy={};
+let productsCache=[];
+
+const STORAGE='kidposhan.family-shopping-v1';
+
+function loadShopping(){
+  try{return JSON.parse(localStorage.getItem(STORAGE)||'{}')}catch(e){return {}}
+}
+function saveShopping(v){localStorage.setItem(STORAGE,JSON.stringify(v))}
+selectedBuy=loadShopping();
+let recipeHome={};
+try{recipeHome=JSON.parse(localStorage.getItem(STORAGE+'.home')||'{}')}catch(e){recipeHome={}}
+
+
+function unitCost(p){
+  const raw=String(p.pack_size||p.pack||p.size||'').toLowerCase();
+  const m=raw.match(/([0-9.]+)\\s*(kg|g|ml|l)/);
+  const price=Number(p.price);
+  if(!m || !Number.isFinite(price)) return null;
+  let amount=Number(m[1]);
+  if(m[2]==='kg'||m[2]==='l') amount*=1000;
+  return amount>0 ? price/amount*100 : null;
+}
+
+function productSort(a,b){
+  const sa=Number(a.score||0), sb=Number(b.score||0);
+  if(sb!==sa)return sb-sa;
+  const ua=unitCost(a), ub=unitCost(b);
+  return (ua==null?Infinity:ua)-(ub==null?Infinity:ub);
+}
+
+function safeImg(url,fallback){return url||fallback||'/assets/images/aloo-tikki.jpg';}
+
+function currentPincode(){return localStorage.getItem(STORAGE+'.pincode')||'';}
+function ingredientKey(i){return i.key||String(i.name||'').toLowerCase().trim();}
+function renderShoppingBar(){
+  const chosen=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]);
+  $('#shopping-count').textContent=`${chosen.length} item${chosen.length===1?'':'s'} selected`;
+  $('#shopping-items').textContent=chosen.length ? chosen.map(i=>`${i.name} — ${i.qty||''}`).join(' · ') : 'Tick To Buy for the ingredients you need.';
+  $('#view-shopping').disabled=!chosen.length;
+}
+function renderShoppingList(){
+  const chosen=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]);
+  $('#shopping-list-panel').innerHTML=chosen.length?`<div class="panel"><h3>Combined shopping list</h3>${chosen.map(i=>`<div class="combined-row"><span>${esc(i.name)}</span><b>${esc(i.qty||'')}</b></div>`).join('')}</div>`:'';
+}
+function isRawIngredient(ingredient){
+  if(ingredient?.type)return String(ingredient.type).toLowerCase()==='raw';
+  const raw=/^(potato|potatoes|carrot|carrots|onion|onions|tomato|tomatoes|green chilli|green chilies|chilli|chili|coriander|coriander leaves|mint|peas|green peas|ginger|garlic|lemon|lemons|lime|spinach|palak|cucumber|capsicum|bell pepper|banana|apple|mango|flour|rice|atta|wheat|jeera|cumin|salt|sugar|oil|milk|curd|yogurt|egg|eggs)$/i;
+  return raw.test(String(ingredient?.name||'').replace(/\([^)]*\)/g,'').trim());
+}
+function retailerLabel(x){return x.retailer||x.retailer_name||x.platform||'Retailer';}
+function buyUrl(x){return x.buy_url||x.affiliate_url||x.url||x.source_url||'#';}
+function priceLabel(x){
+  const price=Number(x.price);
+  if(!Number.isFinite(price))return 'Price not verified';
+  const symbol=String(x.currency||'INR').toUpperCase()==='INR'?'₹':String(x.currency||'');
+  return `${symbol}${price%1===0?price:price.toFixed(2)}`;
+}
+function rawOfferCard(o,ingredient){
+  const unit=o.unit_label||o.unit||o.pack_size||o.pack_size_unit||'';
+  const status=o.availability_status||o.availability||'';
+  return `<article class="buy-product">
+    <img src="${esc(o.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(o.product_name||ingredient.name)}" onerror="this.src='/assets/images/recipe-placeholder.jpg'">
+    <div class="buy-body">
+      <div class="buy-retailer">${esc(retailerLabel(o))}</div>
+      <div class="buy-name">${esc(o.product_name||ingredient.name)}</div>
+      <div class="buy-price">${esc(priceLabel(o))}</div>
+      <div class="buy-unit">${esc(unit || 'unit not verified')}${status?` · ${esc(status)}`:''}</div>
+      <div class="buy-actions"><a class="primary-buy" href="${esc(buyUrl(o))}" target="_blank" rel="sponsored nofollow noopener">Buy</a><button class="add-buy" data-add-key="${esc(ingredientKey(ingredient))}">Add to list</button></div>
+    </div>
+  </article>`;
+}
+function packagedProductCard(p,ingredient){
+  const links=(p.buyLinks||[]).map(x=>`<a class="primary-buy" href="${esc(x.buy_url||x.affiliate_url||x.url)}" target="_blank" rel="sponsored nofollow noopener">${esc(x.retailer)}</a>`).join('');
+  return `<article class="buy-product"><img src="${esc(p.image_url||'/assets/images/recipe-placeholder.jpg')}" alt="${esc(p.name)}" onerror="this.src='/assets/images/recipe-placeholder.jpg'"><div class="buy-body"><div class="buy-brand">${esc(p.brand||'')}</div><div class="buy-name">${esc(p.name)}</div><div class="buy-meta">${esc(p.sku||'')} · ${esc(p.pack_size||'Pack size not verified')}</div><div class="buy-meta"><b>KidPoshan Score:</b> ${p.score==null?'Not scored':esc(p.score)+'/100'}</div><div class="buy-actions">${links}<button class="add-buy" data-add-key="${esc(ingredientKey(ingredient))}">Add to list</button></div></div></article>`;
+}
+function attachAddButtons(){
+  document.querySelectorAll('[data-add-key]').forEach(b=>b.addEventListener('click',()=>{
+    selectedBuy[b.dataset.addKey]=true;saveShopping(selectedBuy);renderShoppingChecklist();renderShoppingBar();renderShoppingList();
+    b.textContent='Added';
+  }));
+}
+function renderShoppingChecklist(){
+  const box=$('#ingredientChecklist');
+  if(!box)return;
+  box.innerHTML=`<div class="ingredient-check-header"><div>Ingredient</div><div>Quantity</div><div>At Home</div><div>To Buy</div></div>`+
+    (recipe.ingredients||[]).map(i=>{
+      const key=ingredientKey(i), atHome=!!recipeHome[key], toBuy=!!selectedBuy[key];
+      return `<div class="ingredient-check-row ${toBuy?'is-buying':''}" data-ingredient-row="${esc(key)}"><div><div class="ingredient-name">${esc(i.name)}</div></div><div class="ingredient-qty">${esc(i.qty||'')}</div><div class="check-cell"><input type="checkbox" data-home-key="${esc(key)}" ${atHome?'checked':''}></div><div class="check-cell"><input type="checkbox" data-buy-key="${esc(key)}" ${toBuy?'checked':''}></div></div>`;
+    }).join('');
+  box.querySelectorAll('[data-home-key]').forEach(cb=>cb.addEventListener('change',()=>{
+    const key=cb.dataset.homeKey;
+    recipeHome[key]=cb.checked;
+    if(cb.checked){selectedBuy[key]=false;saveShopping(selectedBuy);}
+    localStorage.setItem(STORAGE+'.home',JSON.stringify(recipeHome));
+    renderShoppingChecklist();renderShoppingBar();renderShoppingList();renderBuyResults();
+  }));
+  box.querySelectorAll('[data-buy-key]').forEach(cb=>cb.addEventListener('change',()=>{
+    const key=cb.dataset.buyKey;
+    selectedBuy[key]=cb.checked;
+    if(cb.checked){recipeHome[key]=false;localStorage.setItem(STORAGE+'.home',JSON.stringify(recipeHome));}
+    saveShopping(selectedBuy);renderShoppingChecklist();renderShoppingBar();renderShoppingList();renderBuyResults();
+  }));
+}
+async function fetchLiveOffers(ingredient){
+  const pincode=$('#recipePincode').value.trim();
+  const key=$('#qcApiKey')?.value.trim();
+  if(!key) throw new Error('Enter the QuickCommerce API key in the test panel.');
+  if(!pincode) throw new Error('Enter a delivery pincode first.');
+  // Temporary visual test: direct browser call. Do not commit the API key to GitHub.
+  const platforms=['BlinkIt','Swiggy'];
+  const out=[];
+  // For BlinkIt/Swiggy the API requires lat/lon. During this visual test we use Kolkata coordinates;
+  // exact pincode geocoding will move server-side in the production integration.
+  const lat='22.5726', lon='88.3639';
+  for(const platform of platforms){
+    const u=new URL('https://api.quickcommerceapi.com/v1/search');
+    u.searchParams.set('q',ingredient.name); u.searchParams.set('lat',lat); u.searchParams.set('lon',lon); u.searchParams.set('platform',platform);
+    const r=await fetch(u,{headers:{'X-API-Key':key}});
+    if(!r.ok) throw new Error(`${platform} API returned ${r.status}`);
+    const d=await r.json();
+    const products=d?.data?.products||d?.results||[];
+    for(const p of products.slice(0,8)){out.push({...p,platform:platform});}
+  }
+  return {offers:out,checked_at:new Date().toISOString(),location:pincode};
+}
+
+async function renderBuyResults(){
+  const box=$('#buy-results'); if(!box)return;
+  const toBuy=(recipe.ingredients||[]).filter(i=>selectedBuy[ingredientKey(i)]&&!recipeHome[ingredientKey(i)]);
+  if(!toBuy.length){box.innerHTML='<div class="buy-note">Tick <b>To Buy</b> for an ingredient to see live retailer choices here.</div>';return;}
+  box.innerHTML=toBuy.map(i=>`<div class="buy-results-block" data-result-key="${esc(ingredientKey(i))}"><div class="buy-results-title"><h3>Buy ${esc(i.name)}</h3><span class="buy-note">${esc(i.qty||'')}</span></div><div class="buy-products"><div class="buy-note">Checking Blinkit + Instamart…</div></div></div>`).join('');
+  for(const ingredient of toBuy){
+    const block=box.querySelector(`[data-result-key="${CSS.escape(ingredientKey(ingredient))}"]`); const cards=block?.querySelector('.buy-products');
+    try{
+      const d=await fetchLiveOffers(ingredient);
+      const list=d.offers||[];
+      if(!list.length){cards.innerHTML=`<div class="buy-note">No live choices returned. Check pincode/API access.</div>`;continue;}
+      const groups=['All','BlinkIt','Swiggy'];
+      cards.innerHTML=`<div class="retailer-tabs" data-tabs="${esc(ingredientKey(ingredient))}">${groups.map((g,i)=>`<button class="retailer-tab ${i===0?'active':''}" data-retailer="${esc(g)}">${g==='BlinkIt'?'Blinkit':g==='Swiggy'?'Instamart':'All'}</button>`).join('')}</div><div class="live-grid">${list.map(o=>rawOfferCard({...o,retailer:o.platform,retailer_name:o.platform,product_name:o.name,price:o.offer_price,unit_label:o.quantity,image_url:(o.images||[])[0],availability_status:o.available?'Available':'Out of stock',buy_url:o.deeplink},ingredient)).join('')}</div><div class="live-meta">Checked ${new Date(d.checked_at).toLocaleString()} · Location ${esc(d.location)}</div>`;
+      const grid=cards.querySelector('.live-grid');
+      cards.querySelectorAll('.retailer-tab').forEach(btn=>btn.addEventListener('click',()=>{cards.querySelectorAll('.retailer-tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const r=btn.dataset.retailer;grid.querySelectorAll('.buy-product').forEach((el,idx)=>{const platform=list[idx]?.platform;el.style.display=(r==='All'||platform===r)?'block':'none';});}));
+    }catch(e){cards.innerHTML=`<div class="buy-note">${esc(e.message||'Live retailer check failed.')}</div>`;}
+  }
+  attachAddButtons();
+}
+
+async function loadReadyToEat(){
+  const box=$('#ready-grid');
+  try{
+    const pincode=$('#recipePincode')?.value.trim()||currentPincode();
+    const q=new URLSearchParams({type:'ready_to_eat',q:`${recipe.name} ${recipe.meal_moment||''}`,limit:'12'});
+    if(pincode)q.set('pincode',pincode);
+    const d=await fetch('/api/products?'+q.toString(),{credentials:'include'}).then(r=>{if(!r.ok)throw new Error('Product service unavailable');return r.json()});
+    const eligible=(d.products||[]);
+    if(!eligible.length){
+      box.innerHTML='<div class="empty-state">No verified ready-to-eat products are currently in the KidPoshan catalogue for this meal. Run Product Intelligence research to add Brand + SKU products.</div>';
+      return;
+    }
+    box.innerHTML=eligible.map(p=>{
+      const links=(p.buyLinks||[]).length?p.buyLinks.map(x=>`<a class="btn btn-green" href="${esc(x.url)}" target="_blank" rel="sponsored nofollow noopener">Buy from ${esc(x.retailer)}</a>`).join(' '):'<div class="rank-note">No location-specific retailer availability confirmed yet.</div>';
+      return `<article class="card ready-card"><img src="${esc(safeImg(p.image_url))}" alt="${esc(p.name)}"><div class="card-body"><div class="muted">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="rank-note">SKU: ${esc(p.sku||'—')} · ${esc(p.pack_size||'Pack size not verified')}</div><div style="margin:8px 0;font-weight:800;color:#147a45">KidPoshan Score ${p.score==null?'Not scored':esc(p.score)}/100</div><div style="margin-top:10px">${links}</div></div></article>`;
+    }).join('');
+  }catch(e){box.innerHTML='<div class="empty-state">Ready-to-eat product data could not be checked right now.</div>';}
+}
+
+function render(){
+  const r=recipe;
+  $('#app').innerHTML=`
+    <div class="section"><div class="muted">Recipes › ${r.meal_moment} › <b>${r.name}</b></div></div>
+    <section class="detail-hero">
+      <img src="${safeImg(r.image_url)}" alt="${r.name}">
+      <div>
+        <h1 style="font-size:48px;margin:0 0 8px">${r.name}</h1>
+        <p class="muted" style="font-size:18px">${r.description||''}</p>
+        <div class="tagrow">
+          <span class="tag">🍽 ${r.meal_moment}</span>
+          <span class="tag">❄ ${r.season}</span>
+          <span class="tag">👤 ${r.age_min}–${r.age_max} years</span>
+          <span class="tag">🌿 ${r.diet}</span>
+        </div>
+        <div class="meta" style="font-size:15px;margin:18px 0">⏱ ${r.prep_minutes} mins · 👨‍🍳 ${r.difficulty} · 🌿 Kid-friendly</div>
+        <div style="display:flex;gap:10px"><button class="btn btn-green" onclick="addPlanner()">📅 Add to Planner</button><button class="btn btn-outline">♡ Save Recipe</button></div>
+      </div>
+      <aside class="score-panel">
+        <b>KidPoshan Score</b>
+        <div class="score-big">${r.score}</div><div>/100</div><hr>
+        <div>✓ Age appropriate</div><div>✓ Kid-friendly meal</div><div>✓ Family friendly</div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="split">
+        <div class="panel"><h2>Why this is good for your child</h2>${(r.benefits||[]).map(x=>`<div style="margin:8px 0">✓ ${x}</div>`).join('')}</div>
+        <div class="panel"><h2>Top nutrients</h2><div class="stage-row">${Object.entries(r.nutrition||{}).map(([k,v])=>`<span class="stage"><b>${v}</b><br>${k}</span>`).join('')}</div></div>
+      </div>
+    </section>
+
+    <section class="section recipe-shopping to-buy">
+      <div class="panel">
+        <h2>To Buy</h2>
+        <p class="muted">Keep the ingredient list here. Tick <b>At Home</b> or <b>To Buy</b>. Only the products and retailer choices for ingredients marked <b>To Buy</b> appear below as horizontally scrollable cards.</p>
+        <div class="buy-location"><span class="buy-note">Delivery pincode</span><input id="recipePincode" inputmode="numeric" maxlength="6" placeholder="e.g. 700001"><button id="saveRecipePincode">Check availability</button></div><div class="buy-location"><span class="buy-note">QuickCommerce API key (test only)</span><input id="qcApiKey" type="password" placeholder="Paste key for this session"><span class="buy-note">Not saved to GitHub</span></div>
+        <div id="ingredientChecklist" class="ingredient-checklist"></div>
+        <div id="buy-results" class="buy-results"></div>
+        <div class="shopping-bar">
+          <div><b>Shopping list:</b> <span id="shopping-count">0 items selected</span><div id="shopping-items" class="shopping-items">Tick To Buy for the ingredients you need.</div></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-outline" id="clear-shopping">Clear</button><button class="btn btn-green" id="view-shopping" disabled>View combined list</button></div>
+        </div>
+        <div id="shopping-list-panel" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel"><h2>Method</h2>${(r.method||[]).map((m,i)=>`<div style="display:grid;grid-template-columns:40px 1fr;gap:12px;margin:16px 0"><span class="score" style="width:34px;height:34px;justify-content:center">${i+1}</span><div><b>${m.title}</b><div class="muted">${m.text}</div></div></div>`).join('')}</div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <h2>Ready-to-Eat options for the same meal need</h2>
+        <p class="muted ready-note">Verified products are scored using the same KidPoshan Score framework. Recommendation priority is <b>KidPoshan Score first</b>, then <b>minimum comparable cost/unit</b>. Affiliate placement does not affect the score.</p>
+        <div id="ready-grid" class="ready-grid"><div class="empty-state">Checking verified products…</div></div>
+      </div>
+    </section>
+
+    <section class="section"><div class="panel"><h2>Serve with</h2><div class="stage-row">${(r.serveWith||[]).map(x=>`<span class="stage">${x}</span>`).join('')}</div></div></section>
+
+    <section class="section">
+      <div class="panel"><h2>More recipes you might like</h2><div id="more" class="ready-grid"></div></div>
+    </section>
+  `;
+
+  renderShoppingChecklist();
+  $('#recipePincode').value=currentPincode();
+  $('#saveRecipePincode').onclick=()=>{
+    localStorage.setItem(STORAGE+'.pincode',$('#recipePincode').value.trim());
+    renderBuyResults();
+    loadReadyToEat();
+  };
+  $('#clear-shopping').onclick=()=>{selectedBuy={};saveShopping(selectedBuy);renderShoppingBar();renderShoppingList();};
+  $('#view-shopping').onclick=()=>{renderShoppingList();document.getElementById('shopping-list-panel')?.scrollIntoView({behavior:'smooth',block:'center'});};
+  renderShoppingBar();renderShoppingList();
+  renderBuyResults();
+  loadReadyToEat();
+
+
+  KP.api('/recipes').then(d=>{
+    $('#more').innerHTML=(d.recipes||[]).filter(x=>x.id!==recipe.id).slice(0,8).map(x=>`
+      <a class="card ready-card" href="/recipe?slug=${encodeURIComponent(x.slug)}">
+        <img src="${safeImg(x.image_url)}" alt="${x.name}">
+        <div class="card-body"><b>${x.name}</b><div class="meta">${x.score} · ${x.prep_minutes} mins</div></div>
+      </a>`).join('');
+  }).catch(()=>{});
+}
+
+async function addPlanner(){
+  alert('Planner connection is available; child selection will be used from the shared family planner.');
+}
+
+KP.api('/recipes/'+encodeURIComponent(recipeRef))
+  .then(d=>{recipe=d.recipe;render()})
+  .catch(e=>{
+    $('#app').innerHTML=`<section class="section"><div class="empty-state"><h2>Recipe could not be loaded</h2><p>${e.message||'Please try again.'}</p><a class="btn" href="/recipes.html">Back to Recipes</a></div></section>`;
+  });
+</script>
+</body>
+</html>
