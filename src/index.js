@@ -659,7 +659,7 @@ if(p==='/api/live-commerce' && request.method==='GET'){
       errors,
       checked_at:new Date().toISOString()
     });
-
+  }
 
   return null;
 }
