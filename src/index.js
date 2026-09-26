@@ -330,8 +330,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   }catch(e){
     return json({error:e.message},502);
   }
-
-  if(p==='/api/products' && request.method==='GET'){
+} if(p==='/api/products' && request.method==='GET'){
     const q=(url.searchParams.get('ingredient')||url.searchParams.get('q')||'').trim().toLowerCase();
     const location=(url.searchParams.get('location')||url.searchParams.get('pincode')||'').trim();
     const limit=Math.min(Math.max(Number(url.searchParams.get('limit')||50),1),100);
@@ -572,20 +571,15 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   if(p==='/api/payments/create-order' && request.method==='POST'){
     return bad('Payment gateway not configured yet. Connect Razorpay/Stripe credentials in Cloudflare Secrets before enabling paid features.',501);
   }
-if(p==='/api/live-commerce' && request.method==='GET'){
+  if(p==='/api/live-commerce' && request.method==='GET'){
     const ingredient=(url.searchParams.get('ingredient')||'').trim();
     const pincode=(url.searchParams.get('pincode')||'').trim();
 
     if(!ingredient) return bad('Missing ingredient.',400);
-    if(!env.QUICKCOMMERCE_API_KEY){
-      return bad('QuickCommerce API key is not configured.',500);
-    }
+    if(!env.QUICKCOMMERCE_API_KEY) return bad('QuickCommerce API key is not configured.',500);
 
-    // Temporary Kolkata test coordinates.
-    // Pincode-to-location resolution will be added after the live API test.
     const lat='22.5726';
     const lon='88.3639';
-
     const platforms=['BlinkIt','Swiggy'];
 
     const results=await Promise.allSettled(
@@ -597,37 +591,33 @@ if(p==='/api/live-commerce' && request.method==='GET'){
         q.searchParams.set('platform',platform);
 
         const response=await fetch(q.toString(),{
-          headers:{
-            'X-API-Key':env.QUICKCOMMERCE_API_KEY
-          }
+          headers:{'X-API-Key':env.QUICKCOMMERCE_API_KEY}
         });
 
         if(!response.ok){
-          const errorText=await response.text().catch(()=> '');
-          throw new Error(
-            `${platform} API returned ${response.status}${errorText ? `: ${errorText.slice(0,200)}` : ''}`
-          );
+          throw new Error(`${platform} API returned ${response.status}`);
         }
 
         const data=await response.json();
+        const products=data?.data?.products||data?.results||[];
 
         return {
           platform,
-          products:(data?.data?.products||data?.results||[]).slice(0,8).map(p=>({
+          products:products.slice(0,8).map(p=>({
             id:p.id||null,
             name:p.name||'',
             brand:p.brand||'',
             quantity:p.quantity||'',
-            price:p.offer_price ?? p.price ?? null,
+            price:p.offer_price ?? null,
             mrp:p.mrp ?? null,
             available:Boolean(p.available),
             inventory:p.inventory ?? null,
-            image_url:(p.images||[])[0]||p.image_url||null,
-            buy_url:p.deeplink||p.buy_url||p.url||null,
+            image_url:(p.images||[])[0]||null,
+            buy_url:p.deeplink||null,
             rating:p.rating ?? null,
             rating_count:p.rating_count ?? null,
-            sla:p.platform?.sla||p.sla||null,
-            store_id:p.platform?.store_id||p.store_id||null
+            sla:p.platform?.sla||null,
+            store_id:p.platform?.store_id||null
           }))
         };
       })
@@ -638,15 +628,9 @@ if(p==='/api/live-commerce' && request.method==='GET'){
 
     results.forEach((r,i)=>{
       if(r.status==='fulfilled'){
-        offers.push(...r.value.products.map(p=>({
-          ...p,
-          retailer:r.value.platform
-        })));
+        offers.push(...r.value.products.map(p=>({...p,retailer:r.value.platform})));
       }else{
-        errors.push({
-          platform:platforms[i],
-          error:r.reason?.message||'Request failed'
-        });
+        errors.push({platform:platforms[i],error:r.reason?.message||'Request failed'});
       }
     });
 
