@@ -1,7 +1,21 @@
 -- KidPoshan Recipe Intelligence Engine
--- Migration: create recipe source, recipe, ingredient and score tables
--- Safe to run with IF NOT EXISTS.
+-- Migration v2
+-- Integrates with the EXISTING recipes table.
+-- Does not drop, rename, or replace existing recipe data.
 
+-- 1. Add source/provenance fields to the existing recipes table.
+ALTER TABLE recipes ADD COLUMN source_id TEXT;
+ALTER TABLE recipes ADD COLUMN source_recipe_id TEXT;
+ALTER TABLE recipes ADD COLUMN creator_name TEXT;
+ALTER TABLE recipes ADD COLUMN creator_type TEXT;
+ALTER TABLE recipes ADD COLUMN region TEXT;
+ALTER TABLE recipes ADD COLUMN state_or_area TEXT;
+ALTER TABLE recipes ADD COLUMN cuisine TEXT;
+ALTER TABLE recipes ADD COLUMN source_url TEXT;
+ALTER TABLE recipes ADD COLUMN attribution_text TEXT;
+ALTER TABLE recipes ADD COLUMN rights_status TEXT;
+
+-- 2. Source registry.
 CREATE TABLE IF NOT EXISTS recipe_sources (
   id TEXT PRIMARY KEY,
   source_name TEXT NOT NULL,
@@ -26,52 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_recipe_sources_region
 CREATE INDEX IF NOT EXISTS idx_recipe_sources_active
   ON recipe_sources(active);
 
-
-CREATE TABLE IF NOT EXISTS recipes (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL,
-  source_recipe_id TEXT,
-  title TEXT NOT NULL,
-  creator_name TEXT,
-  creator_type TEXT,
-  region TEXT,
-  state_or_area TEXT,
-  cuisine TEXT,
-  meal_moment TEXT,
-  season TEXT,
-  diet_type TEXT,
-  age_min INTEGER,
-  age_max INTEGER,
-  kids_suitable INTEGER NOT NULL DEFAULT 0,
-  source_url TEXT NOT NULL,
-  image_url TEXT,
-  description TEXT,
-  ingredients_json TEXT,
-  instructions_json TEXT,
-  nutrition_json TEXT,
-  attribution_text TEXT,
-  rights_status TEXT,
-  status TEXT NOT NULL DEFAULT 'candidate',
-  discovered_at INTEGER NOT NULL,
-  last_verified INTEGER,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  FOREIGN KEY (source_id) REFERENCES recipe_sources(id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_recipes_source
-  ON recipes(source_id);
-
-CREATE INDEX IF NOT EXISTS idx_recipes_filters
-  ON recipes(meal_moment, season, diet_type, kids_suitable);
-
-CREATE INDEX IF NOT EXISTS idx_recipes_region
-  ON recipes(region, state_or_area);
-
-CREATE INDEX IF NOT EXISTS idx_recipes_status
-  ON recipes(status);
-
-
+-- 3. Normalized ingredient records for the existing recipes.
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
   id TEXT PRIMARY KEY,
   recipe_id TEXT NOT NULL,
@@ -94,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe
 CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_key
   ON recipe_ingredients(ingredient_key);
 
-
+-- 4. Independent Poshan Score history.
 CREATE TABLE IF NOT EXISTS recipe_scores (
   id TEXT PRIMARY KEY,
   recipe_id TEXT NOT NULL,
@@ -115,3 +84,16 @@ CREATE INDEX IF NOT EXISTS idx_recipe_scores_rank
 
 CREATE INDEX IF NOT EXISTS idx_recipe_scores_recipe
   ON recipe_scores(recipe_id);
+
+-- 5. Helpful indexes on the existing recipes table.
+CREATE INDEX IF NOT EXISTS idx_recipes_source_id
+  ON recipes(source_id);
+
+CREATE INDEX IF NOT EXISTS idx_recipes_region_state
+  ON recipes(region, state_or_area);
+
+CREATE INDEX IF NOT EXISTS idx_recipes_meal_season_diet
+  ON recipes(meal_moment, season, diet);
+
+CREATE INDEX IF NOT EXISTS idx_recipes_age
+  ON recipes(age_min, age_max);
