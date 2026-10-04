@@ -9,6 +9,14 @@ import { fetchHtml, UA } from './extract.js';
 const SKIP = /\/(tag|tags|category|categories|label|author|page\/\d+|search|feed|wp-content|wp-json|wp-admin|about|contact|privacy|disclaimer|terms|shop|cart|account|login|subscribe|amp)(\/|$)|\.(jpe?g|png|webp|gif|svg|pdf|xml|css|js)$|[?&](share|replytocom|utm_)/i;
 const RECIPE_HINT = /recipe|how-to-make|-rice|dosa|idli|paratha|upma|poha|khichdi|curry|dal|sabzi|ladoo|cutlet|tikki|sandwich|soup|halwa|pulao|chilla|cheela|thepla|bhaat|kootu|roll|muffin|pancake|porridge|kheer|puree|bites/i;
 
+// Index / category / roundup pages list recipes; they are not recipes themselves.
+export function isIndexPath(path) {
+  const p = path.replace(/\/+$/, '').toLowerCase();
+  if (/\/(recipe-index|recipes-index|recipe-archive|all-recipes|recent-recipes|archive|archives|sitemap)$/.test(p)) return true;
+  if (/^\/recipes\/[^/]+$/.test(p)) return true;          // /recipes/<category>
+  return /-recipes$/.test(p.split('/').pop() || '');       // plural slug = roundup, e.g. baby-food-recipes
+}
+
 export function isManual(source) {
   return source.crawl_mode === 'manual' || /instagram\.com|youtube\.com|youtu\.be/i.test(source.url);
 }
@@ -26,7 +34,7 @@ export function recipeLinksFrom(html, baseUrl) {
     if (u.hostname.replace(/^www\./, '') !== host) continue;
     u.hash = ''; u.search = '';
     const path = u.pathname;
-    if (path === '/' || path === base.pathname || SKIP.test(path)) continue;
+    if (path === '/' || path === base.pathname || SKIP.test(path) || isIndexPath(path)) continue;
     const slug = path.split('/').filter(Boolean).pop() || '';
     // individual posts usually have a long hyphenated slug or a recipe keyword
     if ((slug.match(/-/g) || []).length >= 2 || RECIPE_HINT.test(path)) links.add(u.toString());
@@ -77,7 +85,7 @@ export async function tavilySearch(env, source, queries, { maxResults = 10 } = {
     for (const r of data.results || []) {
       try {
         const u = new URL(r.url);
-        if (!SKIP.test(u.pathname)) { u.hash = ''; urls.add(u.toString()); }
+        if (!SKIP.test(u.pathname) && !isIndexPath(u.pathname)) { u.hash = ''; urls.add(u.toString()); }
       } catch { /* ignore */ }
     }
   }

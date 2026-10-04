@@ -178,4 +178,13 @@ ok(!afterPause.some((x) => x.id === 601) && (await listSources(env, { state: 'pa
 await updateSource(env, 60, { state: 'active' });
 ok((await processPending(env, { limit: 10 })).some((x) => x.id === 601), 'Resumed site is read again');
 ok(await updateSource(env, 1, { state: 'deleted' }).then(() => false, () => true), 'Invalid state refused');
+
+// index/category pages are not recipes
+import { isIndexPath } from '../../src/recipes/discover.js';
+ok(['/recipe-index/', '/recipes/baby-food-recipes/', '/recipes/recent-recipes/', '/kids-lunch-box-recipes/'].every(isIndexPath) && !['/carrot-rice-recipe/', '/2014/04/beetroot-poriyal-recipe.html', '/flourless-pancakes-recipe/'].some(isIndexPath), 'Index/category/roundup paths are skipped, single recipes kept');
+const idx = `<h3>Ingredients</h3><ul><li><a href="/c">Chicken Recipes</a></li><li><a href="/e">Egg Recipes</a></li><li><a href="/f">Fish Recipes</a></li></ul>`;
+ok(extractFromHtml(idx, 'https://s.in/recipe-index/') === null, 'Link-only category list is not read as ingredients');
+const idx2 = `<h3>Ingredients</h3><ul><li>Chicken Recipes</li><li>Egg Recipes</li><li>Paneer</li></ul>`;
+ok(extractFromHtml(idx2, 'https://s.in/x/') === null, 'List of "... Recipes" titles is not read as ingredients');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

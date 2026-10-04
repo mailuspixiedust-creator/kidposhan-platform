@@ -185,7 +185,11 @@ function sectionAfter(html, headingRe) {
   const from = heads[idx].index + heads[idx][0].length;
   const nextH = html.slice(from).search(/<h[2-4][^>]*>/i);
   const chunk = html.slice(from, nextH > 0 ? from + nextH : from + 15000);
-  const lis = [...chunk.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => clean(m[1])).filter(Boolean);
+  const rawLis = [...chunk.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
+  // A list made only of links is site navigation / a category list, not an ingredient list.
+  const linkOnly = rawLis.filter((h) => /^\s*<a\b[^>]*>[\s\S]*?<\/a>\s*$/i.test(h)).length;
+  if (rawLis.length >= 3 && linkOnly / rawLis.length >= 0.7) return [];
+  const lis = rawLis.map(clean).filter(Boolean);
   if (lis.length) return lis;
   return [...chunk.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => clean(m[1])).filter((t) => t && t.length < 400);
 }
@@ -198,6 +202,8 @@ function pageTitle(html) {
 export function fromHeuristic(html, url) {
   const ingredients = sectionAfter(html, H_ING);
   if (ingredients.length < 2) return null;
+  // Listing pages: most "ingredients" are titles like "Chicken Recipes".
+  if (ingredients.filter((i) => /\brecipes?$/i.test(i)).length / ingredients.length >= 0.4) return null;
   const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
   const r = result({
     method: 'heuristic', url,
