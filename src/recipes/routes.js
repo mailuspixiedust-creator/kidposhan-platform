@@ -41,12 +41,12 @@ export async function routeRecipes(request, env, ctx) {
         offset: +url.searchParams.get('offset') || 0,
       }));
     }
-    let m = path.match(/^\/api\/admin\/review\/(\d+)$/);
+    let m = path.match(/^\/api\/kp\/admin\/review\/(\d+)$/);
     if (m && request.method === 'POST') return json(await reviewRecipe(env, +m[1], await request.json()));
     if (path === '/api/kp/admin/sources' && request.method === 'GET') {
       return json(await listSources(env, { state: url.searchParams.get('state') || 'all', q: url.searchParams.get('q') || '', status: url.searchParams.get('status') }));
     }
-    m = path.match(/^\/api\/admin\/sources\/(\d+)$/);
+    m = path.match(/^\/api\/kp\/admin\/sources\/(\d+)$/);
     if (m && request.method === 'POST') return json(await updateSource(env, +m[1], await request.json()));
   } catch (e) {
     return json({ error: e.message }, 400);

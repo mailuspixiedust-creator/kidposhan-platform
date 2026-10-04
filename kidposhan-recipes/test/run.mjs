@@ -187,4 +187,11 @@ ok(extractFromHtml(idx, 'https://s.in/recipe-index/') === null, 'Link-only categ
 const idx2 = `<h3>Ingredients</h3><ul><li>Chicken Recipes</li><li>Egg Recipes</li><li>Paneer</li></ul>`;
 ok(extractFromHtml(idx2, 'https://s.in/x/') === null, 'List of "... Recipes" titles is not read as ingredients');
 
+// router: every admin route the pages call must resolve (regression: review/sources POST used the old path)
+import { routeRecipes } from '../../src/recipes/routes.js';
+for (const [meth, path] of [['GET','/api/kp/admin/review'],['POST','/api/kp/admin/review/1'],['GET','/api/kp/admin/sources'],['POST','/api/kp/admin/sources/1']]) {
+  const r = await routeRecipes(new Request('https://w' + path, { method: meth, headers: { 'x-admin-token': 't' }, body: meth === 'POST' ? '{}' : undefined }), { ...env, ADMIN_TOKEN: 't' }, ctx);
+  ok(!/Unknown admin route/.test(await r.text()), 'Router resolves ' + meth + ' ' + path);
+}
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

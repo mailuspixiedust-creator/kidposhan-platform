@@ -1,8 +1,8 @@
 // Owner review: decide what parents see.
-//   GET  /api/admin/review?status=pending|approved|rejected&limit=20&offset=0
-//   POST /api/admin/review/:id   { action: 'publish'|'reject'|'pending', diet?, age_min_months?, age_max_months?, occasions?, seasons?, note? }
-//   GET  /api/admin/sources?status=suggested|registered|blocked
-//   POST /api/admin/sources/:id  { status?: 'registered'|'blocked', rights_status?: 'granted'|'requested'|'not_requested'|'refused' }
+//   GET  /api/kp/admin/review?status=pending|approved|rejected&limit=20&offset=0
+//   POST /api/kp/admin/review/:id   { action: 'publish'|'reject'|'pending', diet?, age_min_months?, age_max_months?, occasions?, seasons?, note? }
+//   GET  /api/kp/admin/sources?status=suggested|registered|blocked
+//   POST /api/kp/admin/sources/:id  { status?: 'registered'|'blocked', rights_status?: 'granted'|'requested'|'not_requested'|'refused' }
 
 const OCCASIONS = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
 const SEASONS = ['summer', 'monsoon', 'winter', 'all'];
@@ -86,7 +86,7 @@ const SITE_STATES = {
 const RIGHTS = ['not_requested', 'requested', 'granted', 'refused'];
 export const siteState = (s) => (s.status === 'blocked' ? 'blocked' : s.status === 'suggested' ? 'new' : s.active ? 'active' : 'paused');
 
-// GET /api/admin/sources?state=new|active|paused|blocked|all&q=text
+// GET /api/kp/admin/sources?state=new|active|paused|blocked|all&q=text
 export async function listSources(env, { state = 'all', q = '', status } = {}) {
   if (status === 'suggested') state = 'new'; // older callers
   if (!SITE_STATES[state]) throw new Error('state must be new, active, paused, blocked or all');
@@ -116,7 +116,7 @@ export async function listSources(env, { state = 'all', q = '', status } = {}) {
   return { state, counts, items: results.map((r) => ({ ...r, state: siteState(r) })) };
 }
 
-// POST /api/admin/sources/:id  { state?: active|paused|blocked, rights_status?, owner_notes? }
+// POST /api/kp/admin/sources/:id  { state?: active|paused|blocked, rights_status?, owner_notes? }
 export async function updateSource(env, id, body) {
   if (body.status && !body.state) body.state = body.status === 'registered' ? 'active' : body.status; // older callers
   const sets = [], args = [];
