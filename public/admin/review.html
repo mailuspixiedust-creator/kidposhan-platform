@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>KidPoshan recipe review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Mukta:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--steel:#E4EAEC;--paper:#FAFCFC;--ink:#17323A;--muted:#5A6E74;--line:#C9D4D7;--leaf:#2D6A46;--leaf-soft:#DCEBE1;--turmeric:#E3A21A;--turmeric-soft:#FBEFD2;--chilli:#B4432E;
+--display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;--body:"Mukta","Segoe UI",system-ui,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--steel:#132227;--paper:#1A2D33;--ink:#E6EEF0;--muted:#9DB0B5;--line:#2E454C;--leaf:#7CC497;--leaf-soft:#1F3B2C;--turmeric:#F0B840;--turmeric-soft:#3A3018;--chilli:#E6806B}}
+:root[data-theme="dark"]{--steel:#132227;--paper:#1A2D33;--ink:#E6EEF0;--muted:#9DB0B5;--line:#2E454C;--leaf:#7CC497;--leaf-soft:#1F3B2C;--turmeric:#F0B840;--turmeric-soft:#3A3018;--chilli:#E6806B}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--steel);color:var(--ink);font:400 16px/1.5 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0}
+h1{font-size:32px}h2{font-size:22px}h3{font-size:16px;font-weight:600;font-family:var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px}
+.sub{color:var(--muted);margin-top:4px}
+.banner{margin-top:14px;padding:10px 14px;border-left:4px solid var(--turmeric);background:var(--paper);border-radius:6px;font-size:15px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 14px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--leaf)}
+.tab .n{font-weight:500;margin-left:4px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+.card>div{padding:16px}
+.card .right{border-left:1px solid var(--line);display:grid;gap:12px;align-content:start}
+.src{font-size:14px;color:var(--muted);margin-top:4px}
+.src a{color:var(--leaf)}
+.flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.flag{font-size:13px;padding:1px 8px;border-radius:6px;background:var(--turmeric-soft);border:1px solid var(--turmeric)}
+.flag.new{background:var(--leaf-soft);border-color:var(--leaf)}
+.found{font-size:13px;color:var(--muted);margin-top:6px}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:600;font-size:15px}
+.ing{margin:6px 0 0;padding-left:18px;font-size:15px}
+.steps{margin:6px 0 0;padding-left:20px;font-size:14px;color:var(--muted)}
+.lbl{font-size:13px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--steel)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{display:flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:14px;cursor:pointer}
+.checks input{accent-color:var(--leaf)}
+.why{font-size:13px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer}
+.publish{background:var(--leaf);color:var(--paper)}
+.reject{background:transparent;border:1px solid var(--chilli);color:var(--chilli)}
+.undo{background:transparent;border:1px solid var(--line)}
+.done{font-size:14px;font-weight:600}
+.err{color:var(--chilli);font-size:14px}
+.empty{color:var(--muted);padding:30px 0}
+.site-tools{display:grid;gap:10px;margin-bottom:14px}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.fchip .n{font-weight:500;opacity:.8;margin-left:3px}
+.sitesearch{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);max-width:420px}
+.site{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:16px}
+.site .stats{font-size:14px;margin-top:6px}
+.site .warn{font-size:13px;color:var(--chilli);margin-top:2px}
+.tagline{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{font-size:12px;padding:1px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.tag.granted{border-color:var(--leaf);color:var(--leaf);background:var(--leaf-soft)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"][data-state="active"]{background:var(--leaf);color:var(--paper)}
+.seg button[aria-pressed="true"][data-state="paused"]{background:var(--turmeric);color:#2A1E00}
+.seg button[aria-pressed="true"][data-state="blocked"]{background:var(--chilli);color:#fff}
+.site textarea{width:100%;min-height:54px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--steel);font:inherit;font-size:14px;resize:vertical}
+.saved{font-size:12px;color:var(--leaf);min-height:1em}
+@media (max-width:720px){.site{grid-template-columns:1fr}}
+.login{max-width:420px;margin-top:40px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:10px}
+.login input{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--steel)}
+.more{display:block;margin:10px auto}
+@media (max-width:720px){.card{grid-template-columns:1fr}.card .right{border-left:0;border-top:1px solid var(--line)}.row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script>
+const P=new URLSearchParams(location.search);
+const DEMO=P.has('demo')||!/kidposhan|workers\.dev|localhost|127\.0\.0\.1/.test(location.hostname);
+const API=P.get('api')||'';
+const OCC=[['breakfast','Breakfast'],['lunchbox','School lunchbox'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
+const SEA=[['summer','Summer'],['monsoon','Monsoon'],['winter','Winter'],['all','All seasons']];
+const DIET=[['veg','Veg'],['jain','Jain'],['egg','Egg'],['nonveg','Non-veg']];
+const AGE=[6,9,12,18,24,36,48,60,72,96,120,144];
+const FLAG={partial:'Incomplete read',read_without_recipe_card:'No recipe card on page',no_name:'No title',no_meal_type:'Pick a meal',check_jain:'Check Jain',new_site:'New site'};
+const ageTxt=m=>m<12?`${m} months`:m%12?`${(m/12).toFixed(1)} years`:`${m/12} years`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyTxt=k=>{if(!k)return'';const [p,o,s,a]=k.split('|');return `${({veg:'Veg',jain:'Jain',nonveg:'Non-veg'})[p]||p}, ${(OCC.find(x=>x[0]===o)||[])[1]||o}, ${s==='all'?'all seasons':s}, ${a}`};
+
+/* ---- demo data: invented examples to show the screen, not real recipes ---- */
+const demo={
+ pending:[
+  {id:101,name:'Sample: Jain moong chilla',source_name:'newsite.example',source_status:'suggested',source_id:9,source_url:'#',flags:['new_site'],found_for:'jain|breakfast|all|toddler',diet:'jain',age_min_months:24,age_max_months:144,occasions:['breakfast'],seasons:['all'],ingredients:['1 cup moong dal, soaked','2 tbsp coriander leaves','Salt to taste'],instructions:[{text:'(Creator\'s method text appears here, word for word)'}],tag_reasons:{diet:'no onion/garlic/root vegetables found',age:'chilli -> 2y+',occasion:'breakfast',season:'all'},extraction_method:'jsonld',source_rating:4.7,source_rating_count:58},
+  {id:102,name:'Sample: Ragi porridge for babies',source_name:'Registered blog A',source_status:'registered',source_id:3,source_url:'#',flags:[],found_for:'veg|breakfast|all|infant',diet:'jain',age_min_months:6,age_max_months:36,occasions:['breakfast','snack_4pm'],seasons:['all'],ingredients:['2 tbsp ragi flour','1 cup water','½ tsp ghee'],instructions:[{text:'(Creator\'s method text appears here, word for word)'}],tag_reasons:{diet:'no onion/garlic/root vegetables found',age:'marked for babies -> 6m+',occasion:'breakfast, snack_4pm',season:'all'},extraction_method:'wprm'},
+  {id:103,name:'Sample: Bhutta chaat',source_name:'Registered blog B',source_status:'registered',source_id:4,source_url:'#',flags:['read_without_recipe_card','no_meal_type'],found_for:null,diet:'veg',age_min_months:36,age_max_months:144,occasions:[],seasons:['monsoon'],ingredients:['2 sweet corn cobs','1 small onion','Lemon juice','Salt to taste'],instructions:[],tag_reasons:{diet:'not Jain: onion',age:'general recipe -> 12m+',occasion:'no occasion signal - review',season:'monsoon'},extraction_method:'heuristic'},
+ ],
+ approved:[],rejected:[],
+ sites:[
+  {id:9,name:'newsite.example',url:'https://newsite.example/',platform:'Website',region:'Unknown',area:'',notes:'Found by parent search: indian jain breakfast recipe for toddler',state:'new',pending:1,published:0,rejected:0,robots_blocked:0,errors:0,rights_status:'not_requested',owner_notes:''},
+  {id:1,name:'Sample registered blog A',url:'https://blog-a.example/',platform:'Website',region:'South',area:'Tamil Nadu',notes:'Kids lunchbox collection',state:'active',pending:4,published:12,rejected:2,robots_blocked:0,errors:1,rights_status:'requested',owner_notes:'Emailed 2 Oct, awaiting reply'},
+  {id:2,name:'Sample registered blog B',url:'https://blog-b.example/',platform:'Website',region:'East',area:'West Bengal',notes:'Bengali family recipes',state:'active',pending:0,published:7,rejected:0,robots_blocked:0,errors:0,rights_status:'granted',owner_notes:'Agreed by email, credit + link'},
+  {id:3,name:'Sample media site',url:'https://media.example/',platform:'Web / Media',region:'Pan-India',area:'India',notes:'Listicles',state:'paused',pending:0,published:2,rejected:5,robots_blocked:3,errors:0,rights_status:'not_requested',owner_notes:'Mostly listicles, paused'},
+  {id:4,name:'Sample Instagram creator',url:'https://instagram.com/sample',platform:'Instagram',region:'Pan-India',area:'India',notes:'Added by hand',crawl_mode:'manual',state:'active',pending:0,published:1,rejected:0,robots_blocked:0,errors:0,rights_status:'granted',owner_notes:''},
+ ],
+};
+
+let tab='pending', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
+const app=document.getElementById('app');
+
+async function api(path,opts={}){
+  if(DEMO) return demoApi(path,opts);
+  const r=await fetch(API+path,{...opts,headers:{'content-type':'application/json','x-admin-token':token,...(opts.headers||{})}});
+  const d=await r.json().catch(()=>({error:`HTTP ${r.status}`}));
+  if(r.status===401){sessionStorage.removeItem('kp_admin');token='';render();throw new Error('Token not accepted');}
+  if(!r.ok) throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
+}
+async function demoApi(path,opts){
+  const u=new URL(path,'https://x');
+  if(u.pathname==='/api/kp/admin/review'){const s=u.searchParams.get('status');return {status:s,total:demo[s].length,items:demo[s]}}
+  if(u.pathname==='/api/kp/admin/sources'){const st=u.searchParams.get('state')||'all',q=(u.searchParams.get('q')||'').toLowerCase();
+    const c={new:0,active:0,paused:0,blocked:0};demo.sites.forEach(x=>c[x.state]++);c.all=demo.sites.length;
+    return {counts:c,items:demo.sites.filter(x=>(st==='all'||x.state===st)&&(!q||(x.name+x.url+x.area).toLowerCase().includes(q)))}}
+  let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];
+    if(b.action==='publish'&&b.occasions&&!b.occasions.length) throw new Error('pick at least one meal before publishing');
+    for(const k of ['pending','approved','rejected']){const i=demo[k].findIndex(x=>x.id===id);if(i>=0){const [it]=demo[k].splice(i,1);Object.assign(it,b);demo[{publish:'approved',reject:'rejected',pending:'pending'}[b.action]].unshift(it)}}
+    return {ok:1}}
+  m=u.pathname.match(/sources\/(\d+)/); if(m){const b=JSON.parse(opts.body);const s=demo.sites.find(x=>x.id===+m[1]);Object.assign(s,b);return s}
+}
+
+function render(){
+  if(!DEMO&&!token){
+    app.innerHTML=`<h1>Recipe review</h1><form class="login" id="login"><label for="tok"><b>Admin token</b></label>
+      <input id="tok" type="password" autocomplete="current-password" required><button class="btn publish">Open review</button>
+      <span class="sub">Kept only for this browser tab.</span></form>`;
+    document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
+    return;
+  }
+  const tabs=[['pending','Waiting'],['approved','Published'],['rejected','Rejected'],['sites','Sites']];
+  app.innerHTML=`<h1>Recipe review</h1>
+    <p class="sub">Recipes found by searches and site checks wait here. Parents only see what you publish.</p>
+    ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
+    <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}<span class="n">${counts[k]??''}</span></button>`).join('')}</div>
+    <div id="list"></div>`;
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;offset=0;load()});
+  const list=document.getElementById('list');
+  if(tab==='sites'){renderSites(list);return}
+  list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
+    `<p class="empty">${tab==='pending'?'Nothing waiting. New recipes arrive as parents search and as sites are re-checked.':'Nothing here yet.'}</p>`;
+  bindCards();
+  const more=document.getElementById('more'); if(more) more.onclick=()=>{offset+=20;load(true)};
+}
+
+function cardHTML(r){
+  const chk=(name,arr,cur)=>`<div class="checks">${arr.map(([v,l])=>`<label><input type="checkbox" name="${name}" value="${v}" ${cur.includes(v)?'checked':''}>${l}</label>`).join('')}</div>`;
+  const sel=(name,arr,cur)=>`<select name="${name}">${arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
+  const ages=AGE.map(a=>[a,ageTxt(a)]);
+  const rating=r.source_rating?`, rated ${r.source_rating} by ${r.source_rating_count||'?'} on the site`:'';
+  const action=tab==='pending'
+    ?`<button class="btn publish" data-act="publish">Publish</button><button class="btn reject" data-act="reject">Reject</button>`
+    :`<button class="btn undo" data-act="pending">Move back to waiting</button>${tab==='rejected'?'<button class="btn publish" data-act="publish">Publish</button>':''}`;
+  return `<article class="card" data-id="${r.id}">
+   <div><h2>${esc(r.name)}</h2>
+    <p class="src">${esc(r.source_name)}${r.source_status==='suggested'?' (not in your registry yet)':''}${rating}. <a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open original</a></p>
+    ${r.flags?.length?`<div class="flags">${r.flags.map(f=>`<span class="flag ${f==='new_site'?'new':''}">${FLAG[f]||f}</span>`).join('')}</div>`:''}
+    ${r.found_for?`<p class="found">Found for a parent search: ${esc(keyTxt(r.found_for))}</p>`:''}
+    <details open><summary>Ingredients (${r.ingredients.length})</summary><ul class="ing">${r.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></details>
+    <details><summary>Method as published (${r.instructions.length} steps)</summary>${r.instructions.length?`<ol class="steps">${r.instructions.map(s=>`<li>${esc(s.text)}</li>`).join('')}</ol>`:'<p class="why">No steps found. Check the original.</p>'}</details>
+   </div>
+   <div class="right">
+    <div><span class="lbl">Food type</span>${sel('diet',DIET,r.diet)}<p class="why">${esc(r.tag_reasons?.diet)}</p></div>
+    <div class="row"><div><span class="lbl">From age</span>${sel('age_min_months',ages,r.age_min_months)}</div><div><span class="lbl">Up to</span>${sel('age_max_months',ages,r.age_max_months)}</div></div>
+    <p class="why">${esc(r.tag_reasons?.age)}</p>
+    <div><span class="lbl">Meals</span>${chk('occasions',OCC,r.occasions)}</div>
+    <div><span class="lbl">Seasons</span>${chk('seasons',SEA,r.seasons)}</div>
+    <div class="actions">${action}</div><p class="err" role="alert"></p>
+   </div></article>`;
+}
+function bindCards(){
+  app.querySelectorAll('.card [data-act]').forEach(b=>b.onclick=async()=>{
+    const card=b.closest('.card'), id=+card.dataset.id, err=card.querySelector('.err'); err.textContent='';
+    const vals=n=>[...card.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value);
+    const body={action:b.dataset.act,diet:card.querySelector('[name=diet]').value,
+      age_min_months:+card.querySelector('[name=age_min_months]').value,age_max_months:+card.querySelector('[name=age_max_months]').value,
+      occasions:vals('occasions'),seasons:vals('seasons')};
+    if(body.age_min_months>body.age_max_months){err.textContent='"From age" is after "Up to".';return}
+    card.querySelectorAll('button').forEach(x=>x.disabled=true);
+    try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify(body)});
+      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:'Published',reject:'Rejected',pending:'Moved back to waiting'}[body.action]}</span>`;
+      setTimeout(load,700);
+    }catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
+  });
+}
+
+const STATES=[['new','New'],['active','Active'],['paused','Paused'],['blocked','Blocked'],['all','All']];
+const RIGHTS=[['not_requested','Not asked'],['requested','Asked'],['granted','Granted'],['refused','Refused']];
+const RIGHTS_HELP={granted:'Steps and photos from this site show on KidPoshan, with credit.',requested:'Waiting for their reply. Parents get a link to the site meanwhile.',refused:'Parents get a link to the site only.',not_requested:'Parents get a link to the site only.'};
+function renderSites(list){
+  list.innerHTML=`<div class="site-tools">
+    <div class="filters" role="group" aria-label="Show sites">${STATES.map(([k,l])=>`<button class="fchip" data-state-filter="${k}" aria-pressed="${siteState===k}">${l}<span class="n">${siteCounts[k]??''}</span></button>`).join('')}</div>
+    <input class="sitesearch" id="sq" type="search" placeholder="Search by name, website or area" value="${esc(siteQ)}" aria-label="Search sites"></div>
+    <div id="sitelist">${sites.length?sites.map(siteHTML).join(''):`<p class="empty">${siteState==='new'?'No new sites. Sites found by parent searches appear here for your go-ahead.':'No sites match.'}</p>`}</div>`;
+  list.querySelectorAll('[data-state-filter]').forEach(b=>b.onclick=()=>{siteState=b.dataset.stateFilter;load()});
+  let t; const sq=document.getElementById('sq'); sq.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{siteQ=sq.value;load().then(()=>{const n=document.getElementById('sq');n.focus();n.setSelectionRange(n.value.length,n.value.length)})},300)};
+  bindSites();
+}
+function siteHTML(s){
+  const manual=s.crawl_mode==='manual'||/instagram|youtube/i.test(s.url);
+  const stateCtl=s.state==='new'
+    ?`<div class="actions"><button class="btn publish" data-set="active">Add to registry</button><button class="btn reject" data-set="blocked">Block</button></div>`
+    :`<div class="seg" role="group" aria-label="Site status">${[['active','Active'],['paused','Paused'],['blocked','Blocked']].map(([k,l])=>`<button data-set="${k}" data-state="${k}" aria-pressed="${s.state===k}">${l}</button>`).join('')}</div>`;
+  return `<div class="site" data-id="${s.id}">
+   <div><h3>${esc(s.name)}</h3>
+    <p class="src"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></p>
+    <div class="tagline">${[s.platform,[s.region,s.area].filter(x=>x&&x!=='Unknown').join(', ')].filter(Boolean).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${manual?'<span class="tag">Added by hand</span>':''}${s.rights_status==='granted'?'<span class="tag granted">Permission granted</span>':''}</div>
+    <p class="stats">${s.pending||0} waiting, ${s.published||0} published, ${s.rejected||0} rejected</p>
+    ${s.robots_blocked?`<p class="warn">${s.robots_blocked} page(s) skipped: the site's robots.txt asks readers to stay out.</p>`:''}
+    ${s.errors?`<p class="warn">${s.errors} page(s) couldn't be read.</p>`:''}
+    ${s.notes?`<p class="why">${esc(s.notes)}</p>`:''}
+   </div>
+   <div style="display:grid;gap:10px;align-content:start">
+    <div><span class="lbl">Status</span>${stateCtl}</div>
+    <div><span class="lbl">Permission to show steps and photos</span><select data-rights>${RIGHTS.map(([k,l])=>`<option value="${k}" ${s.rights_status===k?'selected':''}>${l}</option>`).join('')}</select><p class="why" data-rights-help>${RIGHTS_HELP[s.rights_status]||''}</p></div>
+    <div><span class="lbl">Your notes</span><textarea data-notes placeholder="e.g. emailed 12 Oct">${esc(s.owner_notes||'')}</textarea><p class="saved" data-saved role="status"></p></div>
+   </div></div>`;
+}
+function bindSites(){
+  app.querySelectorAll('.site').forEach(card=>{
+    const id=+card.dataset.id, saved=card.querySelector('[data-saved]');
+    const send=async(body,msg,reload)=>{saved.textContent='Saving…';try{await api(`/api/kp/admin/sources/${id}`,{method:'POST',body:JSON.stringify(body)});saved.textContent=msg;if(reload)setTimeout(load,500)}catch(e){saved.textContent='';alert(e.message)}};
+    card.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{
+      const st=b.dataset.set;
+      if(st==='blocked'&&!confirm('Block this site? Its waiting recipes will be rejected and it won\'t be read again. Recipes you already published stay up.'))return;
+      send({state:st},{active:'Site is active',paused:'Paused: no new recipes will be read',blocked:'Blocked'}[st],true);
+    });
+    const sel=card.querySelector('[data-rights]');
+    sel.onchange=()=>{
+      if(sel.value==='granted'&&!confirm('Mark permission as granted? Their steps and photos will appear on KidPoshan.')){load();return}
+      card.querySelector('[data-rights-help]').textContent=RIGHTS_HELP[sel.value];
+      send({rights_status:sel.value},'Permission saved',true);
+    };
+    const notes=card.querySelector('[data-notes]'); let last=notes.value;
+    notes.onblur=()=>{if(notes.value!==last){last=notes.value;send({owner_notes:notes.value},'Notes saved',false)}};
+  });
+}
+
+async function load(append=false){
+  try{
+    const [p,a,r,c]=await Promise.all(['pending','approved','rejected'].map(st=>api(`/api/kp/admin/review?status=${st}&limit=1`)).concat([api('/api/kp/admin/sources?state=new')]));
+    siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
+    counts={pending:p.total,approved:a.total,rejected:r.total,sites:c.counts.new?`${c.counts.new} new`:''};
+    if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts}
+    if(tab!=='sites'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}`);items=append?items.concat(d.items):d.items;total=d.total}
+    render();
+  }catch(e){ if(token||DEMO) app.innerHTML=`<h1>Recipe review</h1><p class="err">Couldn't load the queue: ${esc(e.message)}</p>`; }
+}
+DEMO||token?load():render();
+</script>
+</body>
+</html>

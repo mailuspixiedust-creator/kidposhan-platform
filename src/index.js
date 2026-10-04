@@ -3,6 +3,7 @@ import { researchIngredientOffers } from './ingredient-intelligence.js';
 import { searchWeb } from './web-search.js';
 import { runWebDiscovery } from './discovery.js';
 import { buildRecipeCatalogue, rankCatalogue } from './recipe-catalogue-v2.js';
+import { routeRecipes, scheduledRecipes } from './recipes/routes.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
 const bad = (msg, status=400) => json({error:msg}, status);
 const now = () => Math.floor(Date.now()/1000);
@@ -963,4 +964,4 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   return null;
 }
 
-export default {async fetch(request,env,ctx){const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};
+export default {async scheduled(event,env,ctx){ctx.waitUntil(scheduledRecipes(env));}, async fetch(request,env,ctx){const recipeRes=await routeRecipes(request,env,ctx); if(recipeRes)return recipeRes; const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};
