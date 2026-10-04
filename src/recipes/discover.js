@@ -14,7 +14,8 @@ export function isIndexPath(path) {
   const p = path.replace(/\/+$/, '').toLowerCase();
   if (/\/(recipe-index|recipes-index|recipe-archive|all-recipes|recent-recipes|archive|archives|sitemap)$/.test(p)) return true;
   if (/^\/recipes\/[^/]+$/.test(p)) return true;          // /recipes/<category>
-  return /-recipes$/.test(p.split('/').pop() || '');       // plural slug = roundup, e.g. baby-food-recipes
+  const slug = p.split('/').pop() || '';
+  return /-recipes$/.test(slug) && !/-recipe-/.test(slug);  // plural slug = roundup, e.g. baby-food-recipes (but baby-corn-pulao-recipe-baby-corn-recipes is one dish)
 }
 
 export function isManual(source) {
