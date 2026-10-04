@@ -231,25 +231,27 @@ async function loadReadyToEat(){
 function render(){
   const r=recipe;
   $('#app').innerHTML=`
-    <div class="section"><div class="muted">Recipes › ${r.meal_moment} › <b>${r.name}</b></div></div>
+    <div class="section"><div class="muted">Recipes${r.meal_moment?` › ${esc(r.meal_moment)}`:''} › <b>${esc(r.name)}</b></div></div>
     <section class="detail-hero">
       <img src="${safeImg(r.image_url)}" alt="${r.name}">
       <div>
         <h1 style="font-size:48px;margin:0 0 8px">${r.name}</h1>
-        <p class="muted" style="font-size:18px">${r.description||''}</p>
+        <p class="muted" style="font-size:18px">${esc(r.description||'')}</p>
         <div class="tagrow">
           <span class="tag">🍽 ${r.meal_moment}</span>
           <span class="tag">❄ ${r.season}</span>
           <span class="tag">👤 ${r.age_min}–${r.age_max} years</span>
           <span class="tag">🌿 ${r.diet}</span>
         </div>
-        <div class="meta" style="font-size:15px;margin:18px 0">⏱ ${r.prep_minutes} mins · 👨‍🍳 ${r.difficulty} · 🌿 Kid-friendly</div>
+        <div class="meta" style="font-size:15px;margin:18px 0">⏱ ${r.prep_minutes?esc(r.prep_minutes)+' mins':'Prep time not specified'}${r.difficulty?` · 👨‍🍳 ${esc(r.difficulty)}`:''} · 🌿 Kid-friendly</div>
         <div style="display:flex;gap:10px"><button class="btn btn-green" onclick="addPlanner()">📅 Add to Planner</button><button class="btn btn-outline">♡ Save Recipe</button></div>
       </div>
       <aside class="score-panel">
         <b>KidPoshan Score</b>
-        <div class="score-big">${r.score}</div><div>/100</div><hr>
-        <div>✓ Age appropriate</div><div>✓ Kid-friendly meal</div><div>✓ Family friendly</div>
+        <div class="score-big">${Number(r.score)>0?esc(r.score):'—'}</div><div>/100</div><hr>
+        <div>${Number(r.score)>0?'✓ Score available':'• Poshan Score pending'}</div>
+        <div>✓ Source recipe captured</div>
+        <div>✓ Family recipe</div>
       </aside>
     </section>
 
@@ -257,6 +259,18 @@ function render(){
       <div class="split">
         <div class="panel"><h2>Why this is good for your child</h2>${(r.benefits||[]).map(x=>`<div style="margin:8px 0">✓ ${x}</div>`).join('')}</div>
         <div class="panel"><h2>Top nutrients</h2><div class="stage-row">${Object.entries(r.nutrition||{}).map(([k,v])=>`<span class="stage"><b>${v}</b><br>${k}</span>`).join('')}</div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <h2>Ingredients</h2>
+        <div style="display:grid;gap:10px">
+          ${(r.ingredients||[]).map(i=>{
+            const source=i.source_text||i.qty||i.quantity_text||i.name||'';
+            return `<div style="padding:10px 0;border-bottom:1px solid #edf1ee">${esc(source)}</div>`;
+          }).join('') || '<div class="empty-state">Ingredients not available in the stored recipe.</div>'}
+        </div>
       </div>
     </section>
 
@@ -276,7 +290,11 @@ function render(){
     </section>
 
     <section class="section">
-      <div class="panel"><h2>Method</h2>${(r.method||[]).map((m,i)=>`<div style="display:grid;grid-template-columns:40px 1fr;gap:12px;margin:16px 0"><span class="score" style="width:34px;height:34px;justify-content:center">${i+1}</span><div><b>${m.title}</b><div class="muted">${m.text}</div></div></div>`).join('')}</div>
+      <div class="panel"><h2>Method</h2>${(r.method||[]).length?(r.method||[]).map((m,i)=>{
+        const title=typeof m==='string'?`Step ${i+1}`:(m?.title||`Step ${i+1}`);
+        const body=typeof m==='string'?m:(m?.text||m?.instruction||m?.description||'');
+        return `<div style="display:grid;grid-template-columns:40px 1fr;gap:12px;margin:16px 0"><span class="score" style="width:34px;height:34px;justify-content:center">${i+1}</span><div><b>${esc(title)}</b><div class="muted" style="white-space:pre-wrap">${esc(body)}</div></div></div>`;
+      }).join(''):'<div class="empty-state">Method not available in the stored recipe.</div>'}</div>
     </section>
 
     <section class="section">

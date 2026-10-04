@@ -1,0 +1,53 @@
+-- KidPoshan first searchable recipe seed
+-- Poshan score intentionally remains 0/pending because the source does not provide enough quantitative nutrition data.
+INSERT INTO recipes (
+  id, slug, name, description, image_media_id, score, age_min, age_max,
+  meal_moment, season, diet, prep_minutes, difficulty,
+  ingredients_json, method_json, nutrition_json, benefits_json,
+  serve_with_json, tags_json, status, created_at, updated_at,
+  source_id, source_recipe_id, creator_name, creator_type, region,
+  state_or_area, cuisine, source_url, attribution_text, rights_status
+) VALUES (
+  'archana-rajasthani-khooba-roti',
+  'rajasthani-khooba-roti-recipe',
+  'Rajasthani Khooba Roti Recipe',
+  'Whole wheat thick flatbread pinched artistically while on tawa',
+  NULL, 0, NULL, NULL,
+  NULL, NULL, 'Veg', 20, NULL,
+  '[{"source_text": "1 cup Whole Wheat Flour ", "name": "Whole Wheat Flour", "quantity": 1, "unit": "cup", "quantitative": true}, {"source_text": " Salt to taste", "name": "Salt", "quantity": null, "unit": null, "quantitative": false}, {"source_text": " Water as required", "name": "Water", "quantity": null, "unit": null, "quantitative": false}, {"source_text": " Ghee as required", "name": "Ghee", "quantity": null, "unit": null, "quantitative": false}]',
+  '["To begin with, Rajasthani Khooba Roti first, in a large mixing bowl, add flour, salt, and water, Mix together with your hands to form crumbs.", "Add water to combine it well and make a smooth and yet stiff dough.", "Leave the dough aside for 15 minutes so it rests.", "Pinch a large lemon sized ball from the dough and roll it to make a ball. Dust the counter well and roll out the dough ball to make a thick round roti.", "Spread a little ghee on one side of the roti and place that side on the tawa. After 20 seconds, flip the roti and start pinching on the top of the roti.", "Keep pinching till the full roti is covered. Flip the roti and again roast from the patterned side.", "Once both sides are lightly browned hold the roti with a tong, remove it fromtawaand place it directly on flames.", "Flip and roast from both the sides till its evenly cooked from both the sides.", "Once done, switch off the stove and pour ghee on the roti and serve.", "Your Rajasthani Khooba Roti is ready to be served with Makai Wali Bhindi or Pyaz ki sabzi.."]',
+  '{}','[]',
+  '["Makai Wali Bhindi","Pyaz ki sabzi"]',
+  '["Rajasthani","Roti Recipes","Vegetarian Recipes","Indian Lunch Recipes","Office Lunch Box Recipes"]',
+  'published', 1790720000, 1790720000,
+  NULL,
+  'https://www.archanaskitchen.com/recipe/rajasthani-khooba-roti-recipe',
+  'Pooja Thakur',
+  'creator',
+  NULL,
+  'Rajasthan',
+  'Rajasthani',
+  'https://www.archanaskitchen.com/recipe/rajasthani-khooba-roti-recipe',
+  'Recipe content sourced from Archana''s Kitchen; preserve source attribution.',
+  'unknown'
+)
+ON CONFLICT(id) DO UPDATE SET
+  name=excluded.name,
+  description=excluded.description,
+  score=excluded.score,
+  prep_minutes=excluded.prep_minutes,
+  ingredients_json=excluded.ingredients_json,
+  method_json=excluded.method_json,
+  nutrition_json=excluded.nutrition_json,
+  serve_with_json=excluded.serve_with_json,
+  tags_json=excluded.tags_json,
+  status=excluded.status,
+  updated_at=excluded.updated_at,
+  source_recipe_id=excluded.source_recipe_id,
+  creator_name=excluded.creator_name,
+  creator_type=excluded.creator_type,
+  state_or_area=excluded.state_or_area,
+  cuisine=excluded.cuisine,
+  source_url=excluded.source_url,
+  attribution_text=excluded.attribution_text,
+  rights_status=excluded.rights_status;

@@ -1,4 +1,5 @@
-/*
+/**
+ * KidPoshan Recipe Catalogue Builder v2
  *
  * Design:
  * - Discovery is a backend/catalogue-building job, NOT a parent-search operation.
@@ -11,14 +12,6 @@
  */
 
 import { calculatePoshanScore } from "./poshan-score.js";
-
-function now() {
-  return Date.now();
-}
-
-function makeId(prefix = "id") {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 export const CATALOGUE_VERSION = "recipe-catalogue-v2";
 export const SCORING_VERSION = "poshan-home-v1";
@@ -160,16 +153,10 @@ function parseQuantity(raw) {
   const value = clean(raw);
 
   if (!value) {
-    return {
-      raw: "",
-      quantitative: false,
-      qualitative_phrase: null,
-      quantity: null,
-      unit: null
-    };
+    return { raw: "", quantitative: false, qualitative_phrase: null };
   }
 
-  const qualitativePatterns = [
+  const patterns = [
     ["to taste", /\bto taste\b/i],
     ["as required", /\bas required\b/i],
     ["as needed", /\bas needed\b/i],
@@ -179,75 +166,29 @@ function parseQuantity(raw) {
     ["a pinch", /\ba pinch\b/i]
   ];
 
-  for (const [phrase, pattern] of qualitativePatterns) {
+  for (const [phrase, pattern] of patterns) {
     if (pattern.test(value)) {
       return {
         raw: value,
         quantitative: false,
-        qualitative_phrase: phrase,
-        quantity: null,
-        unit: null
+        qualitative_phrase: phrase
       };
     }
   }
 
-  const match = value.match(
-    /^\s*(\d+(?:\.\d+)?|\d+\s*\/\s*\d+)\s*([a-zA-Z]+)?\s+(.+)$/i
-  );
-
-  if (match) {
-    const rawNumber = match[1].replace(/\s/g, "");
-    let quantity = Number(rawNumber);
-
-    if (rawNumber.includes("/")) {
-      const parts = rawNumber.split("/").map(Number);
-      quantity = parts[1] ? parts[0] / parts[1] : null;
-    }
-
-    const rawUnit = clean(match[2] || "");
-    const ingredientName = clean(match[3]);
-
-    const unitMap = {
-      cup: "cup", cups: "cup", c: "cup",
-      tbsp: "tbsp", tablespoon: "tbsp", tablespoons: "tbsp",
-      tsp: "tsp", teaspoon: "tsp", teaspoons: "tsp",
-      g: "g", gm: "g", gram: "g", grams: "g",
-      kg: "kg", kilogram: "kg", kilograms: "kg",
-      ml: "ml", millilitre: "ml", millilitres: "ml",
-      l: "l", litre: "l", litres: "l"
+  if (/\d/.test(value)) {
+    return {
+      raw: value,
+      quantitative: true,
+      qualitative_phrase: null
     };
-
-    const unit = unitMap[rawUnit.toLowerCase()] || (rawUnit || null);
-
-    if (Number.isFinite(quantity) && ingredientName) {
-      return {
-        raw: value,
-        quantitative: true,
-        qualitative_phrase: null,
-        quantity,
-        unit,
-        ingredient_name: ingredientName
-      };
-    }
   }
 
   return {
     raw: value,
     quantitative: false,
-    qualitative_phrase: null,
-    quantity: null,
-    unit: null
+    qualitative_phrase: null
   };
-}
-
-function normalizeIngredientName(sourceText, quantity) {
-  if (quantity.ingredient_name) return quantity.ingredient_name;
-  if (!quantity.qualitative_phrase) return sourceText;
-
-  const phrase = quantity.qualitative_phrase;
-  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  return clean(sourceText.replace(new RegExp(`\\s*${escaped}\\s*`, "i"), " "));
 }
 
 function normalizeIngredients(recipe) {
@@ -256,19 +197,25 @@ function normalizeIngredients(recipe) {
     : [];
 
   return list.map((raw, index) => {
-    const sourceText = clean(raw);
-    const quantity = parseQuantity(sourceText);
-    const name = normalizeIngredientName(sourceText, quantity);
+    const value = clean(raw);
+
+    // JSON-LD normally gives a single ingredient string.
+    // Preserve the original wording rather than inventing a quantity.
+    const quantity = parseQuantity(value);
+
+    let name = value;
+    if (quantity.qualitative_phrase) {
+      const phrase = quantity.qualitative_phrase;
+      const suffixPattern = new RegExp("\\s*" + phrase + "\\s*$", "i");
+      name = clean(value.replace(suffixPattern, ""));
+    }
 
     return {
-      source_text: sourceText,
+      source_text: value,
       name,
       key: normalizeKey(name),
-      qty: sourceText,
+      qty: value,
       quantity,
-      quantity_value: quantity.quantity ?? null,
-      unit: quantity.unit ?? null,
-      quantitative: quantity.quantitative,
       source_index: index
     };
   });
@@ -312,7 +259,10 @@ function parseNumber(v) {
 
 function nutritionInputs(recipe, ingredients, approvedStandards = new Map()) {
   const n = recipe.nutrition || {};
-  const ingredientText = ingredients.map(x => x.name).join(" ").toLowerCase();
+  const ingredientText = ingredients
+    .map(x => x.name)
+    .join(" ")
+    .toLowerCase();
 
   const protein = parseNumber(n.protein);
   const fibre = parseNumber(n.fibre ?? n.fiber);
@@ -322,20 +272,20 @@ function nutritionInputs(recipe, ingredients, approvedStandards = new Map()) {
 
   const palmOil = /\bpalm\s+oil\b/.test(ingredientText);
   const maida = /\bmaida\b|\brefined\s+(?:wheat\s+)?flour\b/.test(ingredientText);
-  const wholeGrain = /\bwhole\s*grain\b|\bwhole\s*wheat\b|\bwholegrain\b/.test(ingredientText);
+  const wholeGrain =
+    /\bwhole\s*grain\b|\bwhole\s*wheat\b|\bwholegrain\b/.test(ingredientText);
 
-  let sodiumValue = Number.isFinite(sodium) ? sodium : null;
-  const approvedQuantityApplications = [];
+  // Approved qualitative standards are used only when the repository
+  // contains an exact approved standard for the ingredient + phrase.
+  let sodiumValue = Number.isFinite(sodium) ? sodium : 0;
 
   if (!Number.isFinite(sodium)) {
-    sodiumValue = 0;
-
     for (const ingredient of ingredients) {
       const phrase = ingredient.quantity?.qualitative_phrase;
       if (!phrase) continue;
 
       const standard = approvedStandards.get(
-        ingredient.key + "|" + normalizeKey(phrase)
+        normalizeKey(ingredient.key) + "|" + normalizeKey(phrase)
       );
 
       if (
@@ -345,72 +295,24 @@ function nutritionInputs(recipe, ingredients, approvedStandards = new Map()) {
         standard.min_quantity != null &&
         standard.max_quantity != null &&
         Number(standard.min_quantity) === Number(standard.max_quantity) &&
-        ingredient.key === "salt"
+        normalizeKey(ingredient.key) === "salt"
       ) {
-        const grams = Number(standard.min_quantity);
-        sodiumValue += grams * 1000 * 0.393;
-
-        approvedQuantityApplications.push({
-          ingredient: ingredient.name,
-          phrase,
-          quantity: grams,
-          unit: "g",
-          sodium_mg: grams * 1000 * 0.393,
-          source: "approved_qualitative_quantity_standard"
-        });
+        sodiumValue += Number(standard.min_quantity) * 1000 * 0.393;
       }
     }
-
-    if (!approvedQuantityApplications.length) sodiumValue = null;
   }
 
-  const missingInputs = [];
-  if (!Number.isFinite(addedSugar)) missingInputs.push("addedSugar");
-  if (!Number.isFinite(sodiumValue)) missingInputs.push("sodium");
-  if (!Number.isFinite(satFat)) missingInputs.push("satFat");
-  if (!Number.isFinite(protein)) missingInputs.push("protein");
-  if (!Number.isFinite(fibre)) missingInputs.push("fibre");
-
-  const unresolvedQualitativeIngredients = ingredients
-    .filter(x => x.quantity?.qualitative_phrase)
-    .filter(x => {
-      const phrase = x.quantity.qualitative_phrase;
-      const standard = approvedStandards.get(
-        x.key + "|" + normalizeKey(phrase)
-      );
-
-      return !(
-        standard &&
-        Number(standard.approved) === 1 &&
-        standard.min_quantity != null &&
-        standard.max_quantity != null &&
-        Number(standard.min_quantity) === Number(standard.max_quantity)
-      );
-    })
-    .map(x => ({
-      name: x.name,
-      phrase: x.quantity.qualitative_phrase,
-      source_text: x.source_text
-    }));
-
   return {
-    addedSugar: Number.isFinite(addedSugar) ? addedSugar : null,
-    sodium: Number.isFinite(sodiumValue) ? sodiumValue : null,
-    satFat: Number.isFinite(satFat) ? satFat : null,
+    addedSugar: Number.isFinite(addedSugar) ? addedSugar : 0,
+    sodium: sodiumValue,
+    satFat: Number.isFinite(satFat) ? satFat : 0,
     additives: 0,
     palmOil,
     maida,
-    protein: Number.isFinite(protein) ? protein : null,
-    fibre: Number.isFinite(fibre) ? fibre : null,
+    protein: Number.isFinite(protein) ? protein : 0,
+    fibre: Number.isFinite(fibre) ? fibre : 0,
     wholeGrain,
-    category: clean(n.category || recipe.recipeCategory || ""),
-    missing_inputs: missingInputs,
-    unresolved_qualitative_ingredients: unresolvedQualitativeIngredients,
-    approved_quantity_applications: approvedQuantityApplications,
-    score_status:
-      missingInputs.length || unresolvedQualitativeIngredients.length
-        ? "pending"
-        : "ready"
+    category: clean(n.category || recipe.recipeCategory || "")
   };
 }
 
@@ -512,7 +414,6 @@ async function tavilySearch(env, query, domains = []) {
  * - Fetch candidate pages and extract Recipe JSON-LD.
  * - Return normalized candidates for persistence.
  */
-
 async function loadApprovedQuantityStandards(env) {
   const result = await env.DB.prepare(
     "SELECT ingredient_key, phrase, min_quantity, max_quantity, unit, approved " +
@@ -533,27 +434,25 @@ async function loadApprovedQuantityStandards(env) {
 
 async function recordQualitativeEvidence(env, recipe) {
   for (const ingredient of recipe.ingredients || []) {
-    const phrase = ingredient.quantity && ingredient.quantity.qualitative_phrase;
+    const phrase = ingredient.quantity?.qualitative_phrase;
     if (!phrase) continue;
 
     const ingredientKey = normalizeKey(ingredient.key);
     const normalizedPhrase = normalizeKey(phrase);
-
-    const termId = makeId("qqt");
 
     await env.DB.prepare(
       "INSERT OR IGNORE INTO qualitative_quantity_terms " +
       "(id, phrase, normalized_phrase, ingredient_key, ingredient_name, context_key, status, created_at, updated_at) " +
       "VALUES (?, ?, ?, ?, ?, ?, 'observed', ?, ?)"
     ).bind(
-      termId,
+      crypto.randomUUID(),
       phrase,
       normalizedPhrase,
       ingredientKey,
       ingredient.name,
       null,
-      now(),
-      now()
+      Date.now(),
+      Date.now()
     ).run();
 
     const term = await env.DB.prepare(
@@ -568,19 +467,19 @@ async function recordQualitativeEvidence(env, recipe) {
       "(id, term_id, recipe_id, source_url, source_name, original_text, " +
       "observed_quantity, observed_unit, observed_min, observed_max, " +
       "observed_unit_normalized, context_json, evidence_type, created_at) " +
-      "VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, ?, 'observed', ?)"
+      "VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, ?, 'observed', ?)"
     ).bind(
-      makeId("qqe"),
+      crypto.randomUUID(),
       term.id,
       null,
       recipe.source_recipe_url || null,
       recipe.source_name || null,
-      ingredient.source_text || ingredient.qty || ingredient.name,
       JSON.stringify({
+        original_text: ingredient.source_text || ingredient.qty || ingredient.name,
         ingredient_key: ingredientKey,
-        phrase: phrase
+        phrase
       }),
-      now()
+      Date.now()
     ).run();
   }
 }
@@ -602,10 +501,9 @@ export async function buildRecipeCatalogue(env, options = {}) {
   const errors = [];
   const visited = new Set();
 
-  // Direct source discovery is used for catalogue refreshes.
-  // Query-driven parent searches use the registered source domains through Tavily.
-  if (!options.query) {
-    for (const source of sources) {
+  // Direct source discovery:
+  // Try registered source URLs first. This costs no search API credits.
+  for (const source of sources) {
     try {
       const html = await fetchHtml(source.source_url);
       if (!html) continue;
@@ -634,7 +532,6 @@ export async function buildRecipeCatalogue(env, options = {}) {
         error: String(error?.message || error)
       });
     }
-    }
   }
 
   // Search fallback:
@@ -650,19 +547,9 @@ export async function buildRecipeCatalogue(env, options = {}) {
       const batch = uniqueDomains.slice(i, i + 20);
 
       try {
-        const searchQueryParts = [
-          options.query || "Indian kids healthy recipes",
-          "recipe",
-          options.age ? `for children age ${options.age}` : "",
-          options.meal ? `meal ${options.meal}` : "",
-          options.season ? `season ${options.season}` : "",
-          options.diet && options.diet !== "All" ? `${options.diet} recipe` : "",
-          "ingredients quantities"
-        ].filter(Boolean);
-
         const search = await tavilySearch(
           env,
-          searchQueryParts.join(" "),
+          "Indian kids healthy recipes ingredients quantities",
           batch
         );
 
@@ -730,27 +617,19 @@ async function scoreAndPrepare(env, candidates) {
       approvedStandards
     );
 
-    recipe.nutrition_inputs = inputs;
-    recipe.scoring_version = SCORING_VERSION;
+    const score = calculatePoshanScore(inputs, "home_cooked");
 
-    if (inputs.score_status === "ready") {
-      const score = calculatePoshanScore(inputs, "home_cooked");
-
-      recipe.poshan_score = score.finalScore;
-      recipe.score_band = score.band;
-      recipe.score_breakdown = score.breakdown;
-      recipe.score_status = "exact";
-    } else {
-      recipe.poshan_score = null;
-      recipe.score_band = null;
-      recipe.score_breakdown = null;
-      recipe.score_status = "pending";
-    }
+    Object.assign(recipe, {
+      nutrition_inputs: inputs,
+      poshan_score: score.finalScore,
+      score_band: score.band,
+      score_breakdown: score.breakdown,
+      scoring_version: SCORING_VERSION
+    });
   }
 
   return candidates;
 }
-
 
 export function dedupeCatalogue(candidates) {
   const map = new Map();
