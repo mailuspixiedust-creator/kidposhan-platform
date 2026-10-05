@@ -167,8 +167,20 @@ function cardHTML(r){
   const ages=AGE.map(a=>[a,ageTxt(a)]);
   const rating=r.source_rating?`, rated ${r.source_rating} by ${r.source_rating_count||'?'} on the site`:'';
   const action=tab==='pending'
-    ?`<button class="btn publish" data-act="publish">Publish</button><button class="btn reject" data-act="reject">Reject</button>`
+    ?`<button class="btn publish" data-act="publish">Publish</button><button class="btn undo" data-act="publish" data-link="1" title="Show the recipe with ingredients and score, and link to the original for the steps">Publish with link to original steps</button><button class="btn reject" data-act="reject">Reject</button>`
     :`<button class="btn undo" data-act="pending">Move back to waiting</button>${tab==='rejected'?'<button class="btn publish" data-act="publish">Publish</button>':''}`;
+  const scoreBox=(()=>{
+    if(r.poshan_score==null) return `<div><span class="lbl">Poshan Score</span><p class="why">Pending: ${esc(r.score_detail?.reason||'not scored yet')}</p></div>`;
+    const d=r.score_detail||{}, inp=d.inputs||{}, src=d.sources||{};
+    const parts=['protein','fibre','satFat','sodium','addedSugar'].map(k=>`${k} ${inp[k]}${src[k]==='estimated'?' (est.)':''}`).join(', ');
+    const kind=r.score_status==='exact'?'From recipe data':'Estimated from ingredients';
+    return `<div><span class="lbl">Poshan Score</span><p><b>${r.poshan_score}</b> (${esc(d.engine?.band||'')}) · ${kind}</p>
+      <p class="why">Per serving, ${d.per_serving_basis||'?'} servings: ${esc(parts)}. ${(d.assumptions||[]).map(esc).join('; ')}</p>
+      ${r.score_status==='estimated'?`<label class="chk"><input type="checkbox" name="score_approved" ${r.score_approved?'checked':''}> Show this estimated score to parents</label>`:''}</div>`;
+  })();
+  const kpSteps=`<details open><summary>KidPoshan steps (${{none:'not written yet',draft:'draft, needs your check',approved:'approved',failed:'rewrite failed, write them here'}[r.kp_steps_status]||r.kp_steps_status})</summary>
+    <textarea name="kp_steps" rows="8" style="width:100%">${esc((r.kp_steps||[]).join('\n'))}</textarea>
+    <p class="why">One step per line, in KidPoshan's own words. Check every quantity and time against the original. Publishing saves and approves what is written here.</p></details>`;
   return `<article class="card" data-id="${r.id}">
    <div><h2>${esc(r.name)}</h2>
     <p class="src">${esc(r.source_name)}${r.source_status==='suggested'?' (not in your registry yet)':''}${rating}. <a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open original</a></p>
@@ -176,8 +188,10 @@ function cardHTML(r){
     ${r.found_for?`<p class="found">Found for a parent search: ${esc(keyTxt(r.found_for))}</p>`:''}
     <details open><summary>Ingredients (${r.ingredients.length})</summary><ul class="ing">${r.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></details>
     <details><summary>Method as published (${r.instructions.length} steps)</summary>${r.instructions.length?`<ol class="steps">${r.instructions.map(s=>`<li>${esc(s.text)}</li>`).join('')}</ol>`:'<p class="why">No steps found. Check the original.</p>'}</details>
+    ${kpSteps}
    </div>
    <div class="right">
+    ${scoreBox}
     <div><span class="lbl">Food type</span>${sel('diet',DIET,r.diet)}<p class="why">${esc(r.tag_reasons?.diet)}</p></div>
     <div class="row"><div><span class="lbl">From age</span>${sel('age_min_months',ages,r.age_min_months)}</div><div><span class="lbl">Up to</span>${sel('age_max_months',ages,r.age_max_months)}</div></div>
     <p class="why">${esc(r.tag_reasons?.age)}</p>
@@ -193,6 +207,10 @@ function bindCards(){
     const body={action:b.dataset.act,diet:card.querySelector('[name=diet]').value,
       age_min_months:+card.querySelector('[name=age_min_months]').value,age_max_months:+card.querySelector('[name=age_max_months]').value,
       occasions:vals('occasions'),seasons:vals('seasons')};
+    const ks=card.querySelector('[name=kp_steps]').value.split('\n').map(x=>x.trim()).filter(Boolean);
+    if(ks.length) body.kp_steps=ks;
+    if(b.dataset.link) body.steps_link_only=true;
+    const sa=card.querySelector('[name=score_approved]'); if(sa) body.score_approved=sa.checked;
     if(body.age_min_months>body.age_max_months){err.textContent='"From age" is after "Up to".';return}
     card.querySelectorAll('button').forEach(x=>x.disabled=true);
     try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify(body)});

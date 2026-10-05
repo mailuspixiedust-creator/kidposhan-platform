@@ -44,6 +44,7 @@ db.exec(fs.readFileSync('migrations/0006_recipes.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0007_review_and_live_discovery.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0008_polite_crawling.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0009_site_management.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0010_recipe_score_and_kp_steps.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -88,7 +89,7 @@ const before = await searchRecipes(env, { age: 48, occasion: 'lunchbox', season:
 ok(before.count === 0, 'Nothing visible to parents before the owner publishes');
 const pend = await listForReview(env, { status: 'pending', limit: 50 });
 ok(pend.total === 14, `Review queue holds all 14 extracted recipes (${pend.total})`);
-for (const it of pend.items) await reviewRecipe(env, it.id, { action: 'publish' });
+for (const it of pend.items) await reviewRecipe(env, it.id, { action: 'publish', steps_link_only: true });
 const res = await searchRecipes(env, { age: 48, occasion: 'lunchbox', season: 'monsoon', pref: 'veg', limit: 10 });
 ok(res.count === 10 && res.exact_count === 0 && res.results.filter((r) => r.match === 'any_season').length === 6 && res.results.every((r) => ['veg', 'jain'].includes(r.diet)), `Veg lunchbox 4y monsoon (pea pulao is winter-tagged) -> ${res.count} (${res.exact_count} exact), tiers: ${[...new Set(res.results.map((r) => r.match))]}`);
 const res2 = await searchRecipes(env, { age: 30, occasion: 'snack_4pm', season: 'all', pref: 'veg', limit: 10 });
@@ -101,14 +102,14 @@ console.log('  e.g.', det.ingredients[0].buy.map((x) => x.product_url).join('\n 
 
 // owner edits survive a re-crawl
 const pulaoId = res.results.find((r) => /Pulao 0/.test(r.name)).id;
-await reviewRecipe(env, pulaoId, { action: 'publish', seasons: ['monsoon'], age_min_months: 48 });
+await reviewRecipe(env, pulaoId, { action: 'publish', steps_link_only: true, seasons: ['monsoon'], age_min_months: 48 });
 db.prepare("UPDATE kp_recipe_candidates SET status='pending' WHERE url LIKE '%r0-recipe%'").run();
 const { processPending } = await import('../../src/recipes/pipeline.js');
 await processPending(env, { limit: 5 });
 const pul = db.prepare('SELECT review_status, age_min_months FROM kp_recipes WHERE id=?').get(pulaoId);
 const pulSeason = db.prepare('SELECT group_concat(season) s FROM kp_recipe_seasons WHERE recipe_id=?').get(pulaoId).s;
 ok(pul.review_status === 'approved' && pul.age_min_months === 48 && pulSeason === 'monsoon', 'Owner edits + decision survive re-crawl');
-ok(await reviewRecipe(env, pulaoId, { action: 'publish', occasions: [] }).then(() => false, (e) => /meal/.test(e.message)), 'Publishing with no meal type is refused');
+ok(await reviewRecipe(env, pulaoId, { action: 'publish', steps_link_only: true, occasions: [] }).then(() => false, (e) => /meal/.test(e.message)), 'Publishing with no meal type is refused');
 
 // search-triggered discovery
 env.TAVILY_API_KEY = 'test';
@@ -193,5 +194,44 @@ for (const [meth, path] of [['GET','/api/kp/admin/review'],['POST','/api/kp/admi
   const r = await routeRecipes(new Request('https://w' + path, { method: meth, headers: { 'x-admin-token': 't' }, body: meth === 'POST' ? '{}' : undefined }), { ...env, ADMIN_TOKEN: 't' }, ctx);
   ok(!/Unknown admin route/.test(await r.text()), 'Router resolves ' + meth + ' ' + path);
 }
+
+// ---- recipe-level score + KidPoshan steps ----
+import { computeRecipeScore, scoreRecipe } from '../../src/recipes/score.js';
+import { checkRewrite, rewriteSteps } from '../../src/recipes/rewrite.js';
+const ingr = (lines) => lines.map((l) => ({ ...parseIngredientLine(l), }));
+const upma = ingr(['1 cup rava', '1 carrot', '1/2 cup green peas', '2 tbsp oil', '1 tsp mustard seeds', 'Salt to taste']);
+const sc = computeRecipeScore({ servings: '4' }, upma);
+ok(sc.status === 'estimated' && sc.score > 0 && sc.score <= 100 && sc.detail.sources.protein === 'estimated', `Estimated score from ingredients: ${sc.score} (${sc.detail?.engine?.band})`);
+const sweet = computeRecipeScore({ servings: '2' }, ingr(['1 cup rava', '1/2 cup sugar', '1 cup milk']));
+const plain = computeRecipeScore({ servings: '2' }, ingr(['1 cup rava', '1 cup milk']));
+ok(sweet.detail.inputs.addedSugar > 40 && sweet.score < plain.score, 'Added sugar from listed sweetener lowers the score');
+const exactSc = computeRecipeScore({ servings: '4', nutrition_json: JSON.stringify({ proteinContent: '6 g', fiberContent: '3 g', saturatedFatContent: '1 g', sodiumContent: '200 mg' }) }, upma);
+ok(exactSc.status === 'exact' && exactSc.detail.sources.protein === 'recipe_data', 'Nutrition from the page makes the score exact');
+const unk = computeRecipeScore({ servings: '4' }, ingr(['1 unicorn tear', '2 dragon scales', '1 cup rava']));
+ok(unk.status === 'pending' && unk.score === null, 'Unweighable ingredients -> pending, no invented score');
+db.prepare("INSERT INTO kp_recipe_sources (id, name, url, rights_status) VALUES (9060, 'NoRights', 'https://norights.in/', 'not_requested')").run();
+const rid = db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, servings, review_status, instructions_json) VALUES (9060,'https://site.in/sc-test/','Upma','[]','jsonld','complete','veg',12,72,'4','approved',?) RETURNING id").get(JSON.stringify([{ section: null, text: 'Roast 1 cup rava for 5 minutes.' }, { section: null, text: 'Add water and cook 3 minutes.' }])).id;
+upma.forEach((i, n) => db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?,?,?,?,?,?,?,?)').run(rid, n, i.raw_text, i.quantity, i.unit, i.name, i.ingredient_key, i.is_pantry ? 1 : 0));
+const stored = await scoreRecipe(env, rid);
+ok(stored.status === 'estimated' && db.prepare('SELECT poshan_score FROM kp_recipes WHERE id=?').get(rid).poshan_score === stored.score, 'Score stored on the recipe');
+const hidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(hidden.poshan_score === null && hidden.score === null, 'Estimated score is hidden from parents until approved');
+db.prepare('UPDATE kp_recipes SET score_approved = 1 WHERE id=?').run(rid);
+const shown = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(shown.score?.value === stored.score && shown.score.kind === 'estimated', 'Approved estimated score is shown and labelled');
+ok(shown.method === null, 'No creator steps shown without rights or KidPoshan steps');
+const orig = ['Roast 1 cup rava for 5 minutes.', 'Add water and cook 3 minutes.'];
+ok(checkRewrite(orig, ['Dry roast the rava (1 cup) for 5 minutes.', 'Pour in water and cook for 3 minutes.']) === null, 'Faithful rewrite accepted');
+ok(/numbers missing/.test(checkRewrite(orig, ['Roast the rava.', 'Add water and cook.'])), 'Rewrite that drops quantities/times is rejected');
+const aiEnv = { ...env, AI: { run: async () => ({ response: 'Here you go: ["Dry roast 1 cup rava for 5 minutes.", "Add water, cook for 3 minutes."]' }) } };
+const rw = await rewriteSteps(aiEnv, rid);
+ok(rw.status === 'draft' && db.prepare('SELECT kp_steps_status s FROM kp_recipes WHERE id=?').get(rid).s === 'draft', 'AI rewrite saved as draft');
+const stillHidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(stillHidden.method === null, 'Draft KidPoshan steps are not shown to parents');
+let refused = ''; try { await reviewRecipe(env, rid, { action: 'publish', occasions: ['breakfast'] }); } catch (e) { refused = e.message; }
+ok(/approve or write the KidPoshan steps/.test(refused), 'Publishing needs approved KidPoshan steps');
+await reviewRecipe(env, rid, { action: 'publish', occasions: ['breakfast'], approve_steps: true });
+const live = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(live.method_by === 'kidposhan' && live.method[0].text.startsWith('Dry roast'), 'Approved KidPoshan steps are shown on the KidPoshan page');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

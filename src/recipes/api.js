@@ -8,6 +8,7 @@
 import { buyLinksFor } from '../commerce/buylinks.js';
 import { displayName } from './normalize.js';
 import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
+import { VISIBLE_SCORE_SQL } from './score.js';
 
 export const MIN_RESULTS = 10;
 const OCCASIONS = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
@@ -46,7 +47,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   const diets = DIETS[q.pref];
   let sql = `
     SELECT r.id, r.name, CASE WHEN s.rights_status = 'granted' THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
-           r.poshan_score, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
+           ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_status = 'exact' OR r.score_approved = 1 THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
            (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -68,7 +69,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
     args.push(...excludeIds);
   }
   // Registry rule: final order is Poshan Score descending. Unscored recipes go last.
-  sql += ` ORDER BY r.poshan_score IS NULL, r.poshan_score DESC, r.completeness = 'complete' DESC, r.id LIMIT ?`;
+  sql += ` ORDER BY (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC, r.completeness = 'complete' DESC, r.id LIMIT ?`;
   args.push(take);
   const { results } = await env.DB.prepare(sql).bind(...args).all();
   return results;
@@ -101,6 +102,8 @@ export async function searchRecipes(env, q) {
   };
 }
 
+const bandOf = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+
 export async function recipeDetail(env, id) {
   const r = await env.DB.prepare(
     `SELECT r.*, s.name AS source_name, s.rights_status
@@ -123,6 +126,9 @@ export async function recipeDetail(env, id) {
     });
   }
   const methodAllowed = r.rights_status === 'granted';
+  const kpSteps = r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
+  const scoreVisible = r.poshan_score != null && (r.score_status === 'exact' || r.score_approved === 1);
+  let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
   return {
     id: r.id,
     name: r.name,
@@ -133,10 +139,14 @@ export async function recipeDetail(env, id) {
     diet: r.diet,
     age_min_months: r.age_min_months,
     age_max_months: r.age_max_months,
-    poshan_score: r.poshan_score,
+    // Score parents may see: exact always; estimated only after the owner approved it.
+    poshan_score: scoreVisible ? r.poshan_score : null,
+    score: scoreVisible ? { value: r.poshan_score, kind: r.score_status, band: bandOf(r.poshan_score), basis: detail.per_serving_basis ? `per serving (${detail.per_serving_basis} servings)` : null, inputs: detail.inputs || null, sources: detail.sources || null } : null,
     source: { name: r.source_name, url: r.source_url, rights_status: r.rights_status },
     // Verbatim method only when the source has granted rights; otherwise the UI links out.
-    method: methodAllowed ? JSON.parse(r.instructions_json || '[]') : null,
+    // KidPoshan's own approved steps always come first; the creator's verbatim steps only with granted rights.
+    method: kpSteps.length ? kpSteps.map((text) => ({ section: null, text })) : methodAllowed ? JSON.parse(r.instructions_json || '[]') : null,
+    method_by: kpSteps.length ? 'kidposhan' : methodAllowed ? 'creator' : null,
     method_url: r.source_url,
     ingredients,
     tag_reasons: JSON.parse(r.tag_reasons_json || '{}'),

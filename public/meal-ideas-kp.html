@@ -278,7 +278,7 @@ function demoSearch(q){
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const toCard=r=>({id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
 async function search(q){
   if(!LIVE) return demoSearch(q).map(toCard);
   const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
@@ -345,7 +345,7 @@ function renderMenu(){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
-            <div class="art">${x.image?`<img src="${esc(x.image)}" alt="" loading="lazy">`:dishArt(x.artSrc)}${x.score?`<span class="badge">${x.score}</span>`:''}</div>
+            <div class="art">${x.image?`<img src="${esc(x.image)}" alt="" loading="lazy">`:dishArt(x.artSrc)}${x.score?`<span class="badge" title="${x.kind==='estimated'?'Estimated from ingredients':'Poshan Score'}">${x.score}</span>`:''}</div>
             <div class="txt"><h3>${esc(x.name)}</h3><span class="meta">${x.mins?x.mins+' min':''}</span><span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
       }
     }
@@ -367,7 +367,7 @@ async function getRecipe(id){
       ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(i.n.split(',')[0]))}))})),
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
   const res=await fetch(`${API}/api/kp/recipes/${id}`); if(!res.ok) return null; const d=await res.json();
-  return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
+  return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
     source:d.source,method_url:d.method_url,ready_term:d.ready_term,
     ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
@@ -395,12 +395,13 @@ async function renderRecipe(id){
   }
   app.innerHTML=`<div class="hero">${art}<button class="back" id="back" aria-label="Back to meal ideas"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
    <article class="sheet pad">
-    <div class="title-row"><h1>${esc(r.name)}</h1>${r.score?`<div class="score"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':''}</span></div>`:''}</div>
+    <div class="title-row"><h1>${esc(r.name)}</h1>${r.score?`<div class="score"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
+    ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
-    ${r.source?`<p class="credit">Recipe by ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See original</a></p>`:''}
     <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to see where to get it.</p>
       <div class="ing"><div class="ing-head"><span>Ingredient</span><span>At home</span><span>To buy</span></div>${ingHTML}</div></section>
     <section class="section"><h2>Steps</h2>${stepsHTML}</section>
+    ${r.source?`<p class="credit">${r.method_by==='kidposhan'?'Steps written by KidPoshan. ':''}Recipe idea from ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a></p>`:''}
     <section class="section"><h2>Ready-to-buy packs</h2><p class="lead">For busy days. Scored for kids.</p><div id="packs"><p class="empty-packs">Finding packs…</p></div></section>
    </article>`;
   document.getElementById('back').onclick=()=>{location.hash='#/'};

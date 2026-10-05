@@ -16,6 +16,7 @@ export async function listForReview(env, { status = 'pending', limit = 20, offse
             r.total_minutes, r.diet, r.age_min_months, r.age_max_months, r.tag_reasons_json, r.flags_json,
             r.extraction_method, r.completeness, r.found_for, r.created_at, r.reviewed_at, r.review_note,
             r.source_rating, r.source_rating_count,
+            r.poshan_score, r.score_status, r.score_breakdown_json, r.score_approved, r.kp_steps_json, r.kp_steps_status,
             s.id AS source_id, s.name AS source_name, s.status AS source_status, s.rights_status, s.region,
             (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
             (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
@@ -35,9 +36,11 @@ export async function listForReview(env, { status = 'pending', limit = 20, offse
       instructions: JSON.parse(r.instructions_json || '[]'), // owner's private preview only; public display still needs rights
       tag_reasons: JSON.parse(r.tag_reasons_json || '{}'),
       flags: JSON.parse(r.flags_json || '[]'),
+      score_detail: JSON.parse(r.score_breakdown_json || 'null'),
+      kp_steps: JSON.parse(r.kp_steps_json || '[]'),
       occasions: r.occasions ? r.occasions.split(',') : [],
       seasons: r.seasons ? r.seasons.split(',') : [],
-      ingredients_raw_json: undefined, instructions_json: undefined, tag_reasons_json: undefined, flags_json: undefined,
+      ingredients_raw_json: undefined, instructions_json: undefined, tag_reasons_json: undefined, flags_json: undefined, score_breakdown_json: undefined, kp_steps_json: undefined,
     })),
   };
 }
@@ -56,6 +59,25 @@ export async function reviewRecipe(env, id, body) {
       if (!Number.isInteger(v) || v < 6 || v > 144) throw new Error(`${f} must be 6-144`);
       sets.push(`${f} = ?`); args.push(v);
     }
+  }
+  // KidPoshan-written steps: the owner's edited version is saved and counts as approved when publishing.
+  let stepsStatus = null;
+  if (Array.isArray(body.kp_steps)) {
+    const steps = body.kp_steps.map((t) => String(t).trim()).filter(Boolean).slice(0, 60);
+    if (steps.length) {
+      stepsStatus = action === 'publish' || body.approve_steps ? 'approved' : 'draft';
+      sets.push('kp_steps_json = ?', 'kp_steps_status = ?'); args.push(JSON.stringify(steps), stepsStatus);
+    }
+  } else if (body.approve_steps === true) {
+    sets.push("kp_steps_status = CASE WHEN kp_steps_json IS NOT NULL THEN 'approved' ELSE kp_steps_status END");
+  }
+  if (body.score_approved != null) { sets.push('score_approved = ?'); args.push(body.score_approved ? 1 : 0); }
+  if (action === 'publish' && !body.steps_link_only) {
+    const cur = await env.DB.prepare('SELECT kp_steps_status AS st, kp_steps_json AS ks, instructions_json AS ij FROM kp_recipes WHERE id = ?').bind(id).first();
+    if (!cur) throw new Error('recipe not found');
+    const hasSteps = JSON.parse(cur.ij || '[]').length > 0;
+    const approved = stepsStatus === 'approved' || (body.approve_steps === true && cur.ks) || (!Array.isArray(body.kp_steps) && cur.st === 'approved');
+    if (hasSteps && !approved) throw new Error('approve or write the KidPoshan steps before publishing (or choose "publish with link to original steps")');
   }
   if (body.note != null) { sets.push('review_note = ?'); args.push(String(body.note).slice(0, 500)); }
 

@@ -76,6 +76,7 @@ function result(base) {
     category: (base.category || []).map(clean).filter(Boolean),
     keywords: base.keywords ? clean(asArray(base.keywords).join(', ')) : '',
     method: base.method,
+    nutrition: base.nutrition || null,
     completeness: base.name && ingredients.length >= 2 && instructions.length >= 1 ? 'complete' : 'partial',
     source_url: base.url,
   };
@@ -122,6 +123,7 @@ export function fromJsonLd(html, url) {
         rating_count: agg.ratingCount != null ? +agg.ratingCount : agg.reviewCount != null ? +agg.reviewCount : null,
         category: asArray(node.recipeCategory).concat(asArray(node.recipeCuisine)),
         keywords: node.keywords,
+        nutrition: node.nutrition,
       });
     }
   }

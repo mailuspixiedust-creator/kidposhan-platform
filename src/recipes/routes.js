@@ -13,6 +13,8 @@
 import { handleRecipesApi } from './api.js';
 import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
+import { scoreRecipe } from './score.js';
+import { rewriteSteps, rewritePending } from './rewrite.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
@@ -73,6 +75,25 @@ export async function routeRecipes(request, env, ctx) {
     return json({ processed: await processPending(env, { limit }) });
   }
 
+  // POST /api/kp/admin/recipes/rescore?limit=50   recompute recipe-level scores (after changing the score data)
+  if (path.endsWith('/rescore') && request.method === 'POST') {
+    const limit = Math.min(+url.searchParams.get('limit') || 50, 200);
+    const { results } = await env.DB.prepare('SELECT id FROM kp_recipes ORDER BY id LIMIT ?').bind(limit).all();
+    const out = [];
+    for (const r of results) out.push(await scoreRecipe(env, r.id));
+    return json({ rescored: out });
+  }
+
+  // POST /api/kp/admin/recipes/rewrite?id=12 (one recipe, retries failed ones)  or  ?limit=3 (next ones without KidPoshan steps)
+  if (path.endsWith('/rewrite') && request.method === 'POST') {
+    const id = +url.searchParams.get('id');
+    if (id) {
+      await env.DB.prepare("UPDATE kp_recipes SET kp_steps_status = 'none' WHERE id = ? AND kp_steps_status = 'failed'").bind(id).run();
+      return json({ rewritten: [await rewriteSteps(env, id)] });
+    }
+    return json({ rewritten: await rewritePending(env, { limit: Math.min(+url.searchParams.get('limit') || 3, 5) }) });
+  }
+
   // GET /api/kp/admin/recipes/coverage  -> which filter cells are thin
   if (path.endsWith('/coverage')) {
     const { results } = await env.DB.prepare(
@@ -110,4 +131,5 @@ export async function scheduledRecipes(env) {
     await env.DB.prepare("UPDATE kp_recipe_sources SET last_crawled_at = datetime('now') WHERE id = ?").bind(s.id).run();
   }
   await processPending(env, { limit: 8 });
+  try { await rewritePending(env, { limit: 3 }); } catch (e) { console.error('rewrite', e); }
 }

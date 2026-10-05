@@ -3,6 +3,7 @@
 import { fetchHtml, extractFromHtml } from './extract.js';
 import { parseIngredientLine } from './normalize.js';
 import { tagRecipe } from './tag.js';
+import { scoreRecipe } from './score.js';
 
 export function buildRecipe(extracted, source) {
   const ingredients = extracted.ingredients.map(parseIngredientLine);
@@ -111,6 +112,8 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
       ...tags.seasons.map((x) => sea.bind(id, x)),
     ]),
   ]);
+  if (x.nutrition) await env.DB.prepare('UPDATE kp_recipes SET nutrition_json=? WHERE id=?').bind(JSON.stringify(x.nutrition), id).run();
+  await scoreRecipe(env, id); // recipe-level Poshan Score, from this recipe's own ingredients
   return id;
 }
 
