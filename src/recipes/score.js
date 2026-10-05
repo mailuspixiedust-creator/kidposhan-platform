@@ -8,6 +8,7 @@
 
 import { calculatePoshanScore } from '../poshan-score.js';
 import { estimateNutrition, servingsFrom } from './nutrients.js';
+import { parseIngredientLine } from './normalize.js';
 
 export const SCORE_VERSION = 'kp-recipe-score-v1';
 const MIN_COVERAGE = 0.75; // share of non-pantry ingredient lines that must be weighable
@@ -53,6 +54,15 @@ export function computeRecipeScore(row, ingredients) {
     detail: { version: SCORE_VERSION, profile: 'home_cooked', inputs, sources, per_serving_basis: est.servings, coverage: est.coverage,
       assumptions: est.assumptions, unweighed: est.unweighed, engine: out.breakdown },
   };
+}
+
+// Re-parse stored ingredient lines with the current parser (after parser improvements). Raw text is never changed.
+export async function reparseIngredients(env, id) {
+  const { results } = await env.DB.prepare('SELECT id, raw_text FROM kp_recipe_ingredients WHERE recipe_id = ?').bind(id).all();
+  const upd = env.DB.prepare('UPDATE kp_recipe_ingredients SET quantity=?, unit=?, name=?, ingredient_key=?, is_pantry=? WHERE id=?');
+  const stmts = results.map((r) => { const p = parseIngredientLine(r.raw_text); return upd.bind(p.quantity, p.unit, p.name, p.ingredient_key, p.is_pantry ? 1 : 0, r.id); });
+  if (stmts.length) await env.DB.batch(stmts);
+  return stmts.length;
 }
 
 // Reads the recipe, scores it, stores the result. An owner's score approval is cleared when the number changes.

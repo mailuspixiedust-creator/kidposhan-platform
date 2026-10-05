@@ -3,7 +3,7 @@
 
 const FRACTIONS = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3, '⅛': 0.125 };
 const UNITS = [
-  ['cup', /^(cups?|c)\b/i], ['tbsp', /^(tablespoons?|tbsps?|tbs|tbl)\b/i], ['tsp', /^(teaspoons?|tsps?)\b/i],
+  ['cup', /^(cups?|c)\b/i], ['tbsp', /^(tablespoons?|tbsps?|tbs|tbl|tblsps?|tblspn|tbspn)\b/i], ['tsp', /^(teaspoons?|tsps?|tspn)\b/i],
   ['kg', /^(kgs?|kilograms?)\b/i], ['g', /^(grams?|gms?|g)\b/i], ['l', /^(litres?|liters?|ltrs?|l)\b/i],
   ['ml', /^(ml|millilitres?|milliliters?)\b/i], ['pinch', /^(pinch(es)?)\b/i], ['inch', /^(inch(es)?|")\b/i],
   ['sprig', /^(sprigs?)\b/i], ['handful', /^(handfuls?|fistful)\b/i], ['clove', /^(cloves?|pods?)\b/i],
@@ -47,14 +47,24 @@ const SYNONYMS = {
   hing: ['hing', 'asafoetida', 'perungayam'], red_chilli_powder: ['red chilli powder', 'chilli powder', 'lal mirch'],
   garam_masala: ['garam masala'], coriander_powder: ['coriander powder', 'dhania powder'], black_pepper: ['black pepper', 'pepper', 'kali mirch', 'milagu'],
   baking_soda: ['baking soda', 'soda bicarbonate', 'eno', 'fruit salt'],
+  // added later: common spices/staples that were going unrecognised
+  dry_red_chilli: ['dry red chilli', 'dried red chilli', 'dry red chillies', 'red chilli', 'red chillies'], cardamom: ['cardamom', 'elaichi'],
+  cinnamon: ['cinnamon', 'dalchini'], cloves: ['cloves', 'laung'], bay_leaf: ['bay leaf', 'bay leaves', 'tej patta'],
+  fennel_seeds: ['fennel seeds', 'saunf'], oregano: ['oregano', 'dried oregano'], tamarind: ['tamarind', 'imli'],
+  vanilla: ['vanilla extract', 'vanilla essence', 'vanilla'], baking_powder: ['baking powder'], vinegar: ['vinegar'],
+  soy_sauce: ['soy sauce', 'soya sauce'], cornstarch: ['cornstarch', 'corn starch', 'cornflour', 'corn flour'], cocoa: ['cocoa powder', 'cocoa'],
+  soya_chunks: ['soya chunks', 'soy chunks', 'meal maker', 'nutrela'], plantain: ['plantain', 'nendrapazham', 'raw banana', 'vazhakkai'],
+  zucchini: ['zucchini', 'courgette'], raisins: ['raisins', 'kishmish'],
+  brinjal: ['brinjal', 'eggplant', 'aubergine', 'baingan', 'vankaya'], okra: ['ladysfinger', 'lady finger', 'ladies finger', 'okra', 'bhindi', 'vendakkai'],
+  broccoli: ['broccoli'], cream: ['fresh cream', 'cream', 'malai'],
 };
-export const PANTRY = new Set(['salt', 'water', 'oil', 'ghee', 'turmeric', 'cumin', 'mustard_seeds', 'hing', 'red_chilli_powder', 'garam_masala', 'coriander_powder', 'black_pepper', 'sugar', 'baking_soda']);
+export const PANTRY = new Set(['salt', 'water', 'oil', 'ghee', 'turmeric', 'cumin', 'mustard_seeds', 'hing', 'red_chilli_powder', 'garam_masala', 'coriander_powder', 'black_pepper', 'sugar', 'baking_soda', 'dry_red_chilli', 'cardamom', 'cinnamon', 'cloves', 'bay_leaf', 'fennel_seeds', 'oregano', 'vanilla', 'baking_powder', 'vinegar', 'soy_sauce', 'cornstarch', 'cocoa', 'tamarind']);
 
 // Build a longest-first matcher so "green chilli" wins over "chilli", "sweet potato" over "potato".
 const MATCHERS = Object.entries(SYNONYMS)
   .flatMap(([key, words]) => words.map((w) => [key, w]))
   .sort((a, b) => b[1].length - a[1].length)
-  .map(([key, w]) => [key, new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`, 'i')]);
+  .map(([key, w]) => [key, new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(s|es)?($|[^a-z])`, 'i')]);
 
 export function ingredientKey(text) {
   const t = String(text).toLowerCase();
@@ -77,15 +87,31 @@ function parseNumber(s) {
   return Number.isFinite(n) ? n : null;
 }
 
+// "Oil - 2 tblsp", "Moong Dal / Pasi Paruppu - 1/2 cup", "Salt a pinch": the quantity comes AFTER the name.
+const TRAILING = /^(.+?)\s*(?:[-–:]|\ba\b)\s*((?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?|[½¼¾⅓⅔⅛]|pinch)\s*(.*)$/i;
+
 export function parseIngredientLine(raw) {
   let rest = raw.replace(/^[•\-*▢☐□\s]+/, '').trim();
-  let quantity = null, unit = null;
+  let quantity = null, unit = null, trailingName = null;
   const num = rest.match(/^((?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?\s*(?:-|to|–)\s*\d+(?:\.\d+)?|\d*\s*[½¼¾⅓⅔⅛]|\d+(?:\.\d+)?)\s*/);
   if (num) { quantity = parseNumber(num[1]); rest = rest.slice(num[0].length); }
-  for (const [u, re] of UNITS) {
+  if (quantity == null) {
+    const h = rest.match(/^(.*?)\s*\b(?:a|1)\s+(?:small\s+|big\s+)?(handful|sprig|pinch)\b/i);
+    if (h && h[1].length <= 60) { quantity = 1; unit = h[2].toLowerCase(); trailingName = h[1] || rest; }
+  }
+  if (quantity == null) {
+    const t = rest.match(TRAILING);
+    if (t && t[1].length <= 80) {
+      const isPinch = /^pinch$/i.test(t[2]);
+      const q = isPinch ? 1 : parseNumber(t[2]);
+      if (q != null) { quantity = q; trailingName = t[1]; unit = isPinch ? 'pinch' : null; rest = isPinch ? t[1] : t[3]; }
+    }
+  }
+  if (!unit) for (const [u, re] of UNITS) {
     const m = rest.match(re);
     if (m) { unit = u; rest = rest.slice(m[0].length).replace(/^\s*(of\s+)?/i, ''); break; }
   }
+  if (trailingName) rest = trailingName;
   // "Salt to taste", "Oil as needed" -> no quantity
   const name = rest.split(/,|\bto taste\b|\bas (needed|required)\b|\bfor\b/i)[0].replace(/\s+/g, ' ').trim();
   const key = ingredientKey(rest) || ingredientKey(raw);

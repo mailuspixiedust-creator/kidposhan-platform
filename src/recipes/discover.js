@@ -13,9 +13,11 @@ const RECIPE_HINT = /recipe|how-to-make|-rice|dosa|idli|paratha|upma|poha|khichd
 export function isIndexPath(path) {
   const p = path.replace(/\/+$/, '').toLowerCase();
   if (/\/(recipe-index|recipes-index|recipe-archive|all-recipes|recent-recipes|archive|archives|sitemap)$/.test(p)) return true;
-  if (/^\/recipes\/[^/]+$/.test(p)) return true;          // /recipes/<category>
+  if (/^\/recipes\/[^/-]+$/.test(p)) return true;         // /recipes/<one-word category>, e.g. /recipes/chutney (dishes have hyphenated slugs)
   const slug = p.split('/').pop() || '';
-  return /-recipes$/.test(slug) && !/-recipe-/.test(slug);  // plural slug = roundup, e.g. baby-food-recipes (but baby-corn-pulao-recipe-baby-corn-recipes is one dish)
+  // roundup = the plural word "recipes" in the slug and no singular "recipe" word, e.g. kids-lunch-box-recipes-indian
+  // (baby-corn-pulao-recipe-baby-corn-recipes is one dish and has "recipe")
+  return /(^|-)recipes(-|$)/.test(slug) && !/(^|-)recipe(-|$)/.test(slug);  // plural slug = roundup, e.g. baby-food-recipes (but baby-corn-pulao-recipe-baby-corn-recipes is one dish)
 }
 
 export function isManual(source) {

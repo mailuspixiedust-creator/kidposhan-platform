@@ -4,6 +4,7 @@ import { fetchHtml, extractFromHtml } from './extract.js';
 import { parseIngredientLine } from './normalize.js';
 import { tagRecipe } from './tag.js';
 import { scoreRecipe } from './score.js';
+import { isIndexPath } from './discover.js';
 
 export function buildRecipe(extracted, source) {
   const ingredients = extracted.ingredients.map(parseIngredientLine);
@@ -29,6 +30,10 @@ export function buildRecipe(extracted, source) {
 
 export async function processCandidate(env, cand, source) {
   try {
+    if (isIndexPath(new URL(cand.url).pathname)) {
+      await env.DB.prepare("UPDATE kp_recipe_candidates SET status='not_recipe', last_error='roundup/index page', processed_at=datetime('now') WHERE id=?").bind(cand.id).run();
+      return { id: cand.id, status: 'not_recipe' };
+    }
     const { html, finalUrl } = await fetchHtml(cand.url, env);
     const extracted = extractFromHtml(html, finalUrl);
     if (!extracted) {

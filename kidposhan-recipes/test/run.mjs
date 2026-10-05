@@ -182,7 +182,7 @@ ok(await updateSource(env, 1, { state: 'deleted' }).then(() => false, () => true
 
 // index/category pages are not recipes
 import { isIndexPath } from '../../src/recipes/discover.js';
-ok(['/recipe-index/', '/recipes/baby-food-recipes/', '/recipes/recent-recipes/', '/kids-lunch-box-recipes/'].every(isIndexPath) && !['/carrot-rice-recipe/', '/baby-corn-pulao-recipe-baby-corn-recipes/', '/2014/04/beetroot-poriyal-recipe.html', '/flourless-pancakes-recipe/'].some(isIndexPath), 'Index/category/roundup paths are skipped, single recipes kept');
+ok(['/recipe-index/', '/recipes/baby-food-recipes/', '/recipes/recent-recipes/', '/recipes/chutney/', '/kids-lunch-box-recipes/'].every(isIndexPath) && !['/carrot-rice-recipe/', '/baby-corn-pulao-recipe-baby-corn-recipes/', '/2014/04/beetroot-poriyal-recipe.html', '/flourless-pancakes-recipe/'].some(isIndexPath), 'Index/category/roundup paths are skipped, single recipes kept');
 const idx = `<h3>Ingredients</h3><ul><li><a href="/c">Chicken Recipes</a></li><li><a href="/e">Egg Recipes</a></li><li><a href="/f">Fish Recipes</a></li></ul>`;
 ok(extractFromHtml(idx, 'https://s.in/recipe-index/') === null, 'Link-only category list is not read as ingredients');
 const idx2 = `<h3>Ingredients</h3><ul><li>Chicken Recipes</li><li>Egg Recipes</li><li>Paneer</li></ul>`;
@@ -233,5 +233,21 @@ ok(/approve or write the KidPoshan steps/.test(refused), 'Publishing needs appro
 await reviewRecipe(env, rid, { action: 'publish', occasions: ['breakfast'], approve_steps: true });
 const live = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
 ok(live.method_by === 'kidposhan' && live.method[0].text.startsWith('Dry roast'), 'Approved KidPoshan steps are shown on the KidPoshan page');
+
+// ---- parser: quantity after the name, extra units, new keys, roundup slugs ----
+const t1p = parseIngredientLine('Oil - 2 tblsp'); ok(t1p.quantity === 2 && t1p.unit === 'tbsp' && t1p.ingredient_key === 'oil', 'Trailing quantity: "Oil - 2 tblsp"');
+const t2p = parseIngredientLine('Yellow Moong Dal / Pasi Paruppu - 1/2 cup'); ok(t2p.quantity === 0.5 && t2p.unit === 'cup' && t2p.ingredient_key === 'moong_dal', 'Trailing fraction + cup: moong dal');
+const t3p = parseIngredientLine('Cauliflower - 1 medium size cut into florets'); ok(t3p.quantity === 1 && t3p.ingredient_key === 'cauliflower', 'Trailing count: cauliflower');
+const t4p = parseIngredientLine('Salt a pinch'); ok(t4p.quantity === 1 && t4p.unit === 'pinch' && t4p.ingredient_key === 'salt', '"Salt a pinch"');
+ok(parseIngredientLine('2 tbsp Sugar').quantity === 2 && parseIngredientLine('1 cup rava').quantity === 1, 'Leading-quantity lines unchanged');
+ok(parseIngredientLine('2 garlic cloves, minced').ingredient_key === 'garlic' && parseIngredientLine('4 cloves').ingredient_key === 'cloves', 'garlic cloves vs the spice cloves');
+const wk = computeRecipeScore({ servings: '4' }, ['Cauliflower - 1 medium size cut into florets', 'Oil - 2 tblsp', 'Turmeric Powder - 1 tsp', 'Salt to taste', 'Water as needed'].map(parseIngredientLine));
+ok(wk.status === 'estimated', 'Name-first ingredient lines are now weighed and scored (' + wk.status + ')');
+ok(isIndexPath('/lunch-box-recipes-kids-lunchbox/') && isIndexPath('/kids-lunch-box-recipes-indian/') && !isIndexPath('/baby-corn-pulao-recipe-baby-corn-recipes/') && !isIndexPath('/beetroot-poriyal-recipe/'), 'Roundup slugs detected, single dishes kept');
+
+ok(parseIngredientLine('2 large Beetroots (around 2 cups)').ingredient_key === 'beetroot' && parseIngredientLine('2 bell peppers').ingredient_key === 'capsicum', 'Plural ingredient names recognised');
+ok(parseIngredientLine('1 no Brinjal (chopped)').ingredient_key === 'brinjal' && parseIngredientLine('2 no Ladysfinger (chopped)').ingredient_key === 'okra', 'Brinjal and okra recognised');
+const cl = parseIngredientLine('Curry leaves a sprig'); ok(cl.quantity === 1 && cl.unit === 'sprig' && cl.ingredient_key === 'curry_leaves', '"a sprig" / "a handful" read as a quantity');
+ok(parseIngredientLine('1 potato').ingredient_key === 'potato' && parseIngredientLine('2 sweet potatoes').ingredient_key === 'sweet_potato' && parseIngredientLine('green chillies').ingredient_key === 'green_chilli', 'Existing key matching unaffected by plural support');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

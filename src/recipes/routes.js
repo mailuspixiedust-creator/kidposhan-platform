@@ -13,7 +13,7 @@
 import { handleRecipesApi } from './api.js';
 import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
-import { scoreRecipe } from './score.js';
+import { scoreRecipe, reparseIngredients } from './score.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
@@ -80,7 +80,7 @@ export async function routeRecipes(request, env, ctx) {
     const limit = Math.min(+url.searchParams.get('limit') || 50, 200);
     const { results } = await env.DB.prepare('SELECT id FROM kp_recipes ORDER BY id LIMIT ?').bind(limit).all();
     const out = [];
-    for (const r of results) out.push(await scoreRecipe(env, r.id));
+    for (const r of results) { await reparseIngredients(env, r.id); out.push(await scoreRecipe(env, r.id)); }
     return json({ rescored: out });
   }
 
