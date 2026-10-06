@@ -115,7 +115,7 @@ export async function listSources(env, { state = 'all', q = '', status } = {}) {
   const like = `%${String(q).trim().toLowerCase()}%`;
   const { results } = await env.DB.prepare(
     `SELECT s.id, s.name, s.url, s.platform, s.region, s.area, s.notes, s.owner_notes, s.status, s.active,
-            s.rights_status, s.rights_updated_at, s.crawl_mode, s.last_crawled_at,
+            s.rights_status, s.rights_updated_at, s.photos_hidden, s.crawl_mode, s.last_crawled_at,
             COALESCE(SUM(r.review_status = 'pending'), 0)  AS pending,
             COALESCE(SUM(r.review_status = 'approved'), 0) AS published,
             COALESCE(SUM(r.review_status = 'rejected'), 0) AS rejected,
@@ -151,6 +151,7 @@ export async function updateSource(env, id, body) {
     if (!RIGHTS.includes(body.rights_status)) throw new Error('rights_status must be not_requested, requested, granted or refused');
     sets.push('rights_status = ?', "rights_updated_at = datetime('now')"); args.push(body.rights_status);
   }
+  if (body.photos_hidden != null) { sets.push('photos_hidden = ?'); args.push(body.photos_hidden ? 1 : 0); }
   if (body.owner_notes != null) { sets.push('owner_notes = ?'); args.push(String(body.owner_notes).slice(0, 1000)); }
   if (!sets.length) throw new Error('nothing to update');
   const exists = await env.DB.prepare('SELECT id FROM kp_recipe_sources WHERE id = ?').bind(id).first();

@@ -277,7 +277,7 @@ function bindCards(){
 
 const STATES=[['new','New'],['active','Active'],['paused','Paused'],['blocked','Blocked'],['all','All']];
 const RIGHTS=[['not_requested','Not asked'],['requested','Asked'],['granted','Granted'],['refused','Refused']];
-const RIGHTS_HELP={granted:'Steps and photos from this site show on KidPoshan, with credit.',requested:'Waiting for their reply. Parents get a link to the site meanwhile.',refused:'Parents get a link to the site only.',not_requested:'Parents get a link to the site only.'};
+const RIGHTS_HELP={granted:'Their steps show word for word on KidPoshan, with credit.',requested:'Waiting for their reply. Parents see KidPoshan-written steps and a credit link meanwhile.',refused:'Parents see KidPoshan-written steps and a credit link. Consider switching their photos off below.',not_requested:'Parents see KidPoshan-written steps and a credit link.'};
 function renderSites(list){
   list.innerHTML=`<div class="site-tools">
     <div class="filters" role="group" aria-label="Show sites">${STATES.map(([k,l])=>`<button class="fchip" data-state-filter="${k}" aria-pressed="${siteState===k}">${l}<span class="n">${siteCounts[k]??''}</span></button>`).join('')}</div>
@@ -303,7 +303,8 @@ function siteHTML(s){
    </div>
    <div style="display:grid;gap:10px;align-content:start">
     <div><span class="lbl">Status</span>${stateCtl}</div>
-    <div><span class="lbl">Permission to show steps and photos</span><select data-rights>${RIGHTS.map(([k,l])=>`<option value="${k}" ${s.rights_status===k?'selected':''}>${l}</option>`).join('')}</select><p class="why" data-rights-help>${RIGHTS_HELP[s.rights_status]||''}</p></div>
+    <div><span class="lbl">Permission to show their steps word for word</span><select data-rights>${RIGHTS.map(([k,l])=>`<option value="${k}" ${s.rights_status===k?'selected':''}>${l}</option>`).join('')}</select><p class="why" data-rights-help>${RIGHTS_HELP[s.rights_status]||''}</p></div>
+    <div><label class="chk"><input type="checkbox" data-photos ${s.photos_hidden?'checked':''}> Hide this site's photos on KidPoshan</label><p class="why">Photos are shown with a credit and a link to the original. Tick this if the creator asks, or their photos don't load.</p></div>
     <div><span class="lbl">Your notes</span><textarea data-notes placeholder="e.g. emailed 12 Oct">${esc(s.owner_notes||'')}</textarea><p class="saved" data-saved role="status"></p></div>
    </div></div>`;
 }
@@ -316,9 +317,10 @@ function bindSites(){
       if(st==='blocked'&&!confirm('Block this site? Its waiting recipes will be rejected and it won\'t be read again. Recipes you already published stay up.'))return;
       send({state:st},{active:'Site is active',paused:'Paused: no new recipes will be read',blocked:'Blocked'}[st],true);
     });
+    const ph=card.querySelector('[data-photos]'); if(ph) ph.onchange=()=>send({photos_hidden:ph.checked},ph.checked?'Photos hidden':'Photos shown',false);
     const sel=card.querySelector('[data-rights]');
     sel.onchange=()=>{
-      if(sel.value==='granted'&&!confirm('Mark permission as granted? Their steps and photos will appear on KidPoshan.')){load();return}
+      if(sel.value==='granted'&&!confirm('Mark permission as granted? Their steps will appear word for word on KidPoshan.')){load();return}
       card.querySelector('[data-rights-help]').textContent=RIGHTS_HELP[sel.value];
       send({rights_status:sel.value},'Permission saved',true);
     };

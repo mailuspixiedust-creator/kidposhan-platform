@@ -47,6 +47,7 @@ db.exec(fs.readFileSync('migrations/0009_site_management.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0010_recipe_score_and_kp_steps.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0011_ready_products.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0012_pack_label_reading.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0013_photos_hidden.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -319,5 +320,19 @@ ok(multi.items.length === 2 && multi.items.every((i) => i.for.length === 2 && i.
 ok(multi.items[0].score && multi.items[1].score === null, 'Menu page packs: scored first');
 ok(multi.items.every((i) => !/recipe/i.test(i.for.map((f) => f.name).join(' '))), 'Dish names on pack cards are cleaned of "Recipe" and alternate titles');
 ok((await packsForRecipes(env, [por])).items.length === 0 && (await packsForRecipes(env, [])).items.length === 0, 'Dishes with no ready-made form give no menu packs');
+
+// ---- photos: shown for every readable recipe (credited), unless the owner hides a site's photos ----
+db.prepare("UPDATE kp_recipes SET image_url='https://site.in/ragi.jpg' WHERE id=?").run(ragiId);
+const ph1 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
+ok(ph1.image_url === 'https://site.in/ragi.jpg' && ph1.source.name === 'NoRights' && ph1.source.rights_status === 'not_requested', 'Dish photo shown without granted rights, with the source named for the credit');
+ok(ph1.method === null || ph1.method_by === 'kidposhan', 'Verbatim steps are still not shown without rights');
+await updateSource(env, 9060, { photos_hidden: true });
+const ph2 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
+ok(ph2.image_url === null, "Owner can switch a site's photos off");
+const srch = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=24&occasion=breakfast&season=all&pref=veg&limit=50'), env, ctx)).json();
+ok(srch.results.filter((r) => r.id === ragiId).every((r) => r.image_url == null), 'Hidden photos also stay out of menu results');
+await updateSource(env, 9060, { photos_hidden: false });
+const ph3 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
+ok(ph3.image_url === 'https://site.in/ragi.jpg', 'Photos come back when switched on again');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

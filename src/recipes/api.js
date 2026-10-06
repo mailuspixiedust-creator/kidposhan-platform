@@ -46,7 +46,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   const args = [];
   const diets = DIETS[q.pref];
   let sql = `
-    SELECT r.id, r.name, CASE WHEN s.rights_status = 'granted' THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
+    SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
            ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_status = 'exact' OR r.score_approved = 1 THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
            (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
@@ -106,7 +106,7 @@ const bandOf = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fai
 
 export async function recipeDetail(env, id) {
   const r = await env.DB.prepare(
-    `SELECT r.*, s.name AS source_name, s.rights_status
+    `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.id = ? AND r.review_status IN ${VISIBLE}`
   ).bind(id).first();
@@ -132,7 +132,9 @@ export async function recipeDetail(env, id) {
   return {
     id: r.id,
     name: r.name,
-    image_url: methodAllowed ? r.image_url : null, // photos follow the same rights rule as method text
+    // Photo of the dish: shown, credited to the source (see `source`), unless the owner switched this site's photos off.
+    // (Verbatim steps still need rights_status = granted.)
+    image_url: r.photos_hidden ? null : r.image_url,
     description: r.description,
     servings: r.servings,
     total_minutes: r.total_minutes,

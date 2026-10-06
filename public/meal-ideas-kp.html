@@ -152,6 +152,67 @@ a{color:var(--leaf)}
 
 @media (min-width:760px){.dish{flex-basis:236px}.pack{flex-basis:210px}.packs{margin-left:0;margin-right:0}.carousel.packs{padding-left:0}}
 @media (prefers-reduced-motion: reduce){.tray{transition:none}}
+
+/* ---------- visual polish ---------- */
+body{background:radial-gradient(1100px 420px at 50% -140px,var(--leaf-2),transparent 72%),var(--bg);background-repeat:no-repeat}
+.masthead .brand{display:inline-flex;align-items:center;gap:9px;font-size:22px}
+.masthead .brand::before{content:"";width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--leaf),var(--turmeric));box-shadow:0 3px 10px -3px rgba(20,48,43,.45)}
+.ask{letter-spacing:-.025em}
+.shelf-head{margin:30px 18px 12px}
+.shelf-head h2{position:relative;padding-left:14px}
+.shelf-head h2::before{content:"";position:absolute;left:0;top:.16em;bottom:.1em;width:5px;border-radius:4px;background:linear-gradient(var(--turmeric),var(--leaf))}
+.summary{box-shadow:0 6px 18px -12px rgba(20,48,43,.35)}
+
+/* photo + illustration layering (cards, packs, hero) */
+.art{position:relative;overflow:hidden}
+.art>svg,.art>img,.hero>svg,.hero>img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.art>img,.hero>img{object-fit:cover}
+.credit-chip{position:absolute;left:8px;bottom:8px;max-width:calc(100% - 16px);font-size:11px;font-weight:600;line-height:1.5;color:#fff;background:rgba(10,24,20,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);padding:1px 9px;border-radius:999px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+
+/* menu cards */
+.dish{flex-basis:min(72vw,270px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 14px 26px -16px rgba(20,48,43,.45);transition:transform .18s ease,box-shadow .18s ease}
+.dish:hover{transform:translateY(-3px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 18px 30px -16px rgba(20,48,43,.55)}
+.dish .art{aspect-ratio:4/3;background:var(--leaf-2)}
+.dish .art::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(transparent,rgba(8,20,16,.38));pointer-events:none}
+.dish .credit-chip{z-index:1}
+.dish .txt{padding:13px 15px 15px}
+.dish h3{font-size:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Poshan Score badge, coloured by band */
+.badge{z-index:2;flex-direction:column;gap:0;min-width:48px;height:48px;line-height:1;box-shadow:0 4px 12px -3px rgba(0,0,0,.35);border:2.5px solid var(--paper)}
+.badge small{margin:1px 0 0;font:700 8px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:inherit;opacity:.85}
+.badge[data-band="Excellent"]{background:var(--leaf);color:var(--paper)}
+.badge[data-band="Good"]{background:#4C9A74;color:#fff}
+.badge[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
+.badge[data-band="Occasional"]{background:var(--chilli);color:#fff}
+.score[data-band="Excellent"] b{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.score[data-band="Good"] b{background:#4C9A74;border-color:#4C9A74;color:#fff}
+.score[data-band="Fair"] b{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.score[data-band="Occasional"] b{background:var(--chilli);border-color:var(--chilli);color:#fff}
+.score b{box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
+
+/* recipe hero */
+.hero{aspect-ratio:4/3;max-height:56vh;background:var(--leaf-2)}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(transparent,rgba(8,20,16,.5));pointer-events:none}
+.hero .credit-chip{left:16px;bottom:42px;font-size:12px;z-index:2;padding:2px 11px}
+.hero .back{z-index:3}
+.hero .back svg{position:static;width:20px;height:20px}
+.sheet{box-shadow:0 -14px 30px -18px rgba(0,0,0,.4);padding-top:24px}
+.title-row h1{text-wrap:balance}
+.facts span{box-shadow:0 1px 0 rgba(20,48,43,.05)}
+
+/* pack cards */
+.pack{box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5);border-radius:20px}
+.pack .art{aspect-ratio:1/1;background:#fff}
+.pack .art>img{object-fit:contain;padding:10px}
+.pack .art>svg{background:var(--leaf-2)}
+.pack .txt{padding:12px 14px 14px;gap:2px;flex:1}
+.pack h3{font-size:16px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pack .buys{margin-top:auto;padding-top:10px}
+.pack .buys a{padding:6px 12px;font-size:13px}
+.pack .buys a:first-child{background:var(--leaf);color:var(--paper)}
+.buy-card .buys{padding:12px 12px 14px}
+.buy-card .buys a:first-child{background:var(--leaf-2);color:var(--leaf)}
 </style>
 </head>
 <body>
@@ -283,7 +344,7 @@ function demoSearch(q){
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const toCard=r=>({id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
 async function search(q){
   if(!LIVE) return demoSearch(q).map(toCard);
   const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
@@ -318,6 +379,14 @@ async function packsFor(r){
   }catch(e){return []}
 }
 
+/* ===== presentation helpers ===== */
+const bandOf=v=>v>=80?'Excellent':v>=58?'Good':v>=40?'Fair':'Occasional';
+// "Vegetable Biryani Recipe (Pressure Cooker Veg Biryani)" -> "Vegetable Biryani"; source titles often repeat themselves with "|".
+const nice=n=>{const t=String(n||'').split('|')[0].replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();return t||String(n||'')};
+// A photo laid over the drawn illustration: if the photo fails to load (hot-link blocked, deleted), the illustration is simply what shows.
+const photoImg=(src,alt,credit)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
+const badgeHTML=(v,kind)=>v==null||v===''?'':`<span class="badge" data-band="${bandOf(+v)}" title="${kind==='estimated'?'Poshan Score, estimated from ingredients':'Poshan Score'}">${esc(v)}<small>Poshan</small></span>`;
+
 /* ===== state & storage ===== */
 function save(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}catch(e){return null}}
@@ -340,10 +409,10 @@ async function loadMenuPacks(){
     const items=(await res.json()).items||[];
     menuPackKey=key;
     menuPackHTML=items.length?`<div class="shelf-head"><h2>Ready-to-buy for these dishes</h2><span>${items.length} ${items.length===1?'pack':'packs'}</span></div>
-      <div class="carousel" role="list">${items.map(p=>`<div class="pack" role="listitem"><div class="art">${p.image_url?`<img src="${esc(p.image_url)}" alt="" loading="lazy">`:packArt({name:p.name})}${p.score?`<span class="badge" title="Poshan Score">${p.score.value}</span>`:''}</div>
+      <div class="carousel" role="list">${items.map(p=>`<div class="pack" role="listitem"><div class="art">${packArt({name:p.name})}${photoImg(p.image_url,'')}${badgeHTML(p.score?p.score.value:null)}</div>
         <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.pack_size||'')}${p.score?'':`${p.pack_size?' · ':''}Score pending`}</span>
         <span class="for">For ${esc(p.for.slice(0,2).map(f=>f.name).join(', '))}${p.for.length>2?` +${p.for.length-2}`:''}</span>
-        <div class="buys"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc((p.retailer||'Buy').replace(/^./,c=>c.toUpperCase()))}</a></div></div></div>`).join('')}</div>`:'';
+        <div class="buys"><a href="${esc(p.url)}" target="_blank" rel="noopener">${p.retailer?'Buy on ':'Buy'}${esc((p.retailer||'').replace(/^./,c=>c.toUpperCase()))}</a></div></div></div>`).join('')}</div>`:'';
     if(document.getElementById('menuPacks')===box) box.innerHTML=menuPackHTML;
   }catch(e){}
 }
@@ -368,8 +437,8 @@ function renderMenu(){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
-            <div class="art">${x.image?`<img src="${esc(x.image)}" alt="" loading="lazy">`:dishArt(x.artSrc)}${x.score?`<span class="badge" title="${x.kind==='estimated'?'Estimated from ingredients':'Poshan Score'}">${x.score}</span>`:''}</div>
-            <div class="txt"><h3>${esc(x.name)}</h3><span class="meta">${x.mins?x.mins+' min':''}</span><span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
+            <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span><span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
       }
       html+=`<div id="menuPacks"></div>`;
     }
@@ -402,7 +471,7 @@ async function renderRecipe(id){
   app.innerHTML=`<p class="hint">Loading recipe…</p>`;
   const r=await getRecipe(id);
   if(!r){app.innerHTML=`<p class="hint pad">This recipe isn't available. <a href="#/">Back to meal ideas</a></p>`;return}
-  const art=r.image?`<img src="${esc(r.image)}" alt="${esc(r.name)}">`:dishArt({id:r.id,name:r.name,ings:r.ings_art||r.ings.map(i=>({k:i.key}))});
+  const art=dishArt({id:r.id,name:r.name,ings:r.ings_art||r.ings.map(i=>({k:i.key}))})+photoImg(r.image,nice(r.name))+(r.image&&r.source?`<a class="credit-chip" href="${esc(r.source.url)}" target="_blank" rel="noopener">Photo: ${esc(r.source.name)}</a>`:'');
   r.ings.forEach((ing,i)=>{const k=`${r.id}:${i}`;if(!S.items[k])S.items[k]={state:ing.pantry?'home':null,name:ing.name,key:ing.key,recipe:r.name,buy:ing.buy}});
   persist();
   const doneKey=`kp_steps_${r.id}`, done=new Set(JSON.parse(load(doneKey)||'[]'));
@@ -422,7 +491,7 @@ async function renderRecipe(id){
   }
   app.innerHTML=`<div class="hero">${art}<button class="back" id="back" aria-label="Back to meal ideas"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
    <article class="sheet pad">
-    <div class="title-row"><h1>${esc(r.name)}</h1>${r.score?`<div class="score"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
+    <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
     ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
     <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to add an ingredient to the To buy list below.</p>
@@ -441,10 +510,10 @@ async function renderRecipe(id){
   const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
   if(packs.hide){box.closest('section')?.remove();return}
   box.innerHTML=packs.length?`<div class="carousel packs" role="list">${packs.map(p=>`<div class="pack" role="listitem">
-    <div class="art">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:packArt(p)}${p.score!=null?`<span class="badge">${p.score}</span>`:''}</div>
+    <div class="art">${packArt(p)}${photoImg(p.image,'')}${badgeHTML(p.score)}</div>
     <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.size||'')}${p.sample?', sample':p.score==null?`${p.size?' · ':''}Score pending`:''}</span>
     ${p.buys?.[0]?.price?`<span class="price">from ₹${esc(Math.min(...p.buys.filter(b=>b.price).map(b=>+b.price)))}</span>`:''}
-    <div class="buys">${(p.buys||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}</a>`).join('')}</div></div></div>`).join('')}</div>`
+    <div class="buys">${(p.buys||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">Buy on ${esc(b.label)}</a>`).join('')}</div></div></div>`).join('')}</div>`
    :`<p class="empty-packs">No ready-made pack for this dish yet.</p>`;
 }
 
