@@ -50,7 +50,7 @@ export async function routeRecipes(request, env, ctx) {
     // POST /api/kp/admin/products/research?kind=ragi_dosa_mix   (no kind = the one that has waited longest)
     if (path === '/api/kp/admin/products/research' && request.method === 'POST') {
       const kind = url.searchParams.get('kind');
-      return json(kind ? await researchKind(env, kind) : await researchNextKind(env));
+      return json(kind ? await researchKind(env, kind) : await researchNextKind(env, { onlyNeeded: url.searchParams.get('scope') === 'published' }));
     }
     // POST /api/kp/admin/products/read-labels?id=5  (one pack, retries)  or  ?limit=2 (next packs never tried)
     if (path === '/api/kp/admin/products/read-labels' && request.method === 'POST') {

@@ -196,11 +196,15 @@ function renderPacks(list){
   const c=packCounts;
   list.innerHTML=`<p class="sub">Ready-made versions of dishes (ragi dosa → a ragi dosa mix). Parents see only packs you approve. Type the label values from the pack photo to get an exact Poshan Score.</p>
     <div class="tabs" role="tablist">${[['candidate','Waiting'],['approved','Approved'],['rejected','Rejected']].map(([k,l])=>`<button class="tab" aria-selected="${packStatus===k}" data-ps="${k}">${l}<span class="n">${c[k]??0}</span></button>`).join('')}</div>
-    <p><button class="btn undo" id="findpacks">Find more packs now</button> <span class="why" id="packmsg">${esc(packMsg)}</span></p>
+    <p><button class="btn undo" id="findpacks">Find packs for my published recipes</button> <span class="why" id="packmsg">${esc(packMsg)}</span></p>
     ${packs.length?packs.map(packCard).join(''):'<p class="empty">Nothing here. The site looks for packs automatically, one dish type every 3 hours, or press "Find more packs now".</p>'}`;
   list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{packStatus=b.dataset.ps;load()});
   document.getElementById('findpacks').onclick=async e=>{e.target.disabled=true;document.getElementById('packmsg').textContent='Searching, about 90 seconds…';
-    try{const r=await api('/api/kp/admin/products/research',{method:'POST'});packMsg=`Searched "${r.query}": ${r.added} new, ${r.already_known} already known.`}catch(x){packMsg='Search failed: '+x.message}
+    try{
+      let r=await api('/api/kp/admin/products/research?scope=published',{method:'POST'});
+      if(r.skipped) r=await api('/api/kp/admin/products/research',{method:'POST'}); // published recipes are covered: carry on with the general rotation
+      packMsg=`Searched "${r.query}": ${r.added} new, ${r.already_known} already known. Press again for the next dish type.`;
+    }catch(x){packMsg='Search failed: '+x.message}
     load()};
   list.querySelectorAll('[data-pact]').forEach(b=>b.onclick=async()=>{
     const card=b.closest('.card'), err=card.querySelector('.err'); err.textContent='';

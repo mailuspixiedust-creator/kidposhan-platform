@@ -86,10 +86,20 @@ export async function researchKind(env, kindKey) {
 }
 
 // Cron: research the kind that has gone longest without a run (never-run kinds first).
-export async function researchNextKind(env) {
+// Kinds that match a PUBLISHED recipe come first (a parent can see those pages now); the rest rotate after them.
+export async function neededKinds(env) {
+  const { results } = await env.DB.prepare("SELECT name FROM kp_recipes WHERE review_status = 'approved'").all();
+  return new Set(results.map((r) => kindForDish(r.name)?.kind).filter(Boolean));
+}
+
+export async function researchNextKind(env, { onlyNeeded = false } = {}) {
   const { results } = await env.DB.prepare('SELECT kind, last_run_at FROM kp_ready_research').all();
   const last = new Map(results.map((r) => [r.kind, r.last_run_at]));
-  const next = [...READY_KINDS].sort((a, b) => String(last.get(a.kind) || '').localeCompare(String(last.get(b.kind) || '')))[0];
+  const needed = await neededKinds(env);
+  const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : READY_KINDS;
+  if (!pool.length) return { skipped: 'every pack type for your published recipes has already been searched' };
+  const next = [...pool].sort((a, b) =>
+    (needed.has(b.kind) - needed.has(a.kind)) || String(last.get(a.kind) || '').localeCompare(String(last.get(b.kind) || '')))[0];
   return researchKind(env, next.kind);
 }
 

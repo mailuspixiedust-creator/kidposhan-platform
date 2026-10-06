@@ -305,4 +305,8 @@ const html = '<script type="application/ld+json">{"@type":"Product","name":"x","
 const pi = packImages(html);
 ok(pi.length === 2 && pi[0].includes('/image/1600/1700/'), 'Pack gallery images found, de-duplicated, requested at high resolution');
 
+import { neededKinds } from '../../src/recipes/ready.js';
+const need = await neededKinds(env);
+ok(need.has('ragi_dosa_mix') && !need.has('khichdi_mix'), 'Pack research is prioritised for kinds matching published recipes: ' + [...need].join(','));
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
