@@ -309,4 +309,15 @@ import { neededKinds } from '../../src/recipes/ready.js';
 const need = await neededKinds(env);
 ok(need.has('ragi_dosa_mix') && !need.has('khichdi_mix'), 'Pack research is prioritised for kinds matching published recipes: ' + [...need].join(','));
 
+import { packsForRecipes } from '../../src/recipes/ready.js';
+db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status) VALUES (9060,'https://site.in/rds/','Ragi Dosai | Instant Ragi Dosa Recipe','[]','jsonld','complete','veg',12,72,'approved')").run();
+db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status) VALUES (9060,'https://site.in/poriyal2/','Beans Poriyal','[]','jsonld','complete','veg',12,72,'approved')").run();
+const rds = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/rds/'").get().id;
+const por = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/poriyal2/'").get().id;
+const multi = await packsForRecipes(env, [ragiId, rds, por, 'x', -1]);
+ok(multi.items.length === 2 && multi.items.every((i) => i.for.length === 2 && i.kind === 'ragi_dosa_mix'), 'Menu page: packs for several dishes in one list, a pack lists every dish it fits');
+ok(multi.items[0].score && multi.items[1].score === null, 'Menu page packs: scored first');
+ok(multi.items.every((i) => !/recipe/i.test(i.for.map((f) => f.name).join(' '))), 'Dish names on pack cards are cleaned of "Recipe" and alternate titles');
+ok((await packsForRecipes(env, [por])).items.length === 0 && (await packsForRecipes(env, [])).items.length === 0, 'Dishes with no ready-made form give no menu packs');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

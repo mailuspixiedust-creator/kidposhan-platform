@@ -121,6 +121,32 @@ export async function packsForRecipe(env, recipeId) {
   };
 }
 
+// Menu page: approved packs for every dish being shown, one list. A pack that fits several dishes appears once with all of them.
+export async function packsForRecipes(env, ids, { limit = 16 } = {}) {
+  ids = [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 24);
+  if (!ids.length) return { items: [] };
+  const { results: recipes } = await env.DB.prepare(`SELECT id, name FROM kp_recipes WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all();
+  const dishesByKind = new Map();
+  for (const r of recipes) {
+    const k = kindForDish(r.name); if (!k) continue;
+    if (!dishesByKind.has(k.kind)) dishesByKind.set(k.kind, { label: k.label, dishes: [] });
+    dishesByKind.get(k.kind).dishes.push({ id: r.id, name: String(r.name).split('|')[0].replace(/\brecipe\b/ig, '').replace(/\s+/g, ' ').trim() });
+  }
+  if (!dishesByKind.size) return { items: [] };
+  const kinds = [...dishesByKind.keys()];
+  const { results: packs } = await env.DB.prepare(
+    `SELECT id, kind, name, brand, pack_size, image_url, retailer, product_url, kidposhan_score, score_status FROM kp_ready_products
+      WHERE status = 'approved' AND kind IN (${kinds.map(() => '?').join(',')})`
+  ).bind(...kinds).all();
+  const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+  const items = packs.map((p) => ({ id: p.id, kind: p.kind, label: dishesByKind.get(p.kind).label, name: p.name, brand: p.brand, pack_size: p.pack_size, image_url: p.image_url,
+    retailer: p.retailer, url: p.product_url, for: dishesByKind.get(p.kind).dishes,
+    score: p.score_status === 'exact' && p.kidposhan_score != null ? { value: p.kidposhan_score, band: band(p.kidposhan_score) } : null }));
+  // best scored first; within a dish type keep the packs together so the carousel reads kind by kind
+  items.sort((a, b) => (b.score?.value ?? -1) - (a.score?.value ?? -1) || a.id - b.id);
+  return { items: items.slice(0, limit), total: items.length };
+}
+
 // ---- owner ----
 export async function listPacks(env, { status = 'candidate', limit = 30, offset = 0 } = {}) {
   if (!['candidate', 'approved', 'rejected'].includes(status)) throw new Error('bad status');

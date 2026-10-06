@@ -15,7 +15,7 @@ import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
 import { scoreRecipe, reparseIngredients } from './score.js';
 import { readPackLabel, readLabelsPending } from './label.js';
-import { packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
+import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
@@ -35,6 +35,7 @@ export async function routeRecipes(request, env, ctx) {
 
   // GET /api/kp/ready?recipe_id=12  -> approved ready-to-buy packs for that dish (ragi dosa -> ragi dosa mix)
   if (request.method === 'GET' && path === '/api/kp/ready') {
+    if (url.searchParams.get('recipe_ids')) return json(await packsForRecipes(env, url.searchParams.get('recipe_ids').split(',')));
     const rid = +url.searchParams.get('recipe_id');
     return rid ? json(await packsForRecipe(env, rid)) : json({ error: 'recipe_id required' }, 400);
   }

@@ -125,6 +125,11 @@ a{color:var(--leaf)}
 .pack .buys{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pack .buys a{font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;padding:4px 9px;background:var(--leaf-2);color:var(--leaf)}
 .pack .price{font-weight:700;font-size:15px;margin-top:4px}
+.pack .for{font-size:12px;color:var(--leaf);font-weight:600;margin-top:4px}
+.buy-card{flex-basis:min(62vw,230px)}
+.buy-head{background:var(--leaf-2);padding:12px 12px 10px;display:grid;gap:2px}
+.buy-card .buys{padding:10px 12px 12px;margin-top:0}
+.buy-card h3{font-size:18px}
 .empty-packs{margin-top:10px;color:var(--muted);font-size:15px}
 
 /* ---------- shopping tray ---------- */
@@ -325,6 +330,23 @@ const app=document.getElementById('app');
 function chipRow(name,label,arr,cur){
   return `<div class="frow"><span id="l-${name}">${label}</span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${String(cur)===String(v)}">${l}</button>`).join('')}</div></div>`;
 }
+let menuPackKey='',menuPackHTML='';
+async function loadMenuPacks(){
+  const box=document.getElementById('menuPacks'); if(!box||!LIVE||!S.results||S.editing) return;
+  const ids=S.results.filter(x=>x.match==='exact'||x.match==='any_season').map(x=>x.id).slice(0,24); if(!ids.length) return;
+  const key=ids.join(','); if(key===menuPackKey){box.innerHTML=menuPackHTML;return}
+  try{
+    const res=await fetch(`${API}/api/kp/ready?recipe_ids=${key}`); if(!res.ok) return;
+    const items=(await res.json()).items||[];
+    menuPackKey=key;
+    menuPackHTML=items.length?`<div class="shelf-head"><h2>Ready-to-buy for these dishes</h2><span>${items.length} ${items.length===1?'pack':'packs'}</span></div>
+      <div class="carousel" role="list">${items.map(p=>`<div class="pack" role="listitem"><div class="art">${p.image_url?`<img src="${esc(p.image_url)}" alt="" loading="lazy">`:packArt({name:p.name})}${p.score?`<span class="badge" title="Poshan Score">${p.score.value}</span>`:''}</div>
+        <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.pack_size||'')}${p.score?'':`${p.pack_size?' · ':''}Score pending`}</span>
+        <span class="for">For ${esc(p.for.slice(0,2).map(f=>f.name).join(', '))}${p.for.length>2?` +${p.for.length-2}`:''}</span>
+        <div class="buys"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc((p.retailer||'Buy').replace(/^./,c=>c.toUpperCase()))}</a></div></div></div>`).join('')}</div>`:'';
+    if(document.getElementById('menuPacks')===box) box.innerHTML=menuPackHTML;
+  }catch(e){}
+}
 function renderMenu(){
   const ready=S.age&&S.occ&&S.season&&S.pref, showFilters=!S.results||S.editing;
   let html=`<header class="masthead pad"><span class="brand">KidPoshan</span>${LIVE?'':'<span class="demo-tag">Demo recipes</span>'}</header>
@@ -349,9 +371,11 @@ function renderMenu(){
             <div class="art">${x.image?`<img src="${esc(x.image)}" alt="" loading="lazy">`:dishArt(x.artSrc)}${x.score?`<span class="badge" title="${x.kind==='estimated'?'Estimated from ingredients':'Poshan Score'}">${x.score}</span>`:''}</div>
             <div class="txt"><h3>${esc(x.name)}</h3><span class="meta">${x.mins?x.mins+' min':''}</span><span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
       }
+      html+=`<div id="menuPacks"></div>`;
     }
   }
   app.innerHTML=html;
+  loadMenuPacks();
   app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S[b.dataset.f]=b.dataset.f==='age'?+b.dataset.v:b.dataset.v;persist();renderMenu();
     const nb=app.querySelector(`.chip[data-f="${b.dataset.f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
   const go=document.getElementById('go'); if(go) go.onclick=async()=>{go.disabled=true;go.textContent='Finding meals…';S.error=null;
@@ -387,7 +411,9 @@ async function renderRecipe(id){
     return `<div class="ing-item ${st==='buy'?'buying':''}"><div class="ing-row"><span><b>${esc(ing.name)}</b><span class="q">${esc(ing.qty||ing.raw||'')}</span></span>
       <button class="tick home" data-k="${k}" data-s="home" aria-pressed="${st==='home'}" aria-label="${esc(ing.name)}: at home">${CHECK}</button>
       <button class="tick buy" data-k="${k}" data-s="buy" aria-pressed="${st==='buy'}" aria-label="${esc(ing.name)}: to buy">${CHECK}</button></div>
-      ${st==='buy'?`<div class="stores" aria-label="Where to buy ${esc(ing.name)}">${ing.buy.map(b=>`<a class="store" href="${esc(b.url)}" target="_blank" rel="noopener"><b>${esc(b.label)}</b><small>${esc(b.kind||'')}${b.eta?`, ${esc(b.eta)}`:''}</small>${b.price?`<small>₹${esc(b.price)}</small>`:''}<em>Open</em></a>`).join('')}</div>`:''}</div>`}).join('');
+      </div>`}).join('');
+  const buyList=r.ings.map((ing,i)=>({ing,k:`${r.id}:${i}`})).filter(x=>S.items[x.k].state==='buy');
+  const buyHTML=buyList.length?`<div class="carousel packs" role="list">${buyList.map(({ing})=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(ing.name)}</h3><span class="size">${esc(ing.qty||'')}</span></div><div class="buys">${(ing.buy||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}${b.price?` ₹${esc(b.price)}`:''}${b.eta?` · ${esc(b.eta)}`:''}</a>`).join('')||'<span class="size">No store links yet</span>'}</div></div>`).join('')}</div>`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here with where to get it.</p>`;
   let stepsHTML;
   if(r.steps&&r.steps.length){
     stepsHTML=`<p class="lead">Tap a step when it's done.${r.demo?' Sample layout: real steps come word for word from the creator.':''}</p><ol class="steps">${r.steps.map((s,i)=>`<li class="step" role="button" tabindex="0" data-step="${i}" aria-pressed="${done.has(i)}">${s.section?`<span class="sec">${esc(s.section)}</span>`:''}<span class="t">${esc(s.text)}</span></li>`).join('')}</ol>`;
@@ -399,8 +425,9 @@ async function renderRecipe(id){
     <div class="title-row"><h1>${esc(r.name)}</h1>${r.score?`<div class="score"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
     ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
-    <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to see where to get it.</p>
+    <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to add an ingredient to the To buy list below.</p>
       <div class="ing"><div class="ing-head"><span>Ingredient</span><span>At home</span><span>To buy</span></div>${ingHTML}</div></section>
+    <section class="section"><h2>To buy</h2>${buyHTML}</section>
     <section class="section"><h2>Steps</h2>${stepsHTML}</section>
     ${r.source?`<p class="credit">${r.method_by==='kidposhan'?'Steps written by KidPoshan. ':''}Recipe idea from ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a></p>`:''}
     <section class="section"><h2>Ready-to-buy packs</h2><p class="lead">For busy days. Scored for kids.</p><div id="packs"><p class="empty-packs">Finding packs…</p></div></section>
