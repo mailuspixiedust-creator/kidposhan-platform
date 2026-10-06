@@ -302,7 +302,7 @@ async function packsFor(r){
   if(!LIVE) return (PACKS[kindOf(r.name)]||PACKS.bowl).map(([name,size,hue],i)=>({brand:'Brand from catalogue',name,size,hue,score:[82,76,71][i],sample:true,
       buys:RETAILERS.slice(0,4).map(s=>({label:s.label,url:s.url(encodeURIComponent(name))}))}));
   try{
-    const term=(r.ready_term||r.name).replace(/\bwith\b.*$/i,'').trim();
+    const term=(r.ready_term||r.name).split('|')[0].replace(/\bwith\b.*$/i,'').replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();
     const pin=load('kp_pincode')||'';
     const res=await fetch(`${API}/api/products?q=${encodeURIComponent(term)}${pin?`&pincode=${pin}`:''}`);
     if(!res.ok) return [];
@@ -341,7 +341,7 @@ function renderMenu(){
     if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`;
     else{
       if(r.length<10) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
-      for(const [m,t] of [['exact','Best for today'],['any_season','Good any season'],['related','From other meals']]){
+      for(const [m,t] of [['exact','Best for today'],['any_season','Good any season']]){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
