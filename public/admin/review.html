@@ -165,6 +165,15 @@ function render(){
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
     `<p class="empty">${tab==='pending'?'Nothing waiting. New recipes arrive as parents search and as sites are re-checked.':'Nothing here yet.'}</p>`;
   bindCards();
+  const drafts=tab==='approved'?items.filter(i=>i.kp_steps_status==='draft'):[];
+  if(drafts.length){
+    list.insertAdjacentHTML('afterbegin',`<p class="banner">${drafts.length} published recipe${drafts.length===1?' has':'s have'} KidPoshan steps waiting for your approval, so parents still see a link to the original. Read them, then <button class="btn publish" id="approveAll">Approve all ${drafts.length} step drafts</button> or approve one at a time.</p>`);
+    document.getElementById('approveAll').onclick=async e=>{
+      if(!confirm('Approve the KidPoshan steps for all '+drafts.length+' recipes shown? Do this only after reading them against the originals.'))return;
+      e.target.disabled=true;
+      try{for(const d of drafts) await api(`/api/kp/admin/review/${d.id}`,{method:'POST',body:JSON.stringify({action:'publish',approve_steps:true})});load()}catch(x){alert(x.message);e.target.disabled=false}
+    };
+  }
   const more=document.getElementById('more'); if(more) more.onclick=()=>{offset+=20;load(true)};
 }
 
@@ -223,7 +232,7 @@ function cardHTML(r){
   const rating=r.source_rating?`, rated ${r.source_rating} by ${r.source_rating_count||'?'} on the site`:'';
   const action=tab==='pending'
     ?`<button class="btn publish" data-act="publish">Publish</button><button class="btn undo" data-act="publish" data-link="1" title="Show the recipe with ingredients and score, and link to the original for the steps">Publish with link to original steps</button><button class="btn reject" data-act="reject">Reject</button>`
-    :`<button class="btn undo" data-act="pending">Move back to waiting</button>${tab==='rejected'?'<button class="btn publish" data-act="publish">Publish</button>':''}`;
+    :`${tab==='approved'?'<button class="btn publish" data-act="publish" data-saved="1">Save changes &amp; approve steps</button>':''}<button class="btn undo" data-act="pending">Move back to waiting</button>${tab==='rejected'?'<button class="btn publish" data-act="publish">Publish</button>':''}`;
   const scoreBox=(()=>{
     if(r.poshan_score==null) return `<div><span class="lbl">Poshan Score</span><p class="why">Pending: ${esc(r.score_detail?.reason||'not scored yet')}</p></div>`;
     const d=r.score_detail||{}, inp=d.inputs||{}, src=d.sources||{};
@@ -269,7 +278,7 @@ function bindCards(){
     if(body.age_min_months>body.age_max_months){err.textContent='"From age" is after "Up to".';return}
     card.querySelectorAll('button').forEach(x=>x.disabled=true);
     try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify(body)});
-      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:'Published',reject:'Rejected',pending:'Moved back to waiting'}[body.action]}</span>`;
+      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:b.dataset.saved?'Saved':'Published',reject:'Rejected',pending:'Moved back to waiting'}[body.action]}</span>`;
       setTimeout(load,700);
     }catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
   });

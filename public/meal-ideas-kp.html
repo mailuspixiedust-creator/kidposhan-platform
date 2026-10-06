@@ -3,23 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3EFE6">
+<meta name="theme-color" content="#FDFBF6">
 <title>KidPoshan | Meal ideas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Mukta:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#EEF2EF; --paper:#FFFFFF; --ink:#15302B; --muted:#5F716C; --line:#D5DED9;
-  --leaf:#23664A; --leaf-2:#E1EEE6; --turmeric:#E7A41C; --turmeric-2:#FDF1D6; --chilli:#B4432E; --sky:#DCEAF0;
-  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif; --body:"Mukta","Segoe UI",system-ui,-apple-system,sans-serif;
+  --bg:#FDFBF6; --paper:#FFFFFF; --ink:#221A12; --muted:#6B5D4B; --line:#E7DFCE;
+  --leaf:#3F6B3C; --leaf-2:#E3EEDF; --turmeric:#E3A008; --turmeric-2:#F6E4BC; --chilli:#A6402A; --sky:#DCEAF0;
+  --gold:#B5790A; --clay:#8C7A64;
+  --display:'Iowan Old Style','Palatino Linotype','Book Antiqua',Georgia,serif;
+  --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   --r-lg:22px; --r-md:14px;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0F1D1A; --paper:#172925; --ink:#E7EFEC; --muted:#9FB3AD; --line:#2A403A; --leaf:#7FCBA2; --leaf-2:#1C3A2E;
-  --turmeric:#F2B940; --turmeric-2:#3A3019; --chilli:#E8826C; --sky:#1B3038;}}
-:root[data-theme="dark"]{--bg:#0F1D1A; --paper:#172925; --ink:#E7EFEC; --muted:#9FB3AD; --line:#2A403A; --leaf:#7FCBA2; --leaf-2:#1C3A2E; --turmeric:#F2B940; --turmeric-2:#3A3019; --chilli:#E8826C; --sky:#1B3038;}
+
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--body)}
@@ -213,10 +210,112 @@ body{background:radial-gradient(1100px 420px at 50% -140px,var(--leaf-2),transpa
 .pack .buys a:first-child{background:var(--leaf);color:var(--paper)}
 .buy-card .buys{padding:12px 12px 14px}
 .buy-card .buys a:first-child{background:var(--leaf-2);color:var(--leaf)}
+
+/* ---------- same look and structure as www.kidposhan.in ---------- */
+body{font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{font-family:var(--display)}
+.ask,.title-row h1,.shelf-head h2,.section>h2,.dish h3,.pack h3,.buy-card h3,.step .t{font-weight:500}
+.ask{font-weight:500;letter-spacing:-.015em;max-width:15ch}
+.title-row h1{font-weight:500}
+.shelf-head h2{font-size:24px}
+.section>h2{font-size:26px}
+.badge,.score b,.go,.tray-bar strong{font-family:var(--display);font-weight:700}
+
+/* nav, as on kidposhan.in */
+.site-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 20px;background:rgba(253,251,246,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nb-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.nb-mark{position:relative;width:22px;height:26px;flex-shrink:0}
+.nb-mark .tier{position:absolute;left:0;right:0;height:7px;border-radius:3px;border:1px solid rgba(34,26,18,.2)}
+.nb-mark .tier:nth-child(1){top:0;background:#5E8E5A}
+.nb-mark .tier:nth-child(2){top:6.5px;background:#E3A008}
+.nb-mark .tier:nth-child(3){top:13px;background:#BE4430}
+.nb-mark .tier:nth-child(4){top:19.5px;background:#3A2416}
+.nb-name{font-family:var(--display);font-size:19px;line-height:1.05;letter-spacing:-.01em;color:var(--ink)}
+.nb-name b{display:block;color:var(--gold);font-size:11.5px;font-family:var(--mono);font-weight:400;font-style:normal;letter-spacing:.14em;text-transform:uppercase;margin-top:1px}
+.nb-links{display:none;gap:24px;font-size:14.5px;color:var(--muted);flex:1;justify-content:center}
+.nb-links a{text-decoration:none;color:inherit;transition:color .2s ease;white-space:nowrap}
+.nb-links a:hover,.nb-links a.on{color:var(--gold)}
+.nb-links a.on{font-weight:600}
+@media(min-width:960px){.nb-links{display:flex}}
+.nb-burger{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin-left:auto;border-radius:10px;border:1px solid var(--line);background:var(--paper);cursor:pointer;flex-shrink:0}
+.nb-burger svg{width:18px;height:18px;color:var(--ink)}
+@media(min-width:960px){.nb-burger{display:none}}
+.nb-cta{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:100px;text-decoration:none;white-space:nowrap}
+@media(max-width:520px){.nb-cta{display:none}.nb-burger{margin-left:auto}}
+.nb-mobile{display:none;flex-direction:column;padding:4px 20px 14px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:39}
+.nb-mobile.open{display:flex}
+.nb-mobile a{padding:13px 6px;text-decoration:none;color:var(--ink);font-size:16px;border-bottom:1px solid var(--line)}
+.nb-mobile a:last-child{border-bottom:0}
+
+/* hero, as on kidposhan.in */
+.menu-hero{padding-top:34px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--gold);display:inline-block}
+.menu-hero .ask{margin-top:0}
+.lede{font-size:16.5px;line-height:1.65;color:var(--muted);max-width:46ch;margin:14px 0 4px}
+.go{background:var(--gold);color:#2b1c05;border-radius:100px;box-shadow:0 8px 24px -10px rgba(181,121,10,.55);font-size:18px}
+.go:disabled{background:var(--line);box-shadow:none}
+.chip{border-color:var(--line)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.lg{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 11px;border-radius:100px;color:#fff}
+.lg[data-band="Excellent"]{background:var(--leaf)}
+.lg[data-band="Good"]{background:#4C9A74}
+.lg[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
+.lg[data-band="Occasional"]{background:var(--chilli)}
+.banner{margin:14px 18px;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
+
+/* ingredients: smaller type */
+.ing{margin-top:10px;border-radius:var(--r-md);border-color:var(--line)}
+.ing-head{font-size:11.5px;padding:8px 12px 6px;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono);font-weight:400}
+.ing-head,.ing-row{grid-template-columns:minmax(0,1fr) 52px 52px}
+.ing-row{padding:7px 12px}
+.ing-row b{font-weight:500;font-size:14px;line-height:1.3}
+.ing-row .q{font-size:12px;line-height:1.3}
+.tick{width:24px;height:24px;border-radius:7px}
+.tick svg{width:13px;height:13px}
+.section>.lead{font-size:13.5px}
+
+/* cards, as on kidposhan.in */
+.dish,.pack,.ing,.step,.facts span,.summary{border:1px solid var(--line)}
+.dish{border-radius:var(--r-lg)}
+.sheet{background:var(--bg)}
+.site-footer{text-align:center;padding:30px 20px 110px;font-family:var(--mono);font-size:11px;line-height:1.8;letter-spacing:.05em;color:var(--clay)}
+.site-footer b{color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
+<nav class="site-nav">
+  <a class="nb-brand" href="https://www.kidposhan.in/">
+    <div class="nb-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="nb-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nb-links">
+    <a href="https://www.kidposhan.in/">Home</a>
+    <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+    <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+    <a href="https://www.kidposhan.in/browse.html">Browse</a>
+    <a href="https://www.kidposhan.in/cereals.html">Cereal Aisle</a>
+    <a href="#/" class="on">Meal Ideas</a>
+    <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+  </div>
+  <button class="nb-burger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <a class="nb-cta" href="https://www.kidposhan.in/browse.html">Rate a product</a>
+</nav>
+<div class="nb-mobile" id="mobileMenu">
+  <a href="https://www.kidposhan.in/">Home</a>
+  <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+  <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+  <a href="https://www.kidposhan.in/browse.html">Browse</a>
+  <a href="https://www.kidposhan.in/cereals.html">Cereal Aisle</a>
+  <a href="#/">Meal Ideas</a>
+  <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+</div>
 <main class="wrap" id="app"></main>
+<footer class="site-footer">
+  Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification<br>
+  Dish photos belong to their creators and link back to the original recipe. Pack photos are the sellers'.
+</footer>
 <div class="tray" id="tray" aria-live="polite"><div class="tray-in">
   <div class="tray-bar"><strong id="tcount"></strong><button id="ttoggle" aria-expanded="false">See list</button></div>
   <div class="tray-body" id="tbody"></div>
@@ -387,6 +486,8 @@ const nice=n=>{const t=String(n||'').split('|')[0].replace(/\(.*?\)/g,'').replac
 const photoImg=(src,alt,credit)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
 const badgeHTML=(v,kind)=>v==null||v===''?'':`<span class="badge" data-band="${bandOf(+v)}" title="${kind==='estimated'?'Poshan Score, estimated from ingredients':'Poshan Score'}">${esc(v)}<small>Poshan</small></span>`;
 
+function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
+document.addEventListener('click',e=>{if(e.target.closest('#mobileMenu a'))document.getElementById('mobileMenu').classList.remove('open')});
 /* ===== state & storage ===== */
 function save(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}catch(e){return null}}
@@ -418,8 +519,9 @@ async function loadMenuPacks(){
 }
 function renderMenu(){
   const ready=S.age&&S.occ&&S.season&&S.pref, showFilters=!S.results||S.editing;
-  let html=`<header class="masthead pad"><span class="brand">KidPoshan</span>${LIVE?'':'<span class="demo-tag">Demo recipes</span>'}</header>
-    <h1 class="ask pad ${S.results&&!S.editing?'small':''}">What's on the plate today?</h1>`;
+  let html=`<section class="menu-hero pad"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
+    <h1 class="ask ${S.results&&!S.editing?'small':''}">What's on the plate today?</h1>
+    ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy.</p>'}</section>`;
   if(showFilters){
     html+=`<section class="filters" aria-label="Filters">
       ${chipRow('age',"Child's age",AGES,S.age)}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
@@ -433,6 +535,7 @@ function renderMenu(){
     if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`;
     else{
       if(r.length<10) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
+      html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Excellent">80+ Excellent</span><span class="lg" data-band="Good">58–79 Good</span><span class="lg" data-band="Fair">40–57 Fair</span><span class="lg" data-band="Occasional">Below 40 Occasional</span></div>`;
       for(const [m,t] of [['exact','Best for today'],['any_season','Good any season']]){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>

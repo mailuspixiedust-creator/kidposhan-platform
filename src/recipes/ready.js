@@ -103,16 +103,38 @@ export async function researchNextKind(env, { onlyNeeded = false } = {}) {
   return researchKind(env, next.kind);
 }
 
+// Same brand + same product with only the multipack / size wording different ("250g x 2", "Pack of 3", "(2 x 400 g)") is one product.
+export function packFamilyKey(p) {
+  const t = `${p.brand || ''} ${p.name || ''}`.toLowerCase()
+    .replace(/\(?\b(pack|combo|set)\s*of\s*\d+\)?/g, ' ')
+    .replace(/\b\d+(\.\d+)?\s*(g|gm|gms|grams?|kg|ml|l|ltr|litres?)\b/g, ' ')
+    .replace(/\b\d+\s*x\s*\d+\b|\bx\s*\d+\b|\b\d+\s*x\b/g, ' ')
+    .replace(/\b(pack|packs|pouch|pouches|box|pcs|pieces?|combo)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return `${p.kind || ''}|${t}`;
+}
+// Keep one pack per family: the scored one first, then the earliest approved.
+export function dedupePacks(rows) {
+  const best = new Map();
+  for (const p of rows) {
+    const k = packFamilyKey(p), cur = best.get(k);
+    const pv = p.score_status === 'exact' ? p.kidposhan_score ?? -1 : -1, cv = cur && cur.score_status === 'exact' ? cur.kidposhan_score ?? -1 : -1;
+    if (!cur || pv > cv || (pv === cv && p.id < cur.id)) best.set(k, p);
+  }
+  return [...best.values()];
+}
+
 // ---- parents ----
 export async function packsForRecipe(env, recipeId) {
   const r = await env.DB.prepare('SELECT name FROM kp_recipes WHERE id = ?').bind(recipeId).first();
   const k = r && kindForDish(r.name);
   if (!k) return { kind: null, packs: [] };
-  const { results } = await env.DB.prepare(
-    `SELECT id, name, brand, pack_size, image_url, retailer, product_url, kidposhan_score, score_status
+  const { results: all } = await env.DB.prepare(
+    `SELECT id, kind, name, brand, pack_size, image_url, retailer, product_url, kidposhan_score, score_status
        FROM kp_ready_products WHERE kind = ? AND status = 'approved'
-      ORDER BY kidposhan_score IS NULL, kidposhan_score DESC, id LIMIT 8`
+      ORDER BY kidposhan_score IS NULL, kidposhan_score DESC, id`
   ).bind(k.kind).all();
+  const results = dedupePacks(all).slice(0, 8);
   const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
   return {
     kind: k.kind, label: k.label,
@@ -139,7 +161,7 @@ export async function packsForRecipes(env, ids, { limit = 16 } = {}) {
       WHERE status = 'approved' AND kind IN (${kinds.map(() => '?').join(',')})`
   ).bind(...kinds).all();
   const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
-  const items = packs.map((p) => ({ id: p.id, kind: p.kind, label: dishesByKind.get(p.kind).label, name: p.name, brand: p.brand, pack_size: p.pack_size, image_url: p.image_url,
+  const items = dedupePacks(packs).map((p) => ({ id: p.id, kind: p.kind, label: dishesByKind.get(p.kind).label, name: p.name, brand: p.brand, pack_size: p.pack_size, image_url: p.image_url,
     retailer: p.retailer, url: p.product_url, for: dishesByKind.get(p.kind).dishes,
     score: p.score_status === 'exact' && p.kidposhan_score != null ? { value: p.kidposhan_score, band: band(p.kidposhan_score) } : null }));
   // best scored first; within a dish type keep the packs together so the carousel reads kind by kind

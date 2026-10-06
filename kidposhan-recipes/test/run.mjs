@@ -335,4 +335,13 @@ await updateSource(env, 9060, { photos_hidden: false });
 const ph3 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
 ok(ph3.image_url === 'https://site.in/ragi.jpg', 'Photos come back when switched on again');
 
+import { dedupePacks, packFamilyKey } from '../../src/recipes/ready.js';
+const wa = { id: 1, kind: 'pulao_mix', brand: 'Waah Organic', name: 'Waah Organic Nawabi Biryani (Veg Pulao), Ready to Eat, 250g x 2', kidposhan_score: null, score_status: 'pending' };
+const wb = { ...wa, id: 2, name: 'Waah Organic Nawabi Biryani (Veg Pulao), Ready to Eat, 250g x 3' };
+const wc = { ...wa, id: 3, name: 'Waah Organic Nawabi Biryani (Veg Pulao), Ready to Eat (Pack of 2)', kidposhan_score: 88, score_status: 'exact' };
+const other = { id: 4, kind: 'pulao_mix', brand: 'Other', name: 'Other Veg Pulao 250 g', kidposhan_score: null, score_status: 'pending' };
+ok(dedupePacks([wa, wb, other]).length === 2 && dedupePacks([wa, wb, other]).find((x) => x.brand === 'Waah Organic').id === 1, 'Same product as 2-pack and 3-pack shows once (earliest kept)');
+ok(dedupePacks([wa, wb, wc]).length === 1 && dedupePacks([wa, wb, wc])[0].id === 3, 'When one multipack has a score, that one is kept');
+ok(packFamilyKey(wa) !== packFamilyKey(other), 'Different products are not merged');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
