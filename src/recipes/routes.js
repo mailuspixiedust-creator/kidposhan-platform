@@ -25,19 +25,31 @@ function authorised(request, env) {
   return env.ADMIN_TOKEN && request.headers.get('x-admin-token') === env.ADMIN_TOKEN;
 }
 
+// The main site (www.kidposhan.in) shows these pages' public data, so its origin may READ the two public endpoints.
+// Admin routes are not included: they need the token and stay same-origin.
+const ALLOWED_ORIGIN = /^https:\/\/((www\.)?kidposhan\.in|([a-z0-9-]+-)?poshan-score\.mailus-pixiedust\.workers\.dev)$/;
+export function withCors(request, res) {
+  const o = request.headers.get('origin');
+  if (!o || !ALLOWED_ORIGIN.test(o)) return res;
+  const h = new Headers(res.headers);
+  h.set('access-control-allow-origin', o);
+  h.append('vary', 'Origin');
+  return new Response(res.body, { status: res.status, headers: h });
+}
+
 export async function routeRecipes(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
 
   if (request.method === 'GET' && (path === '/api/kp/recipes' || /^\/api\/kp\/recipes\/\d+$/.test(path))) {
-    return handleRecipesApi(request, env, ctx);
+    return withCors(request, await handleRecipesApi(request, env, ctx));
   }
 
   // GET /api/kp/ready?recipe_id=12  -> approved ready-to-buy packs for that dish (ragi dosa -> ragi dosa mix)
   if (request.method === 'GET' && path === '/api/kp/ready') {
-    if (url.searchParams.get('recipe_ids')) return json(await packsForRecipes(env, url.searchParams.get('recipe_ids').split(',')));
+    if (url.searchParams.get('recipe_ids')) return withCors(request, json(await packsForRecipes(env, url.searchParams.get('recipe_ids').split(','))));
     const rid = +url.searchParams.get('recipe_id');
-    return rid ? json(await packsForRecipe(env, rid)) : json({ error: 'recipe_id required' }, 400);
+    return withCors(request, rid ? json(await packsForRecipe(env, rid)) : json({ error: 'recipe_id required' }, 400));
   }
 
   if (!path.startsWith('/api/kp/admin/')) return null;

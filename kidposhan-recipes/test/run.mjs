@@ -344,4 +344,11 @@ ok(dedupePacks([wa, wb, other]).length === 2 && dedupePacks([wa, wb, other]).fin
 ok(dedupePacks([wa, wb, wc]).length === 1 && dedupePacks([wa, wb, wc])[0].id === 3, 'When one multipack has a score, that one is kept');
 ok(packFamilyKey(wa) !== packFamilyKey(other), 'Different products are not merged');
 
+import { withCors } from '../../src/recipes/routes.js';
+const corsOf = (o) => withCors(new Request('https://x/api/kp/ready', o ? { headers: { origin: o } } : {}), new Response('{}')).headers.get('access-control-allow-origin');
+ok(corsOf('https://www.kidposhan.in') === 'https://www.kidposhan.in' && corsOf('https://kidposhan.in') === 'https://kidposhan.in' && corsOf('https://x1-poshan-score.mailus-pixiedust.workers.dev') !== null, 'Your own domains may read the public recipe and pack data');
+ok(corsOf('https://evil.example') === null && corsOf('https://kidposhan.in.evil.com') === null && corsOf('https://xkidposhan.in') === null && corsOf(null) === null, 'Other origins and lookalike domains get no access');
+const adminRes = await routeRecipes(new Request('https://x/api/kp/admin/review', { headers: { origin: 'https://www.kidposhan.in' } }), { ...env, ADMIN_TOKEN: 't' }, ctx);
+ok(adminRes.status === 401 && adminRes.headers.get('access-control-allow-origin') === null, 'Admin routes stay token-protected with no cross-origin access');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why We Do This — Poshan Score</title>
+<style>
+  :root{
+    --bg:#FDFBF6;
+    --bg-alt:#F6F0E4;
+    --card:#FFFFFF;
+    --line:#E7DFCE;
+    --ink:#221A12;
+    --ink-dim:#6B5D4B;
+    --gold:#B5790A;
+    --gold-soft:#F6E4BC;
+    --green:#3F6B3C;
+    --green-soft:#E3EEDF;
+    --red:#A6402A;
+    --red-soft:#F5E1DB;
+    --brown:#4A3423;
+    --brown-soft:#EFE6DC;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --font-display:'Iowan Old Style','Palatino Linotype','Book Antiqua', Georgia, serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  a{ color:inherit; }
+  img,svg{ max-width:100%; }
+
+  nav{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(253,251,246,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand-mark{ position:relative; width:20px; height:24px; flex-shrink:0; }
+  .brand-mark .tier{ position:absolute; left:0; right:0; height:6px; border-radius:3px; border:1px solid rgba(34,26,18,0.15); }
+  .brand-mark .tier:nth-child(1){ top:0; background:var(--green); }
+  .brand-mark .tier:nth-child(2){ top:6px; background:var(--gold); }
+  .brand-mark .tier:nth-child(3){ top:12px; background:var(--red); }
+  .brand-mark .tier:nth-child(4){ top:18px; background:var(--brown); }
+  .brand-name{ font-family:var(--font-display); font-size:18px; line-height:1.05; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-name b{ display:block; color:var(--gold); font-size:11px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px; }
+  .nav-links{ display:none; gap:22px; font-size:13.5px; color:var(--ink-dim); }
+  .nav-links a{ text-decoration:none; transition:color .2s ease; position:relative; padding-bottom:2px; }
+  .nav-links a::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
+  .nav-links a:hover{ color:var(--gold); }
+  .nav-links a:hover::after{ transform:scaleX(1); }
+  @media(min-width:860px){ .nav-links{ display:flex; } }
+  .hamburger{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+  .hamburger svg{ width:18px; height:18px; color:var(--ink); }
+  @media(min-width:860px){ .hamburger{ display:none; } }
+
+  .mobile-menu{ display:none; flex-direction:column; padding:4px 20px 14px; background:var(--card); border-bottom:1px solid var(--line); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:14px 6px; text-decoration:none; color:var(--ink); font-size:16px; border-bottom:1px solid var(--line); }
+  .mobile-menu a:last-child{ border-bottom:none; }
+  @media(min-width:860px){ .mobile-menu{ display:none !important; } }
+
+  .nav-cta{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:100px; text-decoration:none; white-space:nowrap; }
+
+  /* ---- hero ---- */
+  .hero{ position:relative; max-width:760px; margin:0 auto; padding:56px 20px 20px; }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; margin-bottom:16px; position:relative; }
+  .eyebrow::before{ content:''; width:0; height:1px; background:var(--gold); display:inline-block; animation:drawLine .6s ease forwards .1s; }
+  @keyframes drawLine{ to{ width:16px; } }
+  h1{ font-family:var(--font-display); font-weight:400; letter-spacing:-0.01em; font-size:clamp(32px, 7vw, 48px); line-height:1.1; margin:0 0 18px; color:var(--ink); opacity:0; animation:fadeUp .7s ease forwards .15s; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
+  .lede{ font-size:16px; line-height:1.7; color:var(--ink-dim); max-width:58ch; margin:0; opacity:0; animation:fadeUp .7s ease forwards .3s; }
+
+  .hero-icons{ position:absolute; inset:0; pointer-events:none; z-index:-1; }
+  .float-icon{ position:absolute; opacity:0.5; animation:float 8s ease-in-out infinite; }
+  .float-icon.leaf{ top:6%; right:4%; width:34px; animation-delay:0s; }
+  .float-icon.sprig{ top:40%; right:12%; width:26px; animation-delay:1.5s; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-10px) rotate(3deg);} }
+  @media (prefers-reduced-motion: reduce){ .float-icon{ animation:none; } }
+
+  /* ---- story timeline ---- */
+  .story{ position:relative; max-width:760px; margin:20px auto 0; padding:20px 20px 40px; }
+  .timeline-rail{
+    position:absolute; left:29px; top:0; bottom:40px; width:2px;
+    background:var(--line);
+  }
+  @media(max-width:640px){ .timeline-rail{ left:19px; } }
+  .timeline-fill{
+    position:absolute; left:0; top:0; width:100%; height:0%;
+    background:linear-gradient(var(--gold), var(--green));
+    transition:height .1s linear;
+  }
+
+  .beat{
+    position:relative; padding:0 0 46px 60px; opacity:0; transform:translateY(16px);
+  }
+  @media(max-width:640px){ .beat{ padding-left:46px; } }
+  .beat.in-view{ animation:beatRise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes beatRise{ to{ opacity:1; transform:translateY(0); } }
+  .beat:last-child{ padding-bottom:0; }
+
+  .beat-dot{
+    position:absolute; left:22px; top:4px; width:16px; height:16px; border-radius:50%;
+    background:var(--card); border:2px solid var(--line); z-index:2;
+    transition:background .3s ease, border-color .3s ease, transform .3s ease;
+  }
+  @media(max-width:640px){ .beat-dot{ left:12px; } }
+  .beat.in-view .beat-dot{ background:var(--gold); border-color:var(--gold); transform:scale(1.15); }
+
+  .beat-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+  .beat h2{ font-family:var(--font-display); font-size:clamp(20px,3.5vw,25px); font-weight:400; margin:0 0 10px; color:var(--ink); }
+  .beat p{ font-size:15px; line-height:1.75; color:var(--ink-dim); margin:0 0 12px; max-width:60ch; }
+  .beat p b{ color:var(--ink); }
+
+  .pull-quote{
+    position:relative; margin:14px 0 18px; padding:4px 0 4px 20px;
+    border-left:3px solid var(--gold);
+    font-family:var(--font-display); font-style:italic; font-size:19px; line-height:1.55;
+    color:var(--ink);
+    transition:padding-left .3s ease, border-color .3s ease;
+  }
+  .pull-quote:hover{ padding-left:26px; border-color:var(--red); }
+
+  /* ---- closing ---- */
+  .closing{ max-width:760px; margin:0 auto; padding:10px 20px 60px; }
+  .closing-card{
+    background:linear-gradient(160deg,var(--card),var(--bg-alt)); border:1px solid var(--line);
+    border-radius:var(--radius-lg); padding:32px; text-align:center;
+    opacity:0; transform:translateY(16px);
+  }
+  .closing-card.in-view{ animation:beatRise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  .closing-card h2{ font-family:var(--font-display); font-size:24px; font-weight:400; margin:0 0 12px; }
+  .closing-card p{ font-size:14.5px; line-height:1.65; color:var(--ink-dim); max-width:52ch; margin:0 auto 22px; }
+  .closing-links{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .btn{ font-family:var(--font-body); font-size:14px; font-weight:600; padding:12px 20px; border-radius:100px; text-decoration:none; transition:transform .18s ease, box-shadow .18s ease; }
+  .btn-primary{ background:var(--gold); color:#2b1c05; box-shadow:0 8px 20px -10px rgba(181,121,10,0.5); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 12px 24px -10px rgba(181,121,10,0.55); }
+  .btn-ghost{ border:1px solid rgba(34,26,18,0.22); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--ink); transform:translateY(-2px); }
+
+  footer{ text-align:center; padding:10px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
+  footer b{ color:var(--ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    .beat, .closing-card{ opacity:1; transform:none; animation:none !important; }
+    h1, .lede{ opacity:1; animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">
+    <div class="brand-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="brand-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="age-metrics.html">Age &amp; Metrics</a>
+    <a href="browse.html">Browse</a>
+    <a href="cereals.html">Cereal Aisle</a>
+    <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="why-we-do-this.html">Why We Do This</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+    <a class="nav-cta" href="browse.html">See ratings</a>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">Home</a>
+    <a href="age-metrics.html">Age &amp; Metrics</a>
+    <a href="browse.html">Browse</a>
+    <a href="cereals.html">Cereal Aisle</a>
+    <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="why-we-do-this.html">Why We Do This</a>
+  </div>
+
+<header class="hero">
+  <div class="hero-icons">
+    <svg class="float-icon leaf" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 50C10 20 40 8 52 8C52 34 34 50 10 50Z" fill="#3F6B3C"/>
+    </svg>
+    <svg class="float-icon sprig" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 88V10" stroke="#B5790A" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="20" cy="20" rx="8" ry="5" fill="#F6E4BC" transform="rotate(-30 20 20)"/>
+      <ellipse cx="30" cy="8" rx="6" ry="9" fill="#F6E4BC"/>
+    </svg>
+  </div>
+  <div class="eyebrow">Why We Do This</div>
+  <h1>I started reading labels instead of trusting them.</h1>
+  <p class="lede">
+    This started as a parent's habit before it became a rubric. Here's the version without the
+    spreadsheets, the age bands, or the citations.
+  </p>
+</header>
+
+<section class="story" id="story">
+  <div class="timeline-rail"><div class="timeline-fill" id="timelineFill"></div></div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">The aisle</div>
+    <h2>For a while, the front of the pack was enough.</h2>
+    <p>
+      Feeding kids well felt, for a long time, like it came down to reading the front of a box. "No added
+      sugar." "Rich in fibre." "Trusted by nutritionists." I believed the front the way most parents do —
+      because turning a pack over and reading nine lines of ingredient text in six-point type isn't
+      something anyone has the time or patience for, standing in an aisle with a child pulling at your sleeve.
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">The flip</div>
+    <h2>Somewhere along the way, I started turning packs over anyway.</h2>
+    <p>
+      Not out of suspicion at first — more out of habit, the way you check a price tag twice. And the gap
+      between what the front claimed and what the ingredient panel actually said kept showing up in places
+      I didn't expect. A "wholesome" muesli with sugar sitting a few ingredients down the list. A ketchup
+      where tomato wasn't even the first thing named. A seasoning sachet whose printed "serving size" was
+      so small that the sodium math only looked reasonable if nobody actually used a full sachet in a meal.
+    </p>
+    <div class="pull-quote">
+      "The label wasn't lying. It just wasn't written for someone standing in an aisle with fifteen
+      seconds and a tired kid."
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">The pattern</div>
+    <h2>None of it was hidden. It just wasn't being read.</h2>
+    <p>
+      Everything I kept finding was printed, in compliance with the law, in the correct font size. This
+      wasn't a story about brands breaking rules — it was a story about how much a food label can get away
+      with saying, technically, truthfully, while still leaving a parent with the wrong picture of what's
+      actually going into their child. <b>The rules were being followed. The point was still being missed.</b>
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">The decision</div>
+    <h2>I didn't want another opinion about "good" and "bad" snacks.</h2>
+    <p>
+      There's enough of that already — inconsistent from one Instagram post to the next, and rarely
+      benchmarked against anything more solid than a personal preference. What I wanted was the same
+      numbers, read the same way, every time, checked against something real — <b>ICMR-NIN's dietary
+      guidelines, FSSAI's own regulations</b> — instead of a brand's marketing copy. And I wanted our own
+      products held to that same bar, not just everyone else's on the shelf.
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">What this became</div>
+    <h2>Poshan Score is that habit, written down.</h2>
+    <p>
+      It's the same thing I was already doing at the shelf, turned into a rubric instead of kept in my
+      head — six to ten numbers, the age bands they actually apply to, and the citations behind each one.
+      It won't tell you what to feed your kids. That's still your call, and it should stay that way. It'll
+      just tell you, plainly, what's actually in the pack before you decide.
+    </p>
+  </div>
+</section>
+
+<section class="closing">
+  <div class="closing-card" id="closingCard">
+    <h2>See what's actually in the pack.</h2>
+    <p>Nineteen real products, scored on ten metrics, for every age from 1 to 12.</p>
+    <div class="closing-links">
+      <a class="btn btn-primary" href="browse.html">Browse the scores →</a>
+      <a class="btn btn-ghost" href="age-metrics.html">See how scoring works</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Benchmarked against <b>ICMR-NIN 2020</b>, <b>WHO</b> guidance and <b>FSSAI</b> regulation ·
+  Poshan Score is an independent rating, not a certification
+</footer>
+
+<script>
+  // reveal each story beat as it scrolls into view
+  const beatObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        beatObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.25 });
+  document.querySelectorAll('.beat, #closingCard').forEach(el => beatObserver.observe(el));
+
+  // scroll-linked timeline fill, tracking progress through the story section
+  const storyEl = document.getElementById('story');
+  const fillEl = document.getElementById('timelineFill');
+  let ticking = false;
+
+  function updateTimeline(){
+    const rect = storyEl.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    const total = rect.height;
+    // progress: how much of the story block has scrolled past the vertical center of the viewport
+    const scrolled = Math.min(Math.max(viewportH * 0.5 - rect.top, 0), total);
+    const pct = total > 0 ? (scrolled / total) * 100 : 0;
+    fillEl.style.height = pct + '%';
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(updateTimeline);
+      ticking = true;
+    }
+  });
+  window.addEventListener('resize', updateTimeline);
+  window.addEventListener('load', updateTimeline);
+
+  // gentle parallax drift on the hero's floating icons
+  const floatIcons = document.querySelectorAll('.float-icon');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let parallaxTicking = false;
+  function updateParallax(){
+    if (prefersReducedMotion) return;
+    const y = window.scrollY;
+    floatIcons.forEach((el, i) => {
+      const speed = 0.06 + i * 0.03;
+      el.style.marginTop = (y * speed * -1) + 'px';
+    });
+    parallaxTicking = false;
+  }
+  if (!prefersReducedMotion) {
+    window.addEventListener('scroll', () => {
+      if (!parallaxTicking) {
+        requestAnimationFrame(updateParallax);
+        parallaxTicking = true;
+      }
+    });
+  }
+</script>
+
+<script>
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  const isOpen = menu.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+  menu.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
+});
+</script>
+</body>
+</html>
