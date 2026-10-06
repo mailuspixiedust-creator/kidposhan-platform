@@ -182,7 +182,9 @@ function packCard(p){
    <div><h2>${esc(p.name)}</h2>
     <p class="src">${esc(p.brand||'')} ${p.pack_size?'· '+esc(p.pack_size):''} · ${esc(p.retailer||'')}. <a href="${esc(p.product_url)}" target="_blank" rel="noopener">Open product page</a></p>
     <details><summary>Ingredients (${p.ingredients.length})</summary><ul class="ing">${p.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')||'<li>Not found on the page: read it from the pack.</li>'}</ul></details>
-    ${score}</div>
+    ${score}
+    ${p.label_note?`<p class="why"><b>${p.label_source==='owner'?'Checked by you':p.label_source==='pack_image'?'Read from the pack image, not yet checked by you':'Label'}:</b> ${esc(p.label_note)}</p>`:''}
+    ${p.label_image_url?`<p><a href="${esc(p.label_image_url)}" target="_blank" rel="noopener"><img src="${esc(p.label_image_url)}" alt="Pack photo the label was read from" style="max-width:100%;max-height:420px;border-radius:8px;border:1px solid var(--line)"></a><span class="why">Compare the numbers on the right with this photo. Approve counts as checked.</span></p>`:''}</div>
    <div class="right">
     <div><span class="lbl">Dish type this pack is for</span><select name="kind">${packKinds.map(k=>`<option value="${k.kind}" ${k.kind===p.kind?'selected':''}>${esc(k.label)}</option>`).join('')}</select></div>
     <span class="lbl">Label, per 100 g</span>

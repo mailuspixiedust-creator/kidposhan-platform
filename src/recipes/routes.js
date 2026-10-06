@@ -14,6 +14,7 @@ import { handleRecipesApi } from './api.js';
 import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
 import { scoreRecipe, reparseIngredients } from './score.js';
+import { readPackLabel, readLabelsPending } from './label.js';
 import { packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
@@ -50,6 +51,12 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/products/research' && request.method === 'POST') {
       const kind = url.searchParams.get('kind');
       return json(kind ? await researchKind(env, kind) : await researchNextKind(env));
+    }
+    // POST /api/kp/admin/products/read-labels?id=5  (one pack, retries)  or  ?limit=2 (next packs never tried)
+    if (path === '/api/kp/admin/products/read-labels' && request.method === 'POST') {
+      const id = +url.searchParams.get('id');
+      if (id) { await env.DB.prepare('UPDATE kp_ready_products SET label_tried_at = NULL WHERE id = ? AND label_source IS NOT \'owner\'').bind(id).run(); return json({ read: [await readPackLabel(env, id)] }); }
+      return json({ read: await readLabelsPending(env, { limit: Math.min(+url.searchParams.get('limit') || 2, 4) }) });
     }
     const pm = path.match(/^\/api\/kp\/admin\/products\/(\d+)$/);
     if (pm && request.method === 'POST') return json(await reviewPack(env, +pm[1], await request.json()));
@@ -146,6 +153,8 @@ export async function scheduledRecipes(env, cron) {
     try { console.log('packs', JSON.stringify(await researchNextKind(env))); } catch (e) { console.error('packs', e); }
     return;
   }
+  // Pack labels: read the nutrition panel from pack images for packs never tried (2 per run).
+  try { console.log('labels', JSON.stringify(await readLabelsPending(env, { limit: 2 }))); } catch (e) { console.error('labels', e); }
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 3 }))); } catch (e) { console.error('rewrite', e); }
   const { results: due } = await env.DB.prepare(

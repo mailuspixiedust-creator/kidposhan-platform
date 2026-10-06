@@ -139,7 +139,7 @@ export async function reviewPack(env, id, body) {
     const label = {};
     for (const key of f) { const v = body.nutrition[key]; if (v === '' || v == null) { label[key] = ''; continue; } const x = num(v); if (x == null || x < 0 || x > 100000) throw new Error(`${key} must be a number`); label[key] = x; }
     const sc = scorePack(label, JSON.parse(row.ingredients_json || '[]'));
-    sets.push('nutrition_json = ?', 'kidposhan_score = ?', 'score_status = ?', 'score_breakdown_json = ?');
+    sets.push('nutrition_json = ?', 'kidposhan_score = ?', 'score_status = ?', 'score_breakdown_json = ?', "label_source = 'owner'");
     args.push(JSON.stringify(label), sc.score, sc.status, sc.detail ? JSON.stringify(sc.detail) : null);
   }
   await env.DB.prepare(`UPDATE kp_ready_products SET ${sets.join(', ')} WHERE id = ?`).bind(...args, id).run();

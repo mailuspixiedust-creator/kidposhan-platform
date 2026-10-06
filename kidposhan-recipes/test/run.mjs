@@ -46,6 +46,7 @@ db.exec(fs.readFileSync('migrations/0008_polite_crawling.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0009_site_management.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0010_recipe_score_and_kp_steps.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0011_ready_products.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0012_pack_label_reading.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -282,5 +283,26 @@ ok(both.length === 2 && both[0].score && both[1].score === null, 'Scored packs f
 let bad2 = ''; try { await reviewPack(env, otherId, { action: 'approve', nutrition: { protein_g: 'abc' } }); } catch (e) { bad2 = e.message; }
 ok(/must be a number/.test(bad2), 'Label values must be numbers');
 ok((await packsForRecipe(env, 999999)).packs.length === 0, 'Unknown recipe -> no packs');
+
+// ---- pack label reading: scaling done in code, never trusting a model-invented per-100 g column, two readers must agree ----
+import { labelFrom, consensus, packImages } from '../../src/recipes/label.js';
+const serving = { nutrition_found: true, serving_size_g: 55, per_serving: { protein_g: 5.42, fibre_g: 5.57, sugars_g: 0.49, added_sugars_g: 0, saturated_fat_g: 0.29, sodium_mg: 9.47 },
+  per_100g: { protein_g: 9, fibre_g: 9, sugars_g: 9, added_sugars_g: 9, saturated_fat_g: 9, sodium_mg: 99 }, ingredients: ['Finger Millet (Ragi)', 'Rice'] };
+const lf1 = labelFrom(serving);
+ok(lf1.ok && lf1.label.protein_g === 9.85 && lf1.label.fibre_g === 10.13 && lf1.label.sodium_mg === 17.22, 'Per-serving label scaled to 100 g in code (a made-up per-100 g column is ignored)');
+ok(labelFrom({ nutrition_found: true, per_serving: { protein_g: 5, fibre_g: 2, sugars_g: 1 } }).ok === false, 'Per-serving label without a printed serving size is not guessed');
+ok(labelFrom({ nutrition_found: true, serving_size_g: null, per_100g: { protein_g: 10, fibre_g: 5, saturated_fat_g: 1, sodium_mg: 300 } }).ok === true, 'A genuine per-100 g column is used when there is no per-serving data');
+ok(labelFrom({ nutrition_found: false }).ok === false && labelFrom({ nutrition_found: true, serving_size_g: 50, per_serving: { protein_g: 900, fibre_g: 1, sugars_g: 1 } }).ok === false, 'No table, or implausible numbers, are rejected');
+const la = labelFrom(serving);
+const lbOk = labelFrom({ ...serving, per_serving: { ...serving.per_serving, fibre_g: 5.52 } });
+const lbBad = labelFrom({ ...serving, per_serving: { ...serving.per_serving, sodium_mg: 947 } });
+ok(consensus(la, la).label.sodium_mg === 17.22 && /agreed/.test(consensus(la, la).notes[0]), 'Two readers agreeing: values kept');
+ok(consensus(la, lbOk).label.fibre_g === 10.13 || consensus(la, lbOk).label.fibre_g === null, 'Tiny reader differences handled');
+const cb = consensus(la, lbBad);
+ok(cb.label.sodium_mg === null && cb.label.protein_g === 9.85 && /disagreed on sodium_mg/.test(cb.notes[0]), 'A value the readers disagree on is left empty for the owner');
+ok(/only one reader/.test(consensus(la, null).notes[0]), 'Single reader flagged for careful checking');
+const html = '<script type="application/ld+json">{"@type":"Product","name":"x","image":["https://rukmini1.flixcart.com/image/1500/1500/a/b/c/p1.jpeg?q=70","https://rukmini1.flixcart.com/image/1500/1500/a/b/c/p2.jpeg?q=70","https://rukmini1.flixcart.com/image/1500/1500/a/b/c/p1.jpeg?q=70"]}</script>';
+const pi = packImages(html);
+ok(pi.length === 2 && pi[0].includes('/image/1600/1700/'), 'Pack gallery images found, de-duplicated, requested at high resolution');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
