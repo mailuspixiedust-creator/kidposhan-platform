@@ -2,7 +2,7 @@
 // Inputs per serving: protein, fibre, saturated fat, sodium from the recipe page's nutrition block when it has them,
 // otherwise estimated from ingredient quantities (nutrients.js). Added sugar always comes from the listed sweeteners.
 //   exact     = all four from the page (+ sweeteners weighed)
-//   estimated = any input estimated; hidden from parents until the owner sets score_approved
+//   estimated = any input estimated; shown to parents labelled "estimated" unless the owner hides it (score_hidden)
 //   pending   = too many ingredients could not be weighed to score honestly
 // The source site's own star rating never feeds the score.
 
@@ -82,4 +82,4 @@ export async function scoreRecipe(env, id) {
 }
 
 // SQL fragment: the score parents are allowed to see.
-export const VISIBLE_SCORE_SQL = "CASE WHEN r.score_status = 'exact' OR r.score_approved = 1 THEN r.poshan_score END";
+export const VISIBLE_SCORE_SQL = "CASE WHEN r.score_hidden = 0 THEN r.poshan_score END";

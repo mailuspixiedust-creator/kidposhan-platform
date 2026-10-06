@@ -282,6 +282,42 @@ h1,h2,h3{font-family:var(--display)}
 .sheet{background:var(--bg)}
 .site-footer{text-align:center;padding:30px 20px 110px;font-family:var(--mono);font-size:11px;line-height:1.8;letter-spacing:.05em;color:var(--clay)}
 .site-footer b{color:var(--muted);font-weight:600}
+
+/* ---------- screen sizes: small phones to wide desktops ---------- */
+html{-webkit-text-size-adjust:100%}
+img,svg{max-width:100%}
+@media (max-width:360px){
+  .pad,.shelf-head,.summary,.note,.hint,.go{margin-left:14px;margin-right:14px}
+  .pad{padding-left:14px;padding-right:14px}
+  .carousel{padding-left:14px;padding-right:14px}
+  .dish{flex-basis:78vw}.pack{flex-basis:70vw}
+  .nb-name{font-size:17px}.title-row h1{font-size:28px}
+}
+@media (min-width:600px){
+  .dish{flex-basis:250px}.pack{flex-basis:220px}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .go{grid-column:1 / -1;justify-self:start;padding-left:36px;padding-right:36px}
+}
+@media (min-width:900px){
+  .wrap{max-width:960px}
+  .menu-hero{padding-top:48px}
+  .ask{font-size:clamp(44px,5vw,56px);max-width:18ch}
+  .lede{font-size:18px;max-width:56ch}
+  .hero{aspect-ratio:21/9;max-height:440px}
+  .sheet{border-radius:30px 30px 0 0;padding-top:30px}
+  .title-row h1{font-size:clamp(36px,4vw,48px)}
+}
+@media (min-width:1000px){
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:0 44px;align-items:start}
+  .step{padding-top:16px;padding-bottom:16px}
+}
+@media (min-width:1200px){
+  .wrap{max-width:1160px}
+  .dish{flex-basis:276px}.pack{flex-basis:236px}
+  .filters{grid-template-columns:1fr 1fr 1fr 1fr}
+}
+@media (min-width:1600px){.wrap{max-width:1320px}}
+@media (hover:none){.dish:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -597,10 +633,13 @@ async function renderRecipe(id){
     <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
     ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
+    <div class="cols"><div class="col-a">
     <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to add an ingredient to the To buy list below.</p>
       <div class="ing"><div class="ing-head"><span>Ingredient</span><span>At home</span><span>To buy</span></div>${ingHTML}</div></section>
     <section class="section"><h2>To buy</h2>${buyHTML}</section>
+    </div><div class="col-b">
     <section class="section"><h2>Steps</h2>${stepsHTML}</section>
+    </div></div>
     ${r.source?`<p class="credit">${r.method_by==='kidposhan'?'Steps written by KidPoshan. ':''}Recipe idea from ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a></p>`:''}
     <section class="section"><h2>Ready-to-buy packs</h2><p class="lead">For busy days. Scored for kids.</p><div id="packs"><p class="empty-packs">Finding packs…</p></div></section>
    </article>`;

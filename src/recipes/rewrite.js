@@ -2,6 +2,8 @@
 // AI binding and saved as a DRAFT. Nothing is shown to parents until the owner approves it (or edits and publishes).
 // The rewrite may not add, drop or change any action, quantity, time or temperature; a numbers check enforces the last three.
 
+import { maybeAutoPublish } from './autopublish.js';
+
 export const REWRITE_MODEL = '@cf/mistralai/mistral-small-3.1-24b-instruct'; // override with the REWRITE_MODEL var if Cloudflare retires it
 
 const numbersIn = (s) => (String(s).match(/\d+(?:[./]\d+)?/g) || []).map((n) => String(+n));
@@ -50,9 +52,11 @@ export async function rewriteSteps(env, id) {
     return { id, rejected: problem };
   }
   await env.DB.prepare(
-    "UPDATE kp_recipes SET kp_steps_json = ?, kp_steps_status = 'draft', updated_at = datetime('now') WHERE id = ? AND kp_steps_status != 'approved'"
+    "UPDATE kp_recipes SET kp_steps_json = ?, kp_steps_status = 'approved', kp_steps_auto = 1, updated_at = datetime('now') WHERE id = ? AND kp_steps_status != 'approved'"
   ).bind(JSON.stringify(steps.map((t) => t.trim())), id).run();
-  return { id, status: 'draft', steps: steps.length };
+  // The steps passed the check that every quantity and time is kept, so they are live; the owner reviews afterwards.
+  const pub = await maybeAutoPublish(env, id);
+  return { id, status: 'approved', steps: steps.length, published: !!pub.published, held: pub.held };
 }
 
 // Cron/admin helper: next recipes that have verbatim steps but no KidPoshan version yet.

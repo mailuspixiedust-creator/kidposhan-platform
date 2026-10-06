@@ -84,6 +84,60 @@ select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px
 .login input{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--steel)}
 .more{display:block;margin:10px auto}
 @media (max-width:720px){.card{grid-template-columns:1fr}.card .right{border-left:0;border-top:1px solid var(--line)}.row{grid-template-columns:1fr 1fr}}
+
+/* ---------- publish-by-default: status, bookmark, held reasons ---------- */
+.live{font-size:14px;color:var(--muted);margin-top:6px}
+.live b{color:var(--chilli)}
+.hold{margin-top:8px;padding:8px 12px;border-left:4px solid var(--turmeric);background:var(--turmeric-soft);border-radius:6px;font-size:14px}
+.hold ul{margin:4px 0 0;padding-left:18px}
+.bookmark{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px}
+.bookmark label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:15px}
+.bookmark input[type=checkbox]{width:20px;height:20px;accent-color:var(--leaf)}
+.bookmark input[type=text]{flex:1 1 200px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
+.bookmark .saved{flex:0 0 100%}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--leaf)}
+
+/* ---------- responsive: phones to wide desktops ---------- */
+html{-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+@media (min-width:1280px){.wrap{max-width:1180px}}
+@media (min-width:1600px){.wrap{max-width:1360px}.card{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}}
+@media (max-width:900px){
+  .wrap{padding:16px 12px 70px}
+  h1{font-size:26px}
+}
+@media (max-width:720px){
+  /* tabs: one swipeable, sticky row instead of wrapping */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:0;z-index:10;background:var(--steel);margin:14px -12px 12px;padding:0 12px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:12px 14px;white-space:nowrap;min-height:44px}
+  .card>div{padding:14px 12px}
+  /* thumb-sized controls, and 16px inputs so iPhones do not zoom in */
+  .btn,.fchip,.seg button{min-height:44px}
+  select,input[type=text],input[type=number],input[type=password],textarea,.kpsteps,.sitesearch,.pf input{font-size:16px;min-height:44px}
+  textarea,.kpsteps{min-height:140px}
+  .checks label{padding:8px 12px;min-height:40px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .actions .btn,.actions .done{width:100%}
+  .actions>.publish:first-child{grid-column:1 / -1}
+  .bookmark{padding:12px}
+  .bookmark input[type=text]{flex:1 1 100%}
+  .bookmark .btn{flex:1 1 100%}
+  .site{padding:12px}
+  .seg{display:flex;width:100%}
+  .seg button{flex:1}
+  .sitesearch{max-width:none;width:100%}
+  .login{margin-top:20px}
+}
+@media (max-width:420px){
+  .row{grid-template-columns:1fr}
+  .pgrid{grid-template-columns:1fr 1fr}
+  .actions{grid-template-columns:1fr}
+  h1{font-size:23px}
+  h2{font-size:19px}
+}
+@media (hover:none){.btn:active,.fchip:active,.tab:active{opacity:.8}}
 </style>
 </head>
 <body>
@@ -118,8 +172,9 @@ const demo={
  ],
 };
 
+let reviewedFilter='all', unreviewedCount=0;
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
-let tab='pending', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
+let tab='approved', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
 const app=document.getElementById('app');
 
 async function api(path,opts={}){
@@ -137,7 +192,7 @@ async function demoApi(path,opts){
     const c={new:0,active:0,paused:0,blocked:0};demo.sites.forEach(x=>c[x.state]++);c.all=demo.sites.length;
     return {counts:c,items:demo.sites.filter(x=>(st==='all'||x.state===st)&&(!q||(x.name+x.url+x.area).toLowerCase().includes(q)))}}
   if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
-  let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];
+  let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];if(b.action==='mark')return {ok:1};
     if(b.action==='publish'&&b.occasions&&!b.occasions.length) throw new Error('pick at least one meal before publishing');
     for(const k of ['pending','approved','rejected']){const i=demo[k].findIndex(x=>x.id===id);if(i>=0){const [it]=demo[k].splice(i,1);Object.assign(it,b);demo[{publish:'approved',reject:'rejected',pending:'pending'}[b.action]].unshift(it)}}
     return {ok:1}}
@@ -152,9 +207,9 @@ function render(){
     document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
     return;
   }
-  const tabs=[['pending','Waiting'],['approved','Published'],['rejected','Rejected'],['packs','Packs'],['sites','Sites']];
+  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites']];
   app.innerHTML=`<h1>Recipe review</h1>
-    <p class="sub">Recipes found by searches and site checks wait here. Parents only see what you publish.</p>
+    <p class="sub">Recipes that pass the automatic checks go live by themselves. Review them here afterwards: pull one back, edit its steps or ingredients, or tick "Reviewed by me". Recipes that failed a check are held with the reason shown.</p>
     ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
     <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}<span class="n">${counts[k]??''}</span></button>`).join('')}</div>
     <div id="list"></div>`;
@@ -163,17 +218,11 @@ function render(){
   if(tab==='packs'){renderPacks(list);return}
   if(tab==='sites'){renderSites(list);return}
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
-    `<p class="empty">${tab==='pending'?'Nothing waiting. New recipes arrive as parents search and as sites are re-checked.':'Nothing here yet.'}</p>`;
+    `<p class="empty">${tab==='pending'?'Nothing is held. Recipes that pass the checks go live by themselves; any that fail appear here with the reason.':'Nothing here yet.'}</p>`;
   bindCards();
-  const drafts=tab==='approved'?items.filter(i=>i.kp_steps_status==='draft'):[];
-  if(drafts.length){
-    list.insertAdjacentHTML('afterbegin',`<p class="banner">${drafts.length} published recipe${drafts.length===1?' has':'s have'} KidPoshan steps waiting for your approval, so parents still see a link to the original. Read them, then <button class="btn publish" id="approveAll">Approve all ${drafts.length} step drafts</button> or approve one at a time.</p>`);
-    document.getElementById('approveAll').onclick=async e=>{
-      if(!confirm('Approve the KidPoshan steps for all '+drafts.length+' recipes shown? Do this only after reading them against the originals.'))return;
-      e.target.disabled=true;
-      try{for(const d of drafts) await api(`/api/kp/admin/review/${d.id}`,{method:'POST',body:JSON.stringify({action:'publish',approve_steps:true})});load()}catch(x){alert(x.message);e.target.disabled=false}
-    };
-  }
+  const fchips=[['all','All'],['no','Not reviewed'],['yes','Reviewed']].map(([k,l])=>`<button class="fchip" data-rf="${k}" aria-pressed="${reviewedFilter===k}">${l}</button>`).join('');
+  list.insertAdjacentHTML('afterbegin',`${tab==='approved'&&unreviewedCount?`<p class="banner"><b>${unreviewedCount}</b> recipe${unreviewedCount===1?'':'s'} went live automatically and ${unreviewedCount===1?'is':'are'} waiting for your review. You can pull any of them back, edit the steps or ingredients, or tick "Reviewed by me".</p>`:''}<div class="filters" role="group" aria-label="Review filter" style="margin-bottom:12px">${fchips}</div>`);
+  list.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{reviewedFilter=b.dataset.rf;offset=0;load()});
   const more=document.getElementById('more'); if(more) more.onclick=()=>{offset+=20;load(true)};
 }
 
@@ -230,9 +279,12 @@ function cardHTML(r){
   const sel=(name,arr,cur)=>`<select name="${name}">${arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
   const ages=AGE.map(a=>[a,ageTxt(a)]);
   const rating=r.source_rating?`, rated ${r.source_rating} by ${r.source_rating_count||'?'} on the site`:'';
+  const edits=`<button class="btn undo" data-act="${tab==='rejected'?'reject':'publish'}" data-saved="1" title="Save changes to steps, ingredients, tags and score without changing whether it is live or the reviewed bookmark">Save edits</button>`;
   const action=tab==='pending'
-    ?`<button class="btn publish" data-act="publish">Publish</button><button class="btn undo" data-act="publish" data-link="1" title="Show the recipe with ingredients and score, and link to the original for the steps">Publish with link to original steps</button><button class="btn reject" data-act="reject">Reject</button>`
-    :`${tab==='approved'?'<button class="btn publish" data-act="publish" data-saved="1">Save changes &amp; approve steps</button>':''}<button class="btn undo" data-act="pending">Move back to waiting</button>${tab==='rejected'?'<button class="btn publish" data-act="publish">Publish</button>':''}`;
+    ?`<button class="btn publish" data-act="publish">Publish now</button><button class="btn undo" data-act="publish" data-link="1" title="Show the recipe with ingredients and score, and link to the original for the steps">Publish with link to original steps</button><button class="btn reject" data-act="reject">Reject</button>`
+    :tab==='approved'
+    ?`${edits}<button class="btn reject" data-act="pending" title="Take it off parents' pages. It stays here and is never published automatically again">Pull back</button>`
+    :`<button class="btn publish" data-act="publish">Publish</button><button class="btn undo" data-act="pending">Move back to held</button>${edits}`;
   const scoreBox=(()=>{
     if(r.poshan_score==null) return `<div><span class="lbl">Poshan Score</span><p class="why">Pending: ${esc(r.score_detail?.reason||'not scored yet')}</p></div>`;
     const d=r.score_detail||{}, inp=d.inputs||{}, src=d.sources||{};
@@ -240,19 +292,23 @@ function cardHTML(r){
     const kind=r.score_status==='exact'?'From recipe data':'Estimated from ingredients';
     return `<div><span class="lbl">Poshan Score</span><p><b>${r.poshan_score}</b> (${esc(d.engine?.band||'')}) · ${kind}</p>
       <p class="why">Per serving, ${d.per_serving_basis||'?'} servings: ${esc(parts)}. ${(d.assumptions||[]).map(esc).join('; ')}</p>
-      ${r.score_status==='estimated'?`<label class="chk"><input type="checkbox" name="score_approved" ${r.score_approved?'checked':''}> Show this estimated score to parents</label>`:''}</div>`;
+      ${r.poshan_score!=null?`<label class="chk"><input type="checkbox" name="score_hidden" ${r.score_hidden?'checked':''}> Hide this score from parents</label>`:''}</div>`;
   })();
-  const kpSteps=`<details open><summary>KidPoshan steps (${{none:'not written yet',draft:'draft, needs your check',approved:'approved',failed:'rewrite failed, write them here'}[r.kp_steps_status]||r.kp_steps_status})</summary>
+  const kpSteps=`<details open><summary>KidPoshan steps (${{none:'not written yet',draft:'draft, needs your check',approved:(r.kp_steps_auto?'live, written automatically; edit if needed':'approved'),failed:'rewrite failed, write them here'}[r.kp_steps_status]||r.kp_steps_status})</summary>
     <textarea name="kp_steps" class="kpsteps" rows="9" placeholder="No KidPoshan steps yet. One is being drafted automatically; or type the steps here, one per line.">${esc((r.kp_steps||[]).join('\n'))}</textarea>
     <p class="why">One step per line, in KidPoshan's own words. Check every quantity and time against the original. Publishing saves and approves what is written here.</p></details>`;
   return `<article class="card" data-id="${r.id}">
    <div><h2>${esc(r.name)}</h2>
+    ${tab==='approved'?`<p class="live">${r.publish_origin==='auto'?'Went live automatically':'Published by you'}${r.publish_origin==='auto'&&r.auto_published_at?' on '+esc(String(r.auto_published_at).slice(0,10)):''}. ${r.owner_reviewed_at?'Reviewed '+esc(String(r.owner_reviewed_at).slice(0,10)):'<b>Not yet reviewed</b>'}.</p>`:''}
+    ${tab==='pending'&&r.hold_reasons?.length?`<div class="hold"><b>Held, not live yet:</b><ul>${r.hold_reasons.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:''}
     <p class="src">${esc(r.source_name)}${r.source_status==='suggested'?' (not in your registry yet)':''}${rating}. <a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open original</a></p>
     ${r.flags?.length?`<div class="flags">${r.flags.map(f=>`<span class="flag ${f==='new_site'?'new':''}">${FLAG[f]||f}</span>`).join('')}</div>`:''}
     ${r.found_for?`<p class="found">Found for a parent search: ${esc(keyTxt(r.found_for))}</p>`:''}
-    <details open><summary>Ingredients (${r.ingredients.length})</summary><ul class="ing">${r.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></details>
+    <details open><summary>Ingredients (${r.ingredients.length})${r.ingredients_edited?', edited by you':''}</summary><textarea name="ingredients" class="kpsteps" rows="8" data-orig="${esc(r.ingredients.join('\n'))}">${esc(r.ingredients.join('\n'))}</textarea><p class="why">One ingredient per line, exactly as parents see it. Fix a quantity or a name and press Save edits. Your lines are kept even if the site is read again, and the score is worked out again.</p></details>
     <details><summary>Method as published (${r.instructions.length} steps)</summary>${r.instructions.length?`<ol class="steps">${r.instructions.map(s=>`<li>${esc(s.text)}</li>`).join('')}</ol>`:'<p class="why">No steps found. Check the original.</p>'}</details>
     ${kpSteps}
+    <div class="bookmark"><label><input type="checkbox" name="reviewed" ${r.owner_reviewed_at?'checked':''}> <b>Reviewed by me</b>${r.owner_reviewed_at?' ('+esc(String(r.owner_reviewed_at).slice(0,10))+')':''}</label>
+      <input type="text" name="note" maxlength="500" value="${esc(r.review_note||'')}" placeholder="Note to self (optional)"><button class="btn undo" data-mark="1">Save bookmark</button><span class="saved" data-msg role="status"></span></div>
    </div>
    <div class="right">
     ${scoreBox}
@@ -265,6 +321,13 @@ function cardHTML(r){
    </div></article>`;
 }
 function bindCards(){
+  app.querySelectorAll('.card [data-mark]').forEach(b=>{
+    const card=b.closest('.card'), id=+card.dataset.id, msg=card.querySelector('[data-msg]'), box=card.querySelector('[name=reviewed]');
+    const save=async()=>{msg.textContent='Saving…';
+      try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify({action:'mark',reviewed:box.checked,note:card.querySelector('[name=note]').value})});msg.textContent=box.checked?'Marked as reviewed':'Marked as not reviewed';setTimeout(load,900)}
+      catch(e){msg.textContent=e.message}};
+    b.onclick=save; box.onchange=save;
+  });
   app.querySelectorAll('.card [data-act]').forEach(b=>b.onclick=async()=>{
     const card=b.closest('.card'), id=+card.dataset.id, err=card.querySelector('.err'); err.textContent='';
     const vals=n=>[...card.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value);
@@ -274,11 +337,13 @@ function bindCards(){
     const ks=card.querySelector('[name=kp_steps]').value.split('\n').map(x=>x.trim()).filter(Boolean);
     if(ks.length) body.kp_steps=ks;
     if(b.dataset.link) body.steps_link_only=true;
-    const sa=card.querySelector('[name=score_approved]'); if(sa) body.score_approved=sa.checked;
+    if(b.dataset.saved) body.keep_review_mark=true;
+    const ing=card.querySelector('[name=ingredients]'); if(ing&&ing.value!==ing.dataset.orig) body.ingredients=ing.value.split('\n').map(x=>x.trim()).filter(Boolean);
+    const sh=card.querySelector('[name=score_hidden]'); if(sh) body.score_hidden=sh.checked;
     if(body.age_min_months>body.age_max_months){err.textContent='"From age" is after "Up to".';return}
     card.querySelectorAll('button').forEach(x=>x.disabled=true);
     try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify(body)});
-      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:b.dataset.saved?'Saved':'Published',reject:'Rejected',pending:'Moved back to waiting'}[body.action]}</span>`;
+      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:b.dataset.saved?'Saved':'Published',reject:b.dataset.saved?'Saved':'Rejected',pending:tab==='approved'?'Pulled back':'Moved back to held'}[body.action]}</span>`;
       setTimeout(load,700);
     }catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
   });
@@ -342,10 +407,10 @@ async function load(append=false){
   try{
     const [p,a,r,c]=await Promise.all(['pending','approved','rejected'].map(st=>api(`/api/kp/admin/review?status=${st}&limit=1`)).concat([api('/api/kp/admin/sources?state=new')]));
     siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
-    counts={pending:p.total,approved:a.total,rejected:r.total,sites:c.counts.new?`${c.counts.new} new`:''};
+    unreviewedCount=a.unreviewed||0; counts={pending:p.total,approved:a.unreviewed?`${a.total} · ${a.unreviewed} not reviewed`:a.total,rejected:r.total,sites:c.counts.new?`${c.counts.new} new`:''};
     if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
-    if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}`);items=append?items.concat(d.items):d.items;total=d.total}
+    if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
     render();
   }catch(e){ if(token||DEMO) app.innerHTML=`<h1>Recipe review</h1><p class="err">Couldn't load the queue: ${esc(e.message)}</p>`; }
 }

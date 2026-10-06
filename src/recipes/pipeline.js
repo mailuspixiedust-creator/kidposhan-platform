@@ -4,6 +4,7 @@ import { fetchHtml, extractFromHtml } from './extract.js';
 import { parseIngredientLine } from './normalize.js';
 import { tagRecipe } from './tag.js';
 import { scoreRecipe } from './score.js';
+import { maybeAutoPublish } from './autopublish.js';
 import { isIndexPath } from './discover.js';
 
 export function buildRecipe(extracted, source) {
@@ -77,7 +78,8 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(source_url) DO UPDATE SET
        name=excluded.name, image_url=excluded.image_url, description=excluded.description,
-       ingredients_raw_json=excluded.ingredients_raw_json, instructions_json=excluded.instructions_json,
+       ingredients_raw_json=CASE WHEN kp_recipes.ingredients_edited = 1 THEN kp_recipes.ingredients_raw_json ELSE excluded.ingredients_raw_json END,
+       instructions_json=excluded.instructions_json,
        servings=excluded.servings, prep_minutes=excluded.prep_minutes, cook_minutes=excluded.cook_minutes,
        total_minutes=excluded.total_minutes, source_rating=excluded.source_rating,
        source_rating_count=excluded.source_rating_count, extraction_method=excluded.extraction_method,
@@ -88,7 +90,7 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
        age_max_months=CASE WHEN kp_recipes.reviewed_at IS NULL THEN excluded.age_max_months ELSE kp_recipes.age_max_months END,
        flags_json=excluded.flags_json,
        updated_at=datetime('now')
-     RETURNING id, reviewed_at`
+     RETURNING id, reviewed_at, ingredients_edited`
   ).bind(
     sourceId, url, x.name || '(untitled)', x.image_url, x.description,
     JSON.stringify(x.ingredients), JSON.stringify(x.instructions),
@@ -107,8 +109,11 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
   const occ = env.DB.prepare('INSERT OR IGNORE INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?,?)');
   const sea = env.DB.prepare('INSERT OR IGNORE INTO kp_recipe_seasons (recipe_id, season) VALUES (?,?)');
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM kp_recipe_ingredients WHERE recipe_id=?').bind(id),
-    ...ingredients.map((i, n) => ins.bind(id, n, i.raw_text, i.quantity, i.unit, i.name, i.ingredient_key, i.is_pantry ? 1 : 0)),
+    // ingredient lines the owner edited survive re-crawls
+    ...(row.ingredients_edited ? [] : [
+      env.DB.prepare('DELETE FROM kp_recipe_ingredients WHERE recipe_id=?').bind(id),
+      ...ingredients.map((i, n) => ins.bind(id, n, i.raw_text, i.quantity, i.unit, i.name, i.ingredient_key, i.is_pantry ? 1 : 0)),
+    ]),
     // owner-edited meal/season tags survive re-crawls
     ...(reviewed ? [] : [
       env.DB.prepare('DELETE FROM kp_recipe_occasions WHERE recipe_id=?').bind(id),
@@ -119,6 +124,7 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
   ]);
   if (x.nutrition) await env.DB.prepare('UPDATE kp_recipes SET nutrition_json=? WHERE id=?').bind(JSON.stringify(x.nutrition), id).run();
   await scoreRecipe(env, id); // recipe-level Poshan Score, from this recipe's own ingredients
+  await maybeAutoPublish(env, id); // goes live by itself when every check passes (KidPoshan steps may still be pending)
   return id;
 }
 

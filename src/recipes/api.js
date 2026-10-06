@@ -47,7 +47,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   const diets = DIETS[q.pref];
   let sql = `
     SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
-           ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_status = 'exact' OR r.score_approved = 1 THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
+           ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_hidden = 0 AND r.poshan_score IS NOT NULL THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
            (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -127,7 +127,7 @@ export async function recipeDetail(env, id) {
   }
   const methodAllowed = r.rights_status === 'granted';
   const kpSteps = r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
-  const scoreVisible = r.poshan_score != null && (r.score_status === 'exact' || r.score_approved === 1);
+  const scoreVisible = r.poshan_score != null && !r.score_hidden;
   let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
   return {
     id: r.id,

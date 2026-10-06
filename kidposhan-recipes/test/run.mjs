@@ -48,6 +48,7 @@ db.exec(fs.readFileSync('migrations/0010_recipe_score_and_kp_steps.sql', 'utf8')
 db.exec(fs.readFileSync('migrations/0011_ready_products.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0012_pack_label_reading.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0013_photos_hidden.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0014_publish_by_default.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -218,24 +219,26 @@ upma.forEach((i, n) => db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id,
 const stored = await scoreRecipe(env, rid);
 ok(stored.status === 'estimated' && db.prepare('SELECT poshan_score FROM kp_recipes WHERE id=?').get(rid).poshan_score === stored.score, 'Score stored on the recipe');
 const hidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(hidden.poshan_score === null && hidden.score === null, 'Estimated score is hidden from parents until approved');
-db.prepare('UPDATE kp_recipes SET score_approved = 1 WHERE id=?').run(rid);
+ok(hidden.score?.kind === 'estimated' && hidden.poshan_score === stored.score, 'Estimated score is shown to parents by default, labelled estimated');
+db.prepare('UPDATE kp_recipes SET score_hidden = 1 WHERE id=?').run(rid);
+const hiddenByOwner = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(hiddenByOwner.poshan_score === null && hiddenByOwner.score === null, 'Owner can hide one recipe score');
+db.prepare('UPDATE kp_recipes SET score_hidden = 0 WHERE id=?').run(rid);
 const shown = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(shown.score?.value === stored.score && shown.score.kind === 'estimated', 'Approved estimated score is shown and labelled');
-ok(shown.method === null, 'No creator steps shown without rights or KidPoshan steps');
+ok(shown.score?.value === stored.score && shown.method === null, 'Score back on; no creator steps shown without rights or KidPoshan steps');
 const orig = ['Roast 1 cup rava for 5 minutes.', 'Add water and cook 3 minutes.'];
 ok(checkRewrite(orig, ['Dry roast the rava (1 cup) for 5 minutes.', 'Pour in water and cook for 3 minutes.']) === null, 'Faithful rewrite accepted');
 ok(/numbers missing/.test(checkRewrite(orig, ['Roast the rava.', 'Add water and cook.'])), 'Rewrite that drops quantities/times is rejected');
 const aiEnv = { ...env, AI: { run: async () => ({ response: 'Here you go: ["Dry roast 1 cup rava for 5 minutes.", "Add water, cook for 3 minutes."]' }) } };
 const rw = await rewriteSteps(aiEnv, rid);
-ok(rw.status === 'draft' && db.prepare('SELECT kp_steps_status s FROM kp_recipes WHERE id=?').get(rid).s === 'draft', 'AI rewrite saved as draft');
-const stillHidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(stillHidden.method === null, 'Draft KidPoshan steps are not shown to parents');
-let refused = ''; try { await reviewRecipe(env, rid, { action: 'publish', occasions: ['breakfast'] }); } catch (e) { refused = e.message; }
-ok(/approve or write the KidPoshan steps/.test(refused), 'Publishing needs approved KidPoshan steps');
-await reviewRecipe(env, rid, { action: 'publish', occasions: ['breakfast'], approve_steps: true });
-const live = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(live.method_by === 'kidposhan' && live.method[0].text.startsWith('Dry roast'), 'Approved KidPoshan steps are shown on the KidPoshan page');
+ok(rw.status === 'approved' && db.prepare('SELECT kp_steps_status s, kp_steps_auto a FROM kp_recipes WHERE id=?').get(rid).a === 1, 'AI steps that keep every number go live automatically (marked auto)');
+const liveNow = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
+ok(liveNow.method_by === 'kidposhan' && liveNow.method[0].text.startsWith('Dry roast'), 'KidPoshan steps are shown on the recipe page without waiting for the owner');
+// publishing by hand still needs steps (or the link-only choice) when none exist
+db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status, instructions_json) VALUES (9060,'https://site.in/nosteps/','Needs Steps','[]','jsonld','complete','veg',24,72,'pending',?)").run(JSON.stringify([{ section: null, text: 'Cook it.' }]));
+const nsId = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/nosteps/'").get().id;
+let refused = ''; try { await reviewRecipe(env, nsId, { action: 'publish', occasions: ['breakfast'] }); } catch (e) { refused = e.message; }
+ok(/approve or write the KidPoshan steps/.test(refused), 'Manual publish still needs KidPoshan steps (or the link-only choice)');
 
 // ---- parser: quantity after the name, extra units, new keys, roundup slugs ----
 const t1p = parseIngredientLine('Oil - 2 tblsp'); ok(t1p.quantity === 2 && t1p.unit === 'tbsp' && t1p.ingredient_key === 'oil', 'Trailing quantity: "Oil - 2 tblsp"');
@@ -255,7 +258,7 @@ ok(parseIngredientLine('1 potato').ingredient_key === 'potato' && parseIngredien
 
 db.prepare("UPDATE kp_recipes SET kp_steps_status='none', kp_steps_json=NULL WHERE id=?").run(rid);
 const chatEnv = { ...env, AI: { run: async () => ({ choices: [{ message: { content: '["Dry roast 1 cup rava for 5 minutes.", "Add water and cook for 3 minutes."]' } }] }) } };
-ok((await rewriteSteps(chatEnv, rid)).status === 'draft', 'AI reply in chat-completion shape is read');
+ok((await rewriteSteps(chatEnv, rid)).status === 'approved', 'AI reply in chat-completion shape is read');
 
 // ---- ready-to-buy packs: the dish in pack form, exact label-based score, owner approval ----
 import { kindForDish, scorePack, packsForRecipe, listPacks, reviewPack } from '../../src/recipes/ready.js';
@@ -350,5 +353,79 @@ ok(corsOf('https://www.kidposhan.in') === 'https://www.kidposhan.in' && corsOf('
 ok(corsOf('https://evil.example') === null && corsOf('https://kidposhan.in.evil.com') === null && corsOf('https://xkidposhan.in') === null && corsOf(null) === null, 'Other origins and lookalike domains get no access');
 const adminRes = await routeRecipes(new Request('https://x/api/kp/admin/review', { headers: { origin: 'https://www.kidposhan.in' } }), { ...env, ADMIN_TOKEN: 't' }, ctx);
 ok(adminRes.status === 401 && adminRes.headers.get('access-control-allow-origin') === null, 'Admin routes stay token-protected with no cross-origin access');
+
+// ---- publish by default, review afterwards ----
+import { holdReasons, maybeAutoPublish, autoPublishPending } from '../../src/recipes/autopublish.js';
+const okRecipe = { completeness: 'complete', extraction_method: 'jsonld', kp_steps_status: 'approved', age_min_months: 24, age_max_months: 72 };
+const okSource = { status: 'registered', active: 1 };
+const ing4 = [{ ingredient_key: 'rice' }, { ingredient_key: 'carrot' }, { ingredient_key: 'oil' }, { ingredient_key: 'salt' }];
+ok(holdReasons({ recipe: okRecipe, source: okSource, ingredients: ing4, steps: 3, occasions: 1 }).length === 0, 'A complete, tagged recipe with KidPoshan steps passes every check');
+ok(holdReasons({ recipe: { ...okRecipe, age_min_months: 9 }, source: okSource, ingredients: ing4, steps: 3, occasions: 1 }).some((w) => /under 12 months/.test(w)), 'Recipes for under 12 months are always held for a person');
+ok(holdReasons({ recipe: okRecipe, source: okSource, flags: ['check_jain', 'partial'], ingredients: ing4, steps: 3, occasions: 1 }).length === 2, 'Jain-check and partial-read flags hold a recipe back');
+ok(holdReasons({ recipe: { ...okRecipe, age_min_months: 12 }, source: okSource, ingredients: [...ing4, { ingredient_key: 'honey' }], steps: 3, occasions: 1 }).some((w) => /honey/.test(w)), 'Honey in a recipe for under 2 years is held');
+ok(holdReasons({ recipe: { ...okRecipe, kp_steps_status: 'none' }, source: okSource, ingredients: ing4.slice(0, 2), steps: 1, occasions: 0 }).length >= 4, 'Thin recipes (few ingredients, one step, no meal, no KidPoshan steps) are held with every reason listed');
+ok(holdReasons({ recipe: okRecipe, source: { status: 'suggested', active: 0 }, ingredients: ing4, steps: 3, occasions: 1 }).length === 1, 'A site that is not in the registry holds its recipes');
+
+const mkRecipe = (url, extra = {}) => {
+  const f = { name: 'Auto Dish', method: 'jsonld', complete: 'complete', agemin: 24, agemax: 72, status: 'pending', kp: 'approved', ...extra };
+  const id = db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status, instructions_json, kp_steps_status, kp_steps_json) VALUES (1,?,?,'[]',?,?,'veg',?,?,?,?,?,?) RETURNING id")
+    .get(url, f.name, f.method, f.complete, f.agemin, f.agemax, f.status, JSON.stringify([{ section: null, text: 'Cook 1 cup rice for 10 minutes.' }, { section: null, text: 'Serve warm.' }]), f.kp, f.kp === 'approved' ? JSON.stringify(['Cook the rice for 10 minutes.', 'Serve warm.']) : null).id;
+  ['1 cup rice', '1 carrot', '2 tbsp oil', 'Salt to taste'].forEach((l, n) => { const q = parseIngredientLine(l); db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?,?,?,?,?,?,?,?)').run(id, n, q.raw_text, q.quantity, q.unit, q.name, q.ingredient_key, q.is_pantry ? 1 : 0); });
+  db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'lunch')").run(id);
+  db.prepare("INSERT INTO kp_recipe_seasons (recipe_id, season) VALUES (?, 'all')").run(id);
+  return id;
+};
+const goodId = mkRecipe('https://site.in/auto-good/');
+const goodRes = await maybeAutoPublish(env, goodId);
+const goodRow = db.prepare('SELECT review_status, publish_origin, owner_reviewed_at FROM kp_recipes WHERE id=?').get(goodId);
+ok(goodRes.published && goodRow.review_status === 'approved' && goodRow.publish_origin === 'auto' && goodRow.owner_reviewed_at === null, 'A recipe that passes the checks goes live on its own, marked auto and not yet reviewed');
+const infantId = mkRecipe('https://site.in/auto-infant/', { agemin: 6 });
+const infRes = await maybeAutoPublish(env, infantId);
+ok(infRes.held && db.prepare('SELECT review_status, hold_reasons_json h FROM kp_recipes WHERE id=?').get(infantId).h.includes('under 12 months'), 'An infant recipe stays held and records why');
+const nokpId = mkRecipe('https://site.in/auto-nokp/', { kp: 'none' });
+const sweep0 = await autoPublishPending(env, { limit: 100 });
+ok(db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(nokpId).review_status === 'pending', 'No KidPoshan steps yet: not live (and not even evaluated by the sweep)');
+const rwEnv = { ...env, AI: { run: async () => ({ response: '["Cook 1 cup rice for 10 minutes.", "Serve it warm."]' }) } };
+const rwRes = await rewriteSteps(rwEnv, nokpId);
+ok(rwRes.published === true && db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(nokpId).review_status === 'approved', 'When the steps are written and pass the number check, the recipe goes live');
+const decidedId = mkRecipe('https://site.in/auto-decided/');
+db.prepare("UPDATE kp_recipes SET reviewed_at = datetime('now') WHERE id=?").run(decidedId);
+ok((await maybeAutoPublish(env, decidedId)).skipped && db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(decidedId).review_status === 'pending', 'A recipe the owner already decided on is never touched by the automation');
+
+// owner controls after going live
+const live1 = await listForReview(env, { status: 'approved', reviewed: 'no' });
+ok(live1.items.some((i) => i.id === goodId) && live1.unreviewed >= 1, 'Live tab can show only the recipes not yet reviewed, with a count');
+await reviewRecipe(env, goodId, { action: 'mark', reviewed: true, note: 'checked steps, fine' });
+const marked = db.prepare('SELECT owner_reviewed_at o, review_note n, review_status st FROM kp_recipes WHERE id=?').get(goodId);
+ok(marked.o && marked.n === 'checked steps, fine' && marked.st === 'approved', 'Bookmark: reviewed + note saved without changing whether it is live');
+ok((await listForReview(env, { status: 'approved', reviewed: 'yes' })).items.some((i) => i.id === goodId) && !(await listForReview(env, { status: 'approved', reviewed: 'no' })).items.some((i) => i.id === goodId), 'The reviewed filter splits live recipes correctly');
+await reviewRecipe(env, goodId, { action: 'mark', reviewed: false });
+ok(db.prepare('SELECT owner_reviewed_at o FROM kp_recipes WHERE id=?').get(goodId).o === null, 'Reviewed can be unticked again');
+await reviewRecipe(env, goodId, { action: 'publish', keep_review_mark: true, kp_steps: ['Boil 1 cup rice for 10 minutes.', 'Serve hot.'], ingredients: ['2 cups basmati rice', '1 carrot, grated', 'Salt to taste'] });
+const edited = db.prepare('SELECT owner_reviewed_at o, ingredients_edited e, kp_steps_auto a, kp_steps_json k FROM kp_recipes WHERE id=?').get(goodId);
+ok(edited.e === 1 && edited.a === 0 && edited.o === null && edited.k.includes('Boil'), 'Owner edits steps and ingredients on a live recipe: saved, no longer marked auto, bookmark untouched');
+const ingNow = db.prepare('SELECT raw_text, quantity, unit, ingredient_key FROM kp_recipe_ingredients WHERE recipe_id=? ORDER BY position').all(goodId);
+ok(ingNow.length === 3 && ingNow[0].quantity === 2 && ingNow[0].unit === 'cup', 'Edited ingredient lines are re-parsed (quantity and unit) and the score recomputed');
+const pubIng = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + goodId), env, ctx)).json();
+ok(pubIng.ingredients[0].raw_text === '2 cups basmati rice' && pubIng.method[0].text.startsWith('Boil'), 'Parents see the edited ingredients and steps');
+await reviewRecipe(env, goodId, { action: 'pending' });
+const pulled = db.prepare('SELECT review_status s, hold_reasons_json h FROM kp_recipes WHERE id=?').get(goodId);
+await autoPublishPending(env, { limit: 100 }); await maybeAutoPublish(env, goodId);
+ok(pulled.s === 'pending' && pulled.h.includes('pulled back') && db.prepare('SELECT review_status s FROM kp_recipes WHERE id=?').get(goodId).s === 'pending', 'Pulled back recipes come off the parents pages and are never republished automatically');
+const gone = await handleRecipesApi(new Request('https://w/api/kp/recipes/' + goodId), env, ctx);
+ok(gone.status === 404, 'A pulled-back recipe is no longer served to parents');
+
+// owner-edited ingredient lines survive a re-crawl of the page
+const crawlUrl = 'https://site.in/edit-test/';
+pages[crawlUrl] = jsonld;
+db.prepare("INSERT INTO kp_recipe_candidates (id, source_id, url, discovered_via) VALUES (801, 1, ?, 'test')").run(crawlUrl);
+await processCandidate(env, { id: 801, url: crawlUrl }, { id: 1, url: 'https://site.in/', notes: '' });
+const crawled = db.prepare('SELECT id FROM kp_recipes WHERE source_url=?').get(crawlUrl);
+ok(!!crawled, 'Test page was read into a recipe');
+await reviewRecipe(env, crawled.id, { action: 'pending', ingredients: ['1 handful of special mix'] });
+db.prepare("UPDATE kp_recipe_candidates SET status='pending' WHERE id=801").run();
+await processCandidate(env, { id: 801, url: crawlUrl }, { id: 1, url: 'https://site.in/', notes: '' });
+const afterCrawl = db.prepare('SELECT raw_text FROM kp_recipe_ingredients WHERE recipe_id=?').all(crawled.id);
+ok(afterCrawl.length === 1 && afterCrawl[0].raw_text === '1 handful of special mix', 'Ingredient lines the owner edited survive the site being read again');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

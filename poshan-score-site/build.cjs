@@ -55,6 +55,8 @@ swap('<a href="#/">Meal Ideas</a>', '<a href="meal-ideas.html">Meal Ideas</a>');
 swap("const API=QS.get('api')||'';", `const API=QS.get('api')||'${PLATFORM}'; // recipes, packs and scores come from the KidPoshan platform Worker`);
 swap('<title>KidPoshan | Meal ideas</title>', '<title>Meal Ideas — Poshan Score by Kidposhan</title>');
 fs.writeFileSync(path.join(out, 'meal-ideas.html'), m);
+// /bot: the page KidPoshanBot's user-agent points at (https://kidposhan.in/bot)
+fs.copyFileSync(path.join(root, '..', 'public', 'bot.html'), path.join(out, 'bot.html'));
 
 fs.writeFileSync(path.join(root, 'wrangler.toml'), `# Same Worker that serves www.kidposhan.in: static pages only (no script, no bindings).
 name = "poshan-score"

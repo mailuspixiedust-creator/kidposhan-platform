@@ -17,6 +17,7 @@ import { scoreRecipe, reparseIngredients } from './score.js';
 import { readPackLabel, readLabelsPending } from './label.js';
 import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
+import { autoPublishPending } from './autopublish.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
@@ -77,6 +78,7 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/review' && request.method === 'GET') {
       return json(await listForReview(env, {
         status: url.searchParams.get('status') || 'pending',
+        reviewed: url.searchParams.get('reviewed') || '',
         limit: +url.searchParams.get('limit') || 20,
         offset: +url.searchParams.get('offset') || 0,
       }));
@@ -111,6 +113,12 @@ export async function routeRecipes(request, env, ctx) {
   if (path.endsWith('/extract') && request.method === 'POST') {
     const limit = Math.min(+url.searchParams.get('limit') || 10, 25);
     return json({ processed: await processPending(env, { limit }) });
+  }
+
+  // POST /api/kp/admin/recipes/autopublish?limit=50[&recheck=1]  publish the waiting recipes that pass every check (recheck=1 also re-evaluates held ones)
+  if (path.endsWith('/autopublish') && request.method === 'POST') {
+    if (url.searchParams.get('recheck') === '1') await env.DB.prepare("UPDATE kp_recipes SET hold_reasons_json = NULL WHERE review_status = 'pending' AND reviewed_at IS NULL").run();
+    return json(await autoPublishPending(env, { limit: Math.min(+url.searchParams.get('limit') || 50, 200) }));
   }
 
   // POST /api/kp/admin/recipes/rescore?limit=50   recompute recipe-level scores (after changing the score data)
@@ -169,7 +177,8 @@ export async function scheduledRecipes(env, cron) {
   // Pack labels: read the nutrition panel from pack images for packs never tried (2 per run).
   try { console.log('labels', JSON.stringify(await readLabelsPending(env, { limit: 2 }))); } catch (e) { console.error('labels', e); }
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
-  try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 3 }))); } catch (e) { console.error('rewrite', e); }
+  try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
+  try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(
     `SELECT * FROM kp_recipe_sources WHERE status = 'registered' AND active = 1 AND crawl_mode = 'auto'
       ORDER BY last_crawled_at IS NOT NULL, last_crawled_at LIMIT 2`
