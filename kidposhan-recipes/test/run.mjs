@@ -45,6 +45,7 @@ db.exec(fs.readFileSync('migrations/0007_review_and_live_discovery.sql', 'utf8')
 db.exec(fs.readFileSync('migrations/0008_polite_crawling.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0009_site_management.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0010_recipe_score_and_kp_steps.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0011_ready_products.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -253,5 +254,33 @@ ok(parseIngredientLine('1 potato').ingredient_key === 'potato' && parseIngredien
 db.prepare("UPDATE kp_recipes SET kp_steps_status='none', kp_steps_json=NULL WHERE id=?").run(rid);
 const chatEnv = { ...env, AI: { run: async () => ({ choices: [{ message: { content: '["Dry roast 1 cup rava for 5 minutes.", "Add water and cook for 3 minutes."]' } }] }) } };
 ok((await rewriteSteps(chatEnv, rid)).status === 'draft', 'AI reply in chat-completion shape is read');
+
+// ---- ready-to-buy packs: the dish in pack form, exact label-based score, owner approval ----
+import { kindForDish, scorePack, packsForRecipe, listPacks, reviewPack } from '../../src/recipes/ready.js';
+ok(kindForDish('Ragi Dosa Recipe | Instant Ragi Dosa').kind === 'ragi_dosa_mix', 'Ragi dosa -> ragi dosa MIX (not ragi flour)');
+ok(kindForDish('Rava Dosa').kind === 'dosa_mix' && kindForDish('Idli Dosa Batter').kind === 'dosa_batter' && kindForDish('Soft Idli').kind === 'idli_mix', 'Dosa / batter / idli map to their own kinds');
+ok(kindForDish('Potato Poriyal') === null && kindForDish('Carrot Rice') === null, 'Dishes with no ready-made form get no packs');
+ok(scorePack({ protein_g: 10 }, ['ragi']).status === 'pending', 'Pack score pending until the whole label is entered');
+const label = { protein_g: 9, fibre_g: 8, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 0.8, sodium_mg: 120 };
+const good = scorePack(label, ['Ragi flour (60%)', 'Rice flour', 'Salt']);
+const bad = scorePack({ ...label, added_sugars_g: 18, sodium_mg: 900 }, ['Maida', 'Sugar', 'Palm oil', 'Preservative (E211)', 'Artificial flavour']);
+ok(good.status === 'exact' && good.detail.inputs.wholeGrain === true && bad.status === 'exact' && bad.score < good.score && bad.detail.inputs.additives >= 2 && bad.detail.inputs.palmOil && bad.detail.inputs.maida, `Exact pack score uses the packaged profile and the ingredient list (good ${good.score}, bad ${bad.score})`);
+db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status) VALUES (9060,'https://site.in/ragi-dosa/','Ragi Dosa Recipe','[]','jsonld','complete','veg',12,72,'approved')").run();
+const ragiId = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/ragi-dosa/'").get().id;
+db.prepare("INSERT INTO kp_ready_products (kind, name, brand, pack_size, product_url, retailer, ingredients_json) VALUES ('ragi_dosa_mix','Indira Ragi Dosa Mix','Indira','500 g','https://zepto.com/p/1','zepto','[\"Ragi flour\",\"Rice flour\",\"Salt\"]')").run();
+db.prepare("INSERT INTO kp_ready_products (kind, name, brand, pack_size, product_url, retailer, ingredients_json) VALUES ('ragi_dosa_mix','Other Ragi Dosa Mix','Other','400 g','https://flipkart.com/p/2','flipkart','[]')").run();
+ok((await packsForRecipe(env, ragiId)).packs.length === 0, 'Candidate packs are not shown to parents');
+const candId = (await listPacks(env, { status: 'candidate' })).items.find((x) => x.brand === 'Indira').id;
+const approved = await reviewPack(env, candId, { action: 'approve', nutrition: label });
+ok(approved.status === 'approved' && approved.score_status === 'exact' && approved.kidposhan_score > 0, 'Owner enters the label and approves: exact score stored');
+const shownPacks = await packsForRecipe(env, ragiId);
+ok(shownPacks.kind === 'ragi_dosa_mix' && shownPacks.packs.length === 1 && shownPacks.packs[0].score.value === approved.kidposhan_score, 'Parents see the approved pack with its exact score');
+const otherId = (await listPacks(env, { status: 'candidate' })).items[0].id;
+await reviewPack(env, otherId, { action: 'approve' });
+const both = (await packsForRecipe(env, ragiId)).packs;
+ok(both.length === 2 && both[0].score && both[1].score === null, 'Scored packs first; unscored pack says score pending (null)');
+let bad2 = ''; try { await reviewPack(env, otherId, { action: 'approve', nutrition: { protein_g: 'abc' } }); } catch (e) { bad2 = e.message; }
+ok(/must be a number/.test(bad2), 'Label values must be numbers');
+ok((await packsForRecipe(env, 999999)).packs.length === 0, 'Unknown recipe -> no packs');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

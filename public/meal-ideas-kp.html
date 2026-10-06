@@ -302,13 +302,14 @@ async function packsFor(r){
   if(!LIVE) return (PACKS[kindOf(r.name)]||PACKS.bowl).map(([name,size,hue],i)=>({brand:'Brand from catalogue',name,size,hue,score:[82,76,71][i],sample:true,
       buys:RETAILERS.slice(0,4).map(s=>({label:s.label,url:s.url(encodeURIComponent(name))}))}));
   try{
-    const term=(r.ready_term||r.name).split('|')[0].replace(/\bwith\b.*$/i,'').replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();
-    const pin=load('kp_pincode')||'';
-    const res=await fetch(`${API}/api/products?q=${encodeURIComponent(term)}${pin?`&pincode=${pin}`:''}`);
+    // Ready-to-buy = the dish itself in pack form (ragi dosa -> a ragi dosa mix), approved by the owner, scored from its label.
+    const res=await fetch(`${API}/api/kp/ready?recipe_id=${encodeURIComponent(r.id)}`);
     if(!res.ok) return [];
-    const d=await res.json(); const list=Array.isArray(d)?d:(d.products||d.results||[]);
-    return list.slice(0,8).map(p=>({brand:p.brand,name:p.product_name||p.name,size:p.pack_size||p.size,score:p.kidposhan_score??p.score,image:p.image_url,
-      buys:(p.offers||[]).filter(o=>o.affiliate_url||o.product_url||o.url).slice(0,4).map(o=>({label:o.retailer_label||o.retailer,url:o.affiliate_url||o.product_url||o.url,price:o.price}))}));
+    const d=await res.json();
+    const out=(d.packs||[]).map(p=>({brand:p.brand,name:p.name,size:p.pack_size,score:p.score?p.score.value:null,image:p.image_url,
+      buys:[{label:(p.retailer||'Buy').replace(/^./,c=>c.toUpperCase()),url:p.url}]}));
+    out.hide=!d.kind; // this dish has no ready-made form (e.g. a poriyal): don't show the section at all
+    return out;
   }catch(e){return []}
 }
 
@@ -411,12 +412,13 @@ async function renderRecipe(id){
   app.querySelectorAll('.step').forEach(el=>{el.onclick=()=>toggleStep(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStep(el)}}});
   renderTray();
   const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
+  if(packs.hide){box.closest('section')?.remove();return}
   box.innerHTML=packs.length?`<div class="carousel packs" role="list">${packs.map(p=>`<div class="pack" role="listitem">
     <div class="art">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:packArt(p)}${p.score!=null?`<span class="badge">${p.score}</span>`:''}</div>
-    <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.size||'')}${p.sample?', sample':''}</span>
+    <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.size||'')}${p.sample?', sample':p.score==null?`${p.size?' · ':''}Score pending`:''}</span>
     ${p.buys?.[0]?.price?`<span class="price">from ₹${esc(Math.min(...p.buys.filter(b=>b.price).map(b=>+b.price)))}</span>`:''}
     <div class="buys">${(p.buys||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}</a>`).join('')}</div></div></div>`).join('')}</div>`
-   :`<p class="empty-packs">No scored packs for this dish yet.</p>`;
+   :`<p class="empty-packs">No ready-made pack for this dish yet.</p>`;
 }
 
 /* ===== shopping tray ===== */

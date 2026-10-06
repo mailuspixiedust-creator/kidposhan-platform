@@ -964,4 +964,4 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   return null;
 }
 
-export default {async scheduled(event,env,ctx){ctx.waitUntil(scheduledRecipes(env));}, async fetch(request,env,ctx){const recipeRes=await routeRecipes(request,env,ctx); if(recipeRes)return recipeRes; const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};
+export default {async scheduled(event,env,ctx){ctx.waitUntil(scheduledRecipes(env,event.cron));}, async fetch(request,env,ctx){const recipeRes=await routeRecipes(request,env,ctx); if(recipeRes)return recipeRes; const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};

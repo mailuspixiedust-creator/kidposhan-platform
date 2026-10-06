@@ -14,6 +14,7 @@ import { handleRecipesApi } from './api.js';
 import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
 import { scoreRecipe, reparseIngredients } from './score.js';
+import { packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
@@ -31,10 +32,27 @@ export async function routeRecipes(request, env, ctx) {
     return handleRecipesApi(request, env, ctx);
   }
 
+  // GET /api/kp/ready?recipe_id=12  -> approved ready-to-buy packs for that dish (ragi dosa -> ragi dosa mix)
+  if (request.method === 'GET' && path === '/api/kp/ready') {
+    const rid = +url.searchParams.get('recipe_id');
+    return rid ? json(await packsForRecipe(env, rid)) : json({ error: 'recipe_id required' }, 400);
+  }
+
   if (!path.startsWith('/api/kp/admin/')) return null;
   if (!authorised(request, env)) return json({ error: 'Missing or wrong x-admin-token' }, 401);
 
   try {
+    // ---- ready-to-buy packs ----
+    if (path === '/api/kp/admin/products' && request.method === 'GET') {
+      return json(await listPacks(env, { status: url.searchParams.get('status') || 'candidate', limit: +url.searchParams.get('limit') || 30, offset: +url.searchParams.get('offset') || 0 }));
+    }
+    // POST /api/kp/admin/products/research?kind=ragi_dosa_mix   (no kind = the one that has waited longest)
+    if (path === '/api/kp/admin/products/research' && request.method === 'POST') {
+      const kind = url.searchParams.get('kind');
+      return json(kind ? await researchKind(env, kind) : await researchNextKind(env));
+    }
+    const pm = path.match(/^\/api\/kp\/admin\/products\/(\d+)$/);
+    if (pm && request.method === 'POST') return json(await reviewPack(env, +pm[1], await request.json()));
     // ---- owner review ----
     if (path === '/api/kp/admin/review' && request.method === 'GET') {
       return json(await listForReview(env, {
@@ -121,7 +139,13 @@ export async function routeRecipes(request, env, ctx) {
 // Cron (every 30 min in wrangler.toml):
 //  1. re-check the two least-recently-crawled registered sites for NEW posts (whole registry cycles every ~day)
 //  2. extract queued pages; results wait in the review screen
-export async function scheduledRecipes(env) {
+export const PACKS_CRON = '0 */3 * * *';
+export async function scheduledRecipes(env, cron) {
+  // Slow cron: one kind of ready-to-buy pack per run (about 90 s, a few Tavily searches), kept apart from the recipe crawl.
+  if (cron === PACKS_CRON) {
+    try { console.log('packs', JSON.stringify(await researchNextKind(env))); } catch (e) { console.error('packs', e); }
+    return;
+  }
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 3 }))); } catch (e) { console.error('rewrite', e); }
   const { results: due } = await env.DB.prepare(

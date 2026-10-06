@@ -26,6 +26,9 @@ button,input,select{font:inherit;color:inherit}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 14px;border-bottom:1px solid var(--line)}
 .tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer;font-weight:600;color:var(--muted)}
 .tab[aria-selected="true"]{color:var(--ink);border-color:var(--leaf)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pf span{font-size:12px;color:var(--muted);display:block}
+.pf input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
 .tab .n{font-weight:500;margin-left:4px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
 .card>div{padding:16px}
@@ -115,6 +118,7 @@ const demo={
  ],
 };
 
+let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
 let tab='pending', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
 const app=document.getElementById('app');
 
@@ -132,6 +136,7 @@ async function demoApi(path,opts){
   if(u.pathname==='/api/kp/admin/sources'){const st=u.searchParams.get('state')||'all',q=(u.searchParams.get('q')||'').toLowerCase();
     const c={new:0,active:0,paused:0,blocked:0};demo.sites.forEach(x=>c[x.state]++);c.all=demo.sites.length;
     return {counts:c,items:demo.sites.filter(x=>(st==='all'||x.state===st)&&(!q||(x.name+x.url+x.area).toLowerCase().includes(q)))}}
+  if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
   let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];
     if(b.action==='publish'&&b.occasions&&!b.occasions.length) throw new Error('pick at least one meal before publishing');
     for(const k of ['pending','approved','rejected']){const i=demo[k].findIndex(x=>x.id===id);if(i>=0){const [it]=demo[k].splice(i,1);Object.assign(it,b);demo[{publish:'approved',reject:'rejected',pending:'pending'}[b.action]].unshift(it)}}
@@ -147,7 +152,7 @@ function render(){
     document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
     return;
   }
-  const tabs=[['pending','Waiting'],['approved','Published'],['rejected','Rejected'],['sites','Sites']];
+  const tabs=[['pending','Waiting'],['approved','Published'],['rejected','Rejected'],['packs','Packs'],['sites','Sites']];
   app.innerHTML=`<h1>Recipe review</h1>
     <p class="sub">Recipes found by searches and site checks wait here. Parents only see what you publish.</p>
     ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
@@ -155,11 +160,54 @@ function render(){
     <div id="list"></div>`;
   app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;offset=0;load()});
   const list=document.getElementById('list');
+  if(tab==='packs'){renderPacks(list);return}
   if(tab==='sites'){renderSites(list);return}
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
     `<p class="empty">${tab==='pending'?'Nothing waiting. New recipes arrive as parents search and as sites are re-checked.':'Nothing here yet.'}</p>`;
   bindCards();
   const more=document.getElementById('more'); if(more) more.onclick=()=>{offset+=20;load(true)};
+}
+
+function packCard(p){
+  const n=p.nutrition||{}, f=(k,l,ph)=>`<label class="pf"><span>${l}</span><input type="number" step="any" min="0" name="${k}" value="${n[k]??''}" placeholder="${ph||''}"></label>`;
+  const d=p.score_detail, inp=d?.inputs||{};
+  const score=p.score_status==='exact'
+    ?`<p><b>Poshan Score ${p.kidposhan_score}</b> (${esc(d?.engine?.band||'')}), exact, per 100 g from the label.</p><p class="why">Counted from the ingredient list: ${inp.additives} additive${inp.additives===1?'':'s'}${d?.additives_found?.length?' ('+esc(d.additives_found.join(', '))+')':''}, palm oil ${inp.palmOil?'yes':'no'}, maida ${inp.maida?'yes':'no'}, whole grain first ${inp.wholeGrain?'yes':'no'}.</p>`
+    :`<p class="why">Score pending: enter the label values below (per 100 g, from the pack photo). All five of protein, fibre, added sugars, saturated fat and sodium are needed. Enter 0 for added sugars only if the ingredients list no sugar, jaggery, syrup or honey.</p>`;
+  const acts=p.status==='candidate'
+    ?`<button class="btn publish" data-pact="approve">Approve</button><button class="btn reject" data-pact="reject">Reject</button>`
+    :`<button class="btn undo" data-pact="candidate">Move back to waiting</button>${p.status==='rejected'?'<button class="btn publish" data-pact="approve">Approve</button>':''}`;
+  const saveAs=p.status==='approved'?'approve':p.status==='rejected'?'reject':'candidate';
+  return `<article class="card" data-pid="${p.id}" data-save="${saveAs}">
+   <div><h2>${esc(p.name)}</h2>
+    <p class="src">${esc(p.brand||'')} ${p.pack_size?'· '+esc(p.pack_size):''} · ${esc(p.retailer||'')}. <a href="${esc(p.product_url)}" target="_blank" rel="noopener">Open product page</a></p>
+    <details><summary>Ingredients (${p.ingredients.length})</summary><ul class="ing">${p.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')||'<li>Not found on the page: read it from the pack.</li>'}</ul></details>
+    ${score}</div>
+   <div class="right">
+    <div><span class="lbl">Dish type this pack is for</span><select name="kind">${packKinds.map(k=>`<option value="${k.kind}" ${k.kind===p.kind?'selected':''}>${esc(k.label)}</option>`).join('')}</select></div>
+    <span class="lbl">Label, per 100 g</span>
+    <div class="pgrid">${f('protein_g','Protein g')}${f('fibre_g','Fibre g')}${f('sugars_g','Total sugars g')}${f('added_sugars_g','Added sugars g')}${f('saturated_fat_g','Saturated fat g')}${f('sodium_mg','Sodium mg')}</div>
+    <div class="actions"><button class="btn undo" data-pact="save">Save label &amp; score</button>${acts}</div><p class="err" role="alert"></p>
+   </div></article>`;
+}
+function renderPacks(list){
+  const c=packCounts;
+  list.innerHTML=`<p class="sub">Ready-made versions of dishes (ragi dosa → a ragi dosa mix). Parents see only packs you approve. Type the label values from the pack photo to get an exact Poshan Score.</p>
+    <div class="tabs" role="tablist">${[['candidate','Waiting'],['approved','Approved'],['rejected','Rejected']].map(([k,l])=>`<button class="tab" aria-selected="${packStatus===k}" data-ps="${k}">${l}<span class="n">${c[k]??0}</span></button>`).join('')}</div>
+    <p><button class="btn undo" id="findpacks">Find more packs now</button> <span class="why" id="packmsg">${esc(packMsg)}</span></p>
+    ${packs.length?packs.map(packCard).join(''):'<p class="empty">Nothing here. The site looks for packs automatically, one dish type every 3 hours, or press "Find more packs now".</p>'}`;
+  list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{packStatus=b.dataset.ps;load()});
+  document.getElementById('findpacks').onclick=async e=>{e.target.disabled=true;document.getElementById('packmsg').textContent='Searching, about 90 seconds…';
+    try{const r=await api('/api/kp/admin/products/research',{method:'POST'});packMsg=`Searched "${r.query}": ${r.added} new, ${r.already_known} already known.`}catch(x){packMsg='Search failed: '+x.message}
+    load()};
+  list.querySelectorAll('[data-pact]').forEach(b=>b.onclick=async()=>{
+    const card=b.closest('.card'), err=card.querySelector('.err'); err.textContent='';
+    const nutrition={}; card.querySelectorAll('.pgrid input').forEach(i=>nutrition[i.name]=i.value);
+    const action=b.dataset.pact==='save'?card.dataset.save:b.dataset.pact;
+    card.querySelectorAll('button').forEach(x=>x.disabled=true);
+    try{await api('/api/kp/admin/products/'+card.dataset.pid,{method:'POST',body:JSON.stringify({action,nutrition,kind:card.querySelector('[name=kind]').value})});load()}
+    catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
+  });
 }
 
 function cardHTML(r){
@@ -279,7 +327,8 @@ async function load(append=false){
     siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
     counts={pending:p.total,approved:a.total,rejected:r.total,sites:c.counts.new?`${c.counts.new} new`:''};
     if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts}
-    if(tab!=='sites'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}`);items=append?items.concat(d.items):d.items;total=d.total}
+    const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
+    if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}`);items=append?items.concat(d.items):d.items;total=d.total}
     render();
   }catch(e){ if(token||DEMO) app.innerHTML=`<h1>Recipe review</h1><p class="err">Couldn't load the queue: ${esc(e.message)}</p>`; }
 }

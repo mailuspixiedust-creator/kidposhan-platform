@@ -20,4 +20,4 @@ bucket_name = "kidposhan-platform-media"
 binding = "AI"
 
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["*/30 * * * *", "0 */3 * * *"]
