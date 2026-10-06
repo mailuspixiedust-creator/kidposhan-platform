@@ -122,6 +122,8 @@ export async function routeRecipes(request, env, ctx) {
 //  1. re-check the two least-recently-crawled registered sites for NEW posts (whole registry cycles every ~day)
 //  2. extract queued pages; results wait in the review screen
 export async function scheduledRecipes(env) {
+  // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
+  try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 3 }))); } catch (e) { console.error('rewrite', e); }
   const { results: due } = await env.DB.prepare(
     `SELECT * FROM kp_recipe_sources WHERE status = 'registered' AND active = 1 AND crawl_mode = 'auto'
       ORDER BY last_crawled_at IS NOT NULL, last_crawled_at LIMIT 2`
@@ -131,5 +133,4 @@ export async function scheduledRecipes(env) {
     await env.DB.prepare("UPDATE kp_recipe_sources SET last_crawled_at = datetime('now') WHERE id = ?").bind(s.id).run();
   }
   await processPending(env, { limit: 8 });
-  try { await rewritePending(env, { limit: 3 }); } catch (e) { console.error('rewrite', e); }
 }

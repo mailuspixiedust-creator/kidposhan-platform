@@ -250,4 +250,8 @@ ok(parseIngredientLine('1 no Brinjal (chopped)').ingredient_key === 'brinjal' &&
 const cl = parseIngredientLine('Curry leaves a sprig'); ok(cl.quantity === 1 && cl.unit === 'sprig' && cl.ingredient_key === 'curry_leaves', '"a sprig" / "a handful" read as a quantity');
 ok(parseIngredientLine('1 potato').ingredient_key === 'potato' && parseIngredientLine('2 sweet potatoes').ingredient_key === 'sweet_potato' && parseIngredientLine('green chillies').ingredient_key === 'green_chilli', 'Existing key matching unaffected by plural support');
 
+db.prepare("UPDATE kp_recipes SET kp_steps_status='none', kp_steps_json=NULL WHERE id=?").run(rid);
+const chatEnv = { ...env, AI: { run: async () => ({ choices: [{ message: { content: '["Dry roast 1 cup rava for 5 minutes.", "Add water and cook for 3 minutes."]' } }] }) } };
+ok((await rewriteSteps(chatEnv, rid)).status === 'draft', 'AI reply in chat-completion shape is read');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

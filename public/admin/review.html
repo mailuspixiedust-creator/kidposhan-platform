@@ -73,6 +73,7 @@ select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px
 .seg button[aria-pressed="true"][data-state="active"]{background:var(--leaf);color:var(--paper)}
 .seg button[aria-pressed="true"][data-state="paused"]{background:var(--turmeric);color:#2A1E00}
 .seg button[aria-pressed="true"][data-state="blocked"]{background:var(--chilli);color:#fff}
+.kpsteps{width:100%;min-height:150px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit;font-size:14px;line-height:1.5;resize:vertical}
 .site textarea{width:100%;min-height:54px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--steel);font:inherit;font-size:14px;resize:vertical}
 .saved{font-size:12px;color:var(--leaf);min-height:1em}
 @media (max-width:720px){.site{grid-template-columns:1fr}}
@@ -179,7 +180,7 @@ function cardHTML(r){
       ${r.score_status==='estimated'?`<label class="chk"><input type="checkbox" name="score_approved" ${r.score_approved?'checked':''}> Show this estimated score to parents</label>`:''}</div>`;
   })();
   const kpSteps=`<details open><summary>KidPoshan steps (${{none:'not written yet',draft:'draft, needs your check',approved:'approved',failed:'rewrite failed, write them here'}[r.kp_steps_status]||r.kp_steps_status})</summary>
-    <textarea name="kp_steps" rows="8" style="width:100%">${esc((r.kp_steps||[]).join('\n'))}</textarea>
+    <textarea name="kp_steps" class="kpsteps" rows="9" placeholder="No KidPoshan steps yet. One is being drafted automatically; or type the steps here, one per line.">${esc((r.kp_steps||[]).join('\n'))}</textarea>
     <p class="why">One step per line, in KidPoshan's own words. Check every quantity and time against the original. Publishing saves and approves what is written here.</p></details>`;
   return `<article class="card" data-id="${r.id}">
    <div><h2>${esc(r.name)}</h2>

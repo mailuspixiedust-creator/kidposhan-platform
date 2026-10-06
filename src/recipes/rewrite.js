@@ -2,7 +2,7 @@
 // AI binding and saved as a DRAFT. Nothing is shown to parents until the owner approves it (or edits and publishes).
 // The rewrite may not add, drop or change any action, quantity, time or temperature; a numbers check enforces the last three.
 
-export const REWRITE_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+export const REWRITE_MODEL = '@cf/mistralai/mistral-small-3.1-24b-instruct'; // override with the REWRITE_MODEL var if Cloudflare retires it
 
 const numbersIn = (s) => (String(s).match(/\d+(?:[./]\d+)?/g) || []).map((n) => String(+n));
 
@@ -38,9 +38,11 @@ export async function rewriteSteps(env, id) {
   ].join('\n');
   let out;
   try {
-    out = await env.AI.run(REWRITE_MODEL, { messages: [{ role: 'user', content: prompt }], max_tokens: 1500, temperature: 0.2 });
+    out = await env.AI.run(env.REWRITE_MODEL || REWRITE_MODEL, { messages: [{ role: 'user', content: prompt }], max_tokens: 1500, temperature: 0.2 });
   } catch (e) { return { id, error: `AI call failed: ${e.message}` }; }
-  const steps = parseSteps(out?.response ?? out?.result?.response);
+  // Workers AI models answer as { response } or, for newer chat models, OpenAI-style { choices: [{ message: { content } }] }
+  const raw = out?.response ?? out?.result?.response ?? out?.choices?.[0]?.message?.content;
+  const steps = parseSteps(typeof raw === 'string' ? raw : JSON.stringify(raw));
   const problem = checkRewrite(original, steps);
   if (problem) {
     // don't retry forever from the cron; the owner can trigger a retry from the admin endpoint
