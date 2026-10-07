@@ -37,6 +37,8 @@ for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
     if (k < 0) throw new Error('css anchor');
     h = h.slice(0, k) + '.actions-grid .action-card.a3{ animation-delay:.3s; grid-column:1 / -1; } .action-card.a3 .action-dot{ background:var(--red); }\n  ' + h.slice(k);
   }
+  // Seven links (with Meal Ideas) need more room than the original five: until the screen is wide enough, use the menu button.
+  h = h.replace('</style>', '@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}\n  @media(min-width:1180px){.nav-links{gap:22px}}\n</style>');
   fs.writeFileSync(path.join(out, name), h);
 }
 

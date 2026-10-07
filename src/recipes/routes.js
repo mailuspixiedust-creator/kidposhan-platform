@@ -18,6 +18,7 @@ import { readPackLabel, readLabelsPending } from './label.js';
 import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { autoPublishPending } from './autopublish.js';
+import { galleryPending } from './gallery.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
@@ -115,6 +116,11 @@ export async function routeRecipes(request, env, ctx) {
     return json({ processed: await processPending(env, { limit }) });
   }
 
+  // POST /api/kp/admin/recipes/gallery?limit=4   collect the photos of recipes read before photo collection existed
+  if (path.endsWith('/gallery') && request.method === 'POST') {
+    return json({ gallery: await galleryPending(env, { limit: Math.min(+url.searchParams.get('limit') || 4, 10) }) });
+  }
+
   // POST /api/kp/admin/recipes/autopublish?limit=50[&recheck=1]  publish the waiting recipes that pass every check (recheck=1 also re-evaluates held ones)
   if (path.endsWith('/autopublish') && request.method === 'POST') {
     if (url.searchParams.get('recheck') === '1') await env.DB.prepare("UPDATE kp_recipes SET hold_reasons_json = NULL WHERE review_status = 'pending' AND reviewed_at IS NULL").run();
@@ -178,6 +184,7 @@ export async function scheduledRecipes(env, cron) {
   try { console.log('labels', JSON.stringify(await readLabelsPending(env, { limit: 2 }))); } catch (e) { console.error('labels', e); }
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
+  try { console.log('gallery', JSON.stringify(await galleryPending(env, { limit: 4 }))); } catch (e) { console.error('gallery', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(
     `SELECT * FROM kp_recipe_sources WHERE status = 'registered' AND active = 1 AND crawl_mode = 'auto'

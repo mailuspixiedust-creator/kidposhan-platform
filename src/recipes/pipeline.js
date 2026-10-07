@@ -6,6 +6,7 @@ import { tagRecipe } from './tag.js';
 import { scoreRecipe } from './score.js';
 import { maybeAutoPublish } from './autopublish.js';
 import { isIndexPath } from './discover.js';
+import { collectImages } from './images.js';
 
 export function buildRecipe(extracted, source) {
   const ingredients = extracted.ingredients.map(parseIngredientLine);
@@ -45,6 +46,9 @@ export async function processCandidate(env, cand, source) {
     }
     const built = buildRecipe(extracted, source);
     const recipeId = await upsertRecipe(env, source.id, finalUrl, built, cand.query_key || null);
+    // every photo of this dish (finished dish + steps); the hero becomes the sharpest/uncropped one the page offers
+    const images = collectImages(html, finalUrl, extracted.ld_images);
+    await env.DB.prepare('UPDATE kp_recipes SET images_json = ?, image_url = COALESCE(?, image_url) WHERE id = ?').bind(JSON.stringify(images), images[0] || null, recipeId).run();
     const status = extracted.completeness === 'complete' ? 'extracted' : 'partial';
     await env.DB.prepare(
       "UPDATE kp_recipe_candidates SET status=?, attempts=attempts+1, last_error=NULL, processed_at=datetime('now') WHERE id=?"

@@ -144,6 +144,8 @@ export async function recipeDetail(env, id, { pref = '' } = {}) {
     // Photo of the dish: shown, credited to the source (see `source`), unless the owner switched this site's photos off.
     // (Verbatim steps still need rights_status = granted.)
     image_url: r.photos_hidden ? null : r.image_url,
+    // every photo of the dish for the carousel (hero first); switched off together with the hero when the site's photos are hidden
+    images: r.photos_hidden ? [] : (() => { try { return JSON.parse(r.images_json || '[]'); } catch { return []; } })(),
     description: r.description,
     servings: r.servings,
     total_minutes: r.total_minutes,

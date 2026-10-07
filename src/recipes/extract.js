@@ -77,6 +77,7 @@ function result(base) {
     keywords: base.keywords ? clean(asArray(base.keywords).join(', ')) : '',
     method: base.method,
     nutrition: base.nutrition || null,
+    ld_images: base.ld_images || [],
     completeness: base.name && ingredients.length >= 2 && instructions.length >= 1 ? 'complete' : 'partial',
     source_url: base.url,
   };
@@ -124,6 +125,7 @@ export function fromJsonLd(html, url) {
         category: asArray(node.recipeCategory).concat(asArray(node.recipeCuisine)),
         keywords: node.keywords,
         nutrition: node.nutrition,
+        ld_images: asArray(node.image).flatMap((x) => (typeof x === 'string' ? [x] : x && (x.url || x.contentUrl) ? [x.url || x.contentUrl] : [])),
       });
     }
   }

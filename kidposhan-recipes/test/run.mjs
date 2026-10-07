@@ -50,6 +50,7 @@ db.exec(fs.readFileSync('migrations/0012_pack_label_reading.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0013_photos_hidden.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0014_publish_by_default.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0015_mayo_flex.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0016_recipe_images.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -467,5 +468,37 @@ ok(mayoLine(dPlain) === '1/2 cup Mayonnaise' && /eggless mayonnaise for a vegeta
 ok(mayoFor('Spread the Mayonnaise') === 'Spread the eggless mayonnaise' && mayoFor('Mayonnaise') === 'Eggless mayonnaise' && mayoFor('Vegan Mayonnaise') === 'Vegan Mayonnaise', 'The wording swap capitalises only at a sentence start and leaves eggless / vegan mayonnaise alone');
 const plainId = mkDiet('https://site.in/d-plain-veg/', 'veg');
 ok(!(await ids('nonveg')).includes(plainId), 'A plain vegetarian recipe (no mayonnaise) still stays out of the Non-veg search');
+
+// ---- photos of the whole dish: this dish's finished + step photos only, never other recipes' thumbnails ----
+import { collectImages } from '../../src/recipes/images.js';
+const U = 'https://blog.in/wp-content/uploads/2017/03/';
+const pageHtml = `<html><head><meta property="og:image" content="${U}hero.jpg"></head><body>
+<header><img src="https://blog.in/wp-content/uploads/2021/10/logo-mobile.png"></header>
+<div class="entry-content">
+  <img src="data:image/svg+xml,%3Csvg%3E" data-lazy-src="${U}hero.jpg" width="640">
+  <img src="${U}step-1.jpg" width="500"><img src="${U}step-2.jpg" width="500">
+  <img data-src="${U}step-3.jpg" srcset="${U}step-3-300x200.jpg 300w, ${U}step-3.jpg 800w" width="500">
+  <img src="${U}step-1.jpg" width="500">
+  <img src="https://i.ytimg.com/vi/abc/hqdefault.jpg" width="480">
+  <img src="${U}tiny-icon.jpg" width="70">
+  <img src="${U}step-4-360x480.jpg" width="360">
+  <div class="jp-relatedposts"><img src="https://blog.in/wp-content/uploads/2015/08/other-dish-360x480.jpg" width="360"></div>
+</div>
+<div class="sidebar"><img src="${U}sidebar-thing.jpg" width="500"></div></body></html>`;
+const found = collectImages(pageHtml, 'https://blog.in/spicy-dish/', [U + 'hero-500x427.jpg', U + 'hero.jpg', U + 'hero-480x270.jpg']);
+ok(found[0] === U + 'hero.jpg', 'The hero is the uncropped photo, not a size-cropped copy');
+ok(found.join('|') === [U + 'hero.jpg', U + 'step-1.jpg', U + 'step-2.jpg', U + 'step-3.jpg'].join('|'), 'Step photos of the same dish are collected once each, in page order: ' + found.map((x) => x.split('/').pop()).join(', '));
+ok(!found.some((u) => /logo|hqdefault|tiny-icon|360x480|other-dish|sidebar/.test(u)), 'Logos, video thumbnails, tiny icons, cropped thumbnails, other dishes and sidebar images are left out');
+ok(collectImages('<html><body>no body markers <img src="https://x.in/a.jpg"></body></html>', 'https://x.in/p/', ['https://x.in/hero.jpg']).join() === 'https://x.in/hero.jpg', 'A page with no clear post body gives just the hero');
+ok(collectImages('<html></html>', 'https://x.in/', []).length === 0, 'No photo at all gives an empty list');
+
+const gId = mkRecipe('https://site.in/gallery-dish/', { status: 'approved' });
+db.prepare('UPDATE kp_recipes SET image_url = ?, images_json = ? WHERE id = ?').run(U + 'hero.jpg', JSON.stringify(found), gId);
+const gDetail = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + gId), env, ctx)).json();
+ok(gDetail.images.length === 4 && gDetail.images[0] === gDetail.image_url, 'The recipe API returns every photo of the dish, hero first');
+await updateSource(env, 1, { photos_hidden: true });
+const gHidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + gId), env, ctx)).json();
+await updateSource(env, 1, { photos_hidden: false });
+ok(gHidden.images.length === 0 && gHidden.image_url === null, "Hiding a site's photos hides the whole gallery too");
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

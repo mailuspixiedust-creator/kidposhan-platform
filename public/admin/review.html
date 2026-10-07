@@ -138,6 +138,13 @@ body{overflow-x:hidden}
   h2{font-size:19px}
 }
 @media (hover:none){.btn:active,.fchip:active,.tab:active{opacity:.8}}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chilli);margin-left:4px;vertical-align:middle}
+@media (max-width:720px){
+  /* all five tabs fit across the screen; counts sit under the names (no hidden, scroll-away tabs) */
+  .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:0;padding:0 6px}
+  .tab{padding:8px 2px;font-size:13px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:50px;white-space:normal}
+  .tab .n{margin:0;font-size:11px;font-weight:600;min-height:1em}
+}
 </style>
 </head>
 <body>
@@ -407,7 +414,7 @@ async function load(append=false){
   try{
     const [p,a,r,c]=await Promise.all(['pending','approved','rejected'].map(st=>api(`/api/kp/admin/review?status=${st}&limit=1`)).concat([api('/api/kp/admin/sources?state=new')]));
     siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
-    unreviewedCount=a.unreviewed||0; counts={pending:p.total,approved:a.unreviewed?`${a.total} · ${a.unreviewed} not reviewed`:a.total,rejected:r.total,sites:c.counts.new?`${c.counts.new} new`:''};
+    unreviewedCount=a.unreviewed||0; counts={pending:p.total,approved:`${a.total}${a.unreviewed?'<b class="dot" title="'+a.unreviewed+' not reviewed"></b>':''}`,rejected:r.total,sites:c.counts.new||''};
     if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
     if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
