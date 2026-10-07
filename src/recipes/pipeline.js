@@ -25,7 +25,6 @@ export function buildRecipe(extracted, source) {
   if (!extracted.name) flags.push('no_name');
   if (!tags.occasions.length) flags.push('no_meal_type');
   if (/review/.test(tags.reasons.diet || '')) flags.push('check_jain');
-  if (/mayonnaise/.test(tags.reasons.diet || '')) flags.push('check_diet');
   if (source.status === 'suggested') flags.push('new_site');
   return { extracted, ingredients, tags, review: 'pending', flags };
 }
@@ -75,8 +74,8 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
     `INSERT INTO kp_recipes (source_id, source_url, name, image_url, description, ingredients_raw_json, instructions_json,
        servings, prep_minutes, cook_minutes, total_minutes, source_rating, source_rating_count,
        extraction_method, completeness, diet, age_min_months, age_max_months, tag_reasons_json, review_status,
-       flags_json, found_for)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       flags_json, found_for, mayo_flex)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(source_url) DO UPDATE SET
        name=excluded.name, image_url=excluded.image_url, description=excluded.description,
        ingredients_raw_json=CASE WHEN kp_recipes.ingredients_edited = 1 THEN kp_recipes.ingredients_raw_json ELSE excluded.ingredients_raw_json END,
@@ -89,7 +88,7 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
        diet=CASE WHEN kp_recipes.reviewed_at IS NULL THEN excluded.diet ELSE kp_recipes.diet END,
        age_min_months=CASE WHEN kp_recipes.reviewed_at IS NULL THEN excluded.age_min_months ELSE kp_recipes.age_min_months END,
        age_max_months=CASE WHEN kp_recipes.reviewed_at IS NULL THEN excluded.age_max_months ELSE kp_recipes.age_max_months END,
-       flags_json=excluded.flags_json,
+       flags_json=excluded.flags_json, mayo_flex=excluded.mayo_flex,
        updated_at=datetime('now')
      RETURNING id, reviewed_at, ingredients_edited`
   ).bind(
@@ -99,7 +98,7 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
     x.total_minutes ?? ((x.prep_minutes || 0) + (x.cook_minutes || 0) || null),
     x.rating, x.rating_count, x.method, x.completeness,
     tags.diet, tags.age_min_months, tags.age_max_months, JSON.stringify(tags.reasons), review,
-    JSON.stringify(flags || []), foundFor
+    JSON.stringify(flags || []), foundFor, tags.mayoFlex && tags.diet !== 'egg' && tags.diet !== 'nonveg' ? 1 : 0
   ).first();
   const id = row.id;
   const reviewed = !!row.reviewed_at;

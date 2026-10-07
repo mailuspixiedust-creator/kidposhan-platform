@@ -10,7 +10,6 @@ const HOLD_FLAGS = {
   no_name: 'no recipe name found',
   no_meal_type: 'no meal type could be worked out (breakfast, lunchbox, ...)',
   check_jain: 'Jain suitability needs a person to confirm',
-  check_diet: 'diet needs a person to confirm (it contains mayonnaise, which is normally made with egg)',
   new_site: 'this site is not in your registry yet',
 };
 const CARD_METHODS = new Set(['jsonld', 'microdata', 'wprm', 'tasty']);

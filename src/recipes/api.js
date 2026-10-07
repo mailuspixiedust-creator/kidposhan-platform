@@ -52,7 +52,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
            (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
      WHERE r.review_status IN ${VISIBLE}
-       AND r.diet IN (${diets.map(() => '?').join(',')})
+       AND (r.diet IN (${diets.map(() => '?').join(',')})${q.pref === 'nonveg' ? ' OR r.mayo_flex = 1' : ''})
        AND r.age_min_months <= ? AND r.age_max_months >= ?`;
   args.push(...diets, q.age, q.age);
 
@@ -104,7 +104,12 @@ export async function searchRecipes(env, q) {
 
 const bandOf = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
 
-export async function recipeDetail(env, id) {
+// Mayonnaise can be made either way. For a Veg / Jain meal it reads "Eggless mayonnaise"; for Non-veg it stays "Mayonnaise".
+export function mayoFor(text) {
+  return String(text ?? '').replace(/((?:eggless|egg[- ]free|vegan|veg(?:etarian)?)\s+)?\bmayonnaise\b/gi, (m, pre, offset, whole) => (pre ? m : offset === 0 || /[.!?]\s*$/.test(whole.slice(0, offset)) ? 'Eggless mayonnaise' : 'eggless mayonnaise'));
+}
+
+export async function recipeDetail(env, id, { pref = '' } = {}) {
   const r = await env.DB.prepare(
     `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -115,11 +120,15 @@ export async function recipeDetail(env, id) {
     'SELECT position, raw_text, quantity, unit, name, ingredient_key, is_pantry FROM kp_recipe_ingredients WHERE recipe_id = ? ORDER BY position'
   ).bind(id).all();
 
+  const flex = r.mayo_flex === 1 && (pref === 'veg' || pref === 'jain');
+  const fix = (t) => (flex ? mayoFor(t) : t);
   const ingredients = [];
   for (const i of ings) {
-    const label = displayName(i.ingredient_key, i.name);
+    const label = displayName(i.ingredient_key, fix(i.name));
     ingredients.push({
       ...i,
+      raw_text: fix(i.raw_text),
+      name: fix(i.name),
       is_pantry: !!i.is_pantry,
       default_state: i.is_pantry ? 'at_home' : null, // UI: pantry staples pre-ticked "At home"
       buy: i.ingredient_key === 'water' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
@@ -147,7 +156,8 @@ export async function recipeDetail(env, id) {
     source: { name: r.source_name, url: r.source_url, rights_status: r.rights_status },
     // Verbatim method only when the source has granted rights; otherwise the UI links out.
     // KidPoshan's own approved steps always come first; the creator's verbatim steps only with granted rights.
-    method: kpSteps.length ? kpSteps.map((text) => ({ section: null, text })) : methodAllowed ? JSON.parse(r.instructions_json || '[]') : null,
+    method: kpSteps.length ? kpSteps.map((text) => ({ section: null, text: fix(text) })) : methodAllowed ? JSON.parse(r.instructions_json || '[]').map((st) => ({ ...st, text: fix(st.text) })) : null,
+    mayo_note: r.mayo_flex !== 1 ? null : flex ? 'This recipe uses mayonnaise. It is shown with eggless mayonnaise, so it suits a vegetarian meal.' : pref === 'nonveg' ? 'This recipe uses regular mayonnaise.' : 'This recipe uses mayonnaise. Choose eggless mayonnaise for a vegetarian meal.',
     method_by: kpSteps.length ? 'kidposhan' : methodAllowed ? 'creator' : null,
     method_url: r.source_url,
     ingredients,
@@ -159,7 +169,8 @@ export async function handleRecipesApi(request, env, ctx) {
   const url = new URL(request.url);
   const m = url.pathname.match(/^\/api\/kp\/recipes\/(\d+)$/);
   if (m) {
-    const d = await recipeDetail(env, +m[1]);
+    const pref = url.searchParams.get('pref') || '';
+    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '' });
     return d ? json(d) : json({ error: 'Recipe not found' }, 404);
   }
   const q = readParams(url);

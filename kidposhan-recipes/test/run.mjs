@@ -49,6 +49,7 @@ db.exec(fs.readFileSync('migrations/0011_ready_products.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0012_pack_label_reading.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0013_photos_hidden.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0014_publish_by_default.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0015_mayo_flex.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -437,8 +438,10 @@ ok(['Pork Sausage Rolls|4 pork sausages', 'Prawn Curry|250 g shrimp', 'Lamb Keem
 ok(dietOf('Egg Biryani', ['4 eggs', '1 cup rice']) === 'egg' && dietOf('Egg Roll', ['2 eggs', 'maida']) === 'egg', 'Egg dishes are tagged egg');
 ok(dietOf('Eggless Chocolate Cake', ['1 cup maida', '1 cup eggless mayonnaise']) !== 'egg' && dietOf('Egg-free Pancakes', ['1 cup flour', '1 cup milk']) !== 'egg' && dietOf('Baingan Bharta', ['2 eggplant', '1 onion']) !== 'egg', 'Eggless, egg-free and eggplant are not egg');
 ok(['nonveg', 'egg'].every((d) => dietOf('Soya Chunks Biryani', ['1 cup soya chunks', '1 cup rice', 'vegetarian chicken masala']) !== d) && dietOf('Flavour Noodles', ['1 tsp chicken flavour masala', 'noodles']) !== 'nonveg', 'Soya / vegetarian "chicken" and chicken flavouring are not non-veg');
-ok(dietOf('Focaccia Sandwich', ['1/2 cup Mayonnaise', '2 slices bread']) === 'egg' && dietOf('Avocado Sandwich', ['2 tablespoons cream cheese (or mayonnaise)', 'bread']) !== 'egg', 'Mayonnaise counts as egg unless it is eggless or only an "or" alternative');
-ok(buildRecipe({ name: 'Mayo Wrap', ingredients: ['1/2 cup mayonnaise', 'wrap'], instructions: [], completeness: 'complete', method: 'jsonld', source_url: 'https://x.in/mayo/' }, { url: 'https://x.in/', notes: '', status: 'registered' }).flags.includes('check_diet'), 'A mayonnaise-based egg guess is flagged so it is held for a person');
+const mayoTags = (name, lines) => tagRecipe({ name, ingredients: lines.map(parseIngredientLine) });
+ok(mayoTags('Focaccia Sandwich', ['1/2 cup Mayonnaise', '2 slices bread']).mayoFlex === true && mayoTags('Focaccia Sandwich', ['1/2 cup Mayonnaise', '2 slices bread']).diet !== 'egg', 'Mayonnaise keeps the recipe vegetarian and flags it as flexible (no longer forced to egg)');
+ok(mayoTags('Avocado Sandwich', ['2 tablespoons cream cheese (or mayonnaise)', 'bread']).mayoFlex === false && mayoTags('Eggless Cake', ['1 cup eggless mayonnaise', 'maida']).mayoFlex === false && mayoTags('Egg Sandwich', ['2 eggs', '1 tbsp mayonnaise']).diet === 'egg', 'An "or mayonnaise" alternative or eggless mayonnaise is not flexible; real egg still makes it an egg dish');
+ok(buildRecipe({ name: 'Mayo Wrap', ingredients: ['1/2 cup mayonnaise', 'wrap'], instructions: [], completeness: 'complete', method: 'jsonld', source_url: 'https://x.in/mayo/' }, { url: 'https://x.in/', notes: '', status: 'registered' }).tags.mayoFlex === true, 'The recipe build carries the mayonnaise flag through to storage');
 
 const mkDiet = (url, diet) => { const id = mkRecipe(url, { status: 'approved' }); db.prepare('UPDATE kp_recipes SET diet=? WHERE id=?').run(diet, id); return id; };
 const dVeg = mkDiet('https://site.in/d-veg/', 'veg'), dJain = mkDiet('https://site.in/d-jain/', 'jain'), dEgg = mkDiet('https://site.in/d-egg/', 'egg'), dNon = mkDiet('https://site.in/d-non/', 'nonveg');
@@ -447,5 +450,22 @@ const nv = await ids('nonveg'), vg = await ids('veg'), jn = await ids('jain');
 ok(nv.includes(dEgg) && nv.includes(dNon) && !nv.includes(dVeg) && !nv.includes(dJain), 'Non-veg search returns egg and non-veg dishes only, never vegetarian or Jain ones');
 ok(vg.includes(dVeg) && vg.includes(dJain) && !vg.includes(dEgg) && !vg.includes(dNon), 'Veg search still returns veg and Jain dishes and nothing with egg or meat');
 ok(jn.includes(dJain) && !jn.includes(dVeg) && !jn.includes(dEgg) && !jn.includes(dNon), 'Jain search returns Jain dishes only');
+
+// ---- mayonnaise: appears in both searches, labelled for the preference chosen ----
+import { mayoFor } from '../../src/recipes/api.js';
+const mayoId = mkRecipe('https://site.in/mayo-sandwich/', { status: 'approved' });
+db.prepare("UPDATE kp_recipes SET mayo_flex = 1, diet = 'veg', kp_steps_json = ? WHERE id = ?").run(JSON.stringify(['Spread the Mayonnaise on the bread.', 'Serve.']), mayoId);
+db.prepare("INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?, 9, '1/2 cup Mayonnaise', 0.5, 'cup', 'Mayonnaise', NULL, 0)").run(mayoId);
+const nvIds = await ids('nonveg'), vgIds = await ids('veg'), jnIds = await ids('jain');
+ok(nvIds.includes(mayoId) && vgIds.includes(mayoId) && !jnIds.includes(mayoId), 'A mayonnaise recipe shows in both the Veg and the Non-veg search (not Jain unless tagged Jain)');
+const detail = async (q) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + mayoId + q), env, ctx)).json());
+const dVegView = await detail('?pref=veg'), dNonView = await detail('?pref=nonveg'), dPlain = await detail('');
+const mayoLine = (d) => d.ingredients.find((i) => /mayonnaise/i.test(i.raw_text)).raw_text;
+ok(mayoLine(dVegView) === '1/2 cup eggless mayonnaise' && dVegView.method[0].text === 'Spread the eggless mayonnaise on the bread.', 'Veg view: the mayonnaise reads "eggless mayonnaise" in the ingredients and the steps');
+ok(mayoLine(dNonView) === '1/2 cup Mayonnaise' && dNonView.method[0].text.includes('Mayonnaise') && /regular mayonnaise/.test(dNonView.mayo_note), 'Non-veg view: it stays "Mayonnaise"');
+ok(mayoLine(dPlain) === '1/2 cup Mayonnaise' && /eggless mayonnaise for a vegetarian meal/.test(dPlain.mayo_note), 'Opened without a preference: unchanged, with a note about choosing eggless for a vegetarian meal');
+ok(mayoFor('Spread the Mayonnaise') === 'Spread the eggless mayonnaise' && mayoFor('Mayonnaise') === 'Eggless mayonnaise' && mayoFor('Vegan Mayonnaise') === 'Vegan Mayonnaise', 'The wording swap capitalises only at a sentence start and leaves eggless / vegan mayonnaise alone');
+const plainId = mkDiet('https://site.in/d-plain-veg/', 'veg');
+ok(!(await ids('nonveg')).includes(plainId), 'A plain vegetarian recipe (no mayonnaise) still stays out of the Non-veg search');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

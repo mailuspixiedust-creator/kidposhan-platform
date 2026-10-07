@@ -58,7 +58,6 @@ export function tagRecipe({ name = '', description = '', category = [], keywords
   const meat = found.meat;
   if (meat.length) { diet = 'nonveg'; reasons.diet = `contains ${meat.join(', ')}`; }
   else if (found.egg) { diet = 'egg'; reasons.diet = 'contains egg'; }
-  else if (found.mayo) { diet = 'egg'; reasons.diet = 'contains mayonnaise, normally made with egg: check whether it is eggless'; needsReview = true; }
   else {
     const blockers = JAIN_EXCLUDED.filter((k) => keys.has(k));
     const unknown = ingredients.filter((i) => !i.ingredient_key).length;
@@ -66,6 +65,8 @@ export function tagRecipe({ name = '', description = '', category = [], keywords
     else if (!blockers.length) { diet = 'veg'; reasons.diet = `possibly Jain; ${unknown} unrecognised ingredient(s) - review`; }
     else { diet = 'veg'; reasons.diet = `not Jain: ${blockers.join(', ')}`; }
   }
+
+  if (found.mayo) reasons.mayonnaise = 'uses mayonnaise: shown as "Eggless mayonnaise" in Veg and "Mayonnaise" in Non-veg';
 
   // ---- age (months) ----
   let ageMin = 12, ageMax = 144;
@@ -103,6 +104,6 @@ export function tagRecipe({ name = '', description = '', category = [], keywords
 
   return {
     diet, age_min_months: ageMin, age_max_months: ageMax,
-    occasions: [...occ], seasons: [...seasons], reasons, needsReview,
+    occasions: [...occ], seasons: [...seasons], reasons, needsReview, mayoFlex: found.mayo,
   };
 }
