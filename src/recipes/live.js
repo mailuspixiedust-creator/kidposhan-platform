@@ -22,7 +22,7 @@ export function queryKey(q) {
   return [q.pref, q.occasion, q.season, ageBand(q.age)].join('|');
 }
 export function queryText(q) {
-  const pref = { veg: 'vegetarian', jain: 'jain no onion no garlic', nonveg: 'egg chicken fish' }[q.pref];
+  const pref = { veg: 'vegetarian', jain: 'jain no onion no garlic', nonveg: 'egg chicken fish mutton prawn' }[q.pref];
   const occ = { breakfast: 'breakfast', lunchbox: 'lunch box tiffin', lunch: 'lunch', snack_4pm: 'evening snack', dinner: 'dinner' }[q.occasion];
   const age = { infant: 'baby food 6 to 12 months', toddler: 'toddler', preschool: 'kids', school: 'kids', preteen: 'kids' }[ageBand(q.age)];
   const season = q.season === 'all' ? '' : q.season;

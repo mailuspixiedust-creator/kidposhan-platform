@@ -17,7 +17,7 @@ const RELATED = {
   breakfast: ['snack_4pm', 'dinner'], lunchbox: ['lunch', 'snack_4pm'], lunch: ['lunchbox', 'dinner'],
   snack_4pm: ['breakfast', 'lunchbox'], dinner: ['lunch', 'breakfast'],
 };
-const DIETS = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg', 'veg', 'jain'] };
+const DIETS = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'] };
 // Parents only ever see recipes the owner has published in the review screen.
 const VISIBLE = "('approved')";
 

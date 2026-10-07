@@ -428,4 +428,24 @@ await processCandidate(env, { id: 801, url: crawlUrl }, { id: 1, url: 'https://s
 const afterCrawl = db.prepare('SELECT raw_text FROM kp_recipe_ingredients WHERE recipe_id=?').all(crawled.id);
 ok(afterCrawl.length === 1 && afterCrawl[0].raw_text === '1 handful of special mix', 'Ingredient lines the owner edited survive the site being read again');
 
+// ---- diet: Non-veg search shows only egg / non-veg dishes; tagging reads the whole ingredient text ----
+import { tagRecipe, detectDiet } from '../../src/recipes/tag.js';
+const dietOf = (name, lines) => tagRecipe({ name, ingredients: lines.map(parseIngredientLine) }).diet;
+ok(dietOf('Tasty Dahi Chicken Recipe', ['1/2 kgboneless chicken (cut as per your choice),2 onions', '1 cup curd']) === 'nonveg', 'Chicken hidden on a crammed ingredient line is still found (was tagged Jain)');
+ok(dietOf('Khada Masala Gosht', ['500 g gosht', '2 onions']) === 'nonveg' && dietOf('Chicken Biryani', ['500 g murgi', '1 cup rice']) === 'nonveg' && dietOf('Fish Curry', ['500 g rohu', '1 onion']) === 'nonveg', 'Regional names (gosht, murgi, rohu) count as non-veg');
+ok(['Pork Sausage Rolls|4 pork sausages', 'Prawn Curry|250 g shrimp', 'Lamb Keema|300 g lamb mince', 'Crab Cakes|200 g crab meat', 'Tuna Sandwich|1 can tuna', 'Beef Stew|500 g beef'].every((x) => { const [n, l] = x.split('|'); return dietOf(n, [l]) === 'nonveg'; }), 'Pork, shrimp, lamb, crab, tuna and beef are non-veg');
+ok(dietOf('Egg Biryani', ['4 eggs', '1 cup rice']) === 'egg' && dietOf('Egg Roll', ['2 eggs', 'maida']) === 'egg', 'Egg dishes are tagged egg');
+ok(dietOf('Eggless Chocolate Cake', ['1 cup maida', '1 cup eggless mayonnaise']) !== 'egg' && dietOf('Egg-free Pancakes', ['1 cup flour', '1 cup milk']) !== 'egg' && dietOf('Baingan Bharta', ['2 eggplant', '1 onion']) !== 'egg', 'Eggless, egg-free and eggplant are not egg');
+ok(['nonveg', 'egg'].every((d) => dietOf('Soya Chunks Biryani', ['1 cup soya chunks', '1 cup rice', 'vegetarian chicken masala']) !== d) && dietOf('Flavour Noodles', ['1 tsp chicken flavour masala', 'noodles']) !== 'nonveg', 'Soya / vegetarian "chicken" and chicken flavouring are not non-veg');
+ok(dietOf('Focaccia Sandwich', ['1/2 cup Mayonnaise', '2 slices bread']) === 'egg' && dietOf('Avocado Sandwich', ['2 tablespoons cream cheese (or mayonnaise)', 'bread']) !== 'egg', 'Mayonnaise counts as egg unless it is eggless or only an "or" alternative');
+ok(buildRecipe({ name: 'Mayo Wrap', ingredients: ['1/2 cup mayonnaise', 'wrap'], instructions: [], completeness: 'complete', method: 'jsonld', source_url: 'https://x.in/mayo/' }, { url: 'https://x.in/', notes: '', status: 'registered' }).flags.includes('check_diet'), 'A mayonnaise-based egg guess is flagged so it is held for a person');
+
+const mkDiet = (url, diet) => { const id = mkRecipe(url, { status: 'approved' }); db.prepare('UPDATE kp_recipes SET diet=? WHERE id=?').run(diet, id); return id; };
+const dVeg = mkDiet('https://site.in/d-veg/', 'veg'), dJain = mkDiet('https://site.in/d-jain/', 'jain'), dEgg = mkDiet('https://site.in/d-egg/', 'egg'), dNon = mkDiet('https://site.in/d-non/', 'nonveg');
+const ids = async (pref) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=48&occasion=lunch&season=all&pref=' + pref + '&limit=50'), env, ctx)).json()).results.map((r) => r.id);
+const nv = await ids('nonveg'), vg = await ids('veg'), jn = await ids('jain');
+ok(nv.includes(dEgg) && nv.includes(dNon) && !nv.includes(dVeg) && !nv.includes(dJain), 'Non-veg search returns egg and non-veg dishes only, never vegetarian or Jain ones');
+ok(vg.includes(dVeg) && vg.includes(dJain) && !vg.includes(dEgg) && !vg.includes(dNon), 'Veg search still returns veg and Jain dishes and nothing with egg or meat');
+ok(jn.includes(dJain) && !jn.includes(dVeg) && !jn.includes(dEgg) && !jn.includes(dNon), 'Jain search returns Jain dishes only');
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

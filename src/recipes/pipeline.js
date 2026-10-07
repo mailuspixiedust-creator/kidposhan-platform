@@ -25,6 +25,7 @@ export function buildRecipe(extracted, source) {
   if (!extracted.name) flags.push('no_name');
   if (!tags.occasions.length) flags.push('no_meal_type');
   if (/review/.test(tags.reasons.diet || '')) flags.push('check_jain');
+  if (/mayonnaise/.test(tags.reasons.diet || '')) flags.push('check_diet');
   if (source.status === 'suggested') flags.push('new_site');
   return { extracted, ingredients, tags, review: 'pending', flags };
 }

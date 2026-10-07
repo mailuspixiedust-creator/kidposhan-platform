@@ -2,6 +2,24 @@
 // Anything uncertain sets needsReview; nothing is guessed silently.
 
 const NONVEG = ['chicken', 'fish', 'prawn', 'mutton'];
+// Words that make a dish non-vegetarian. They are searched in the recipe name and in EVERY ingredient line, because some sites
+// put several ingredients on one line ("1/2 kg chicken, 2 onions, ...") and the per-ingredient key only sees one of them.
+const NONVEG_WORDS = /\b(chicken|mutton|lamb|goat meat|beef|pork|bacon|ham|sausages?|salami|pepperoni|turkey|duck|fish|prawns?|shrimps?|crab|lobster|squid|calamari|oysters?|clams?|mussels?|tuna|salmon|sardines?|anchov(?:y|ies)|mackerel|pomfret|rohu|hilsa|katla|bhetki|bombil|gelatin(?:e)?|lard|tallow|fish sauce|oyster sauce|gosht|murgh|maach|machhi|jhinga|chingri|kozhi|meen|murgi|machh)\b/gi;
+// Phrases that contain those words but are not non-vegetarian ("eggless", "soya chicken", "chicken flavour masala"...).
+const NONVEG_EXEMPT = /\b(?:vegetarian|veg|vegan|mock|soya|soy|eggless|egg[- ]?free|plant[- ]based)\s+(?:chicken|mutton|meat|fish|prawn|egg)s?\b|\b(?:egg[- ]?less|egg[- ]?free|without eggs?|no eggs?)\b|\bchicken[- ]?(?:flavou?r(?:ed)?|style|seasoning)\b|\bfish[- ]?(?:shaped|free)\b/gi;
+
+// Diet signals found anywhere in the text. Pure, so it can be reused to re-check recipes that are already stored.
+export function detectDiet(name, ingredients) {
+  const clean = (t) => String(t || '').replace(NONVEG_EXEMPT, ' ');
+  const texts = [clean(name), ...ingredients.map((i) => clean(i.raw_text))];
+  const meat = new Set();
+  for (const t of texts) for (const m of t.matchAll(NONVEG_WORDS)) meat.add(m[1].toLowerCase());
+  const egg = texts.some((t) => /\beggs?\b|\banda\b/i.test(t));
+  // Mayonnaise is normally made with egg. Only counted when it is an ingredient in its own right, not an "(or mayonnaise)" alternative.
+  const mayo = ingredients.some((i) => { const t = clean(i.raw_text); const raw = String(i.raw_text || ''); if (/egg[- ]?less|egg[- ]?free|vegan|veg(?:etarian)?\s+mayo/i.test(raw)) return false; const m = /\bmayonnaise\b/i.exec(t); return !!m && !/\bor\b|\(/.test(t.slice(0, m.index)); });
+  return { meat: [...meat], egg, mayo };
+}
+
 const JAIN_EXCLUDED = ['onion', 'garlic', 'potato', 'carrot', 'beetroot', 'radish', 'ginger', 'sweet_potato', 'mushroom'];
 
 const OCCASION_WORDS = {
@@ -36,9 +54,11 @@ export function tagRecipe({ name = '', description = '', category = [], keywords
 
   // ---- diet ----
   let diet;
-  const meat = NONVEG.filter((k) => keys.has(k));
+  const found = detectDiet(name, ingredients);
+  const meat = found.meat;
   if (meat.length) { diet = 'nonveg'; reasons.diet = `contains ${meat.join(', ')}`; }
-  else if (keys.has('egg') || /\begg(s)?\b/i.test(name)) { diet = 'egg'; reasons.diet = 'contains egg'; }
+  else if (found.egg) { diet = 'egg'; reasons.diet = 'contains egg'; }
+  else if (found.mayo) { diet = 'egg'; reasons.diet = 'contains mayonnaise, normally made with egg: check whether it is eggless'; needsReview = true; }
   else {
     const blockers = JAIN_EXCLUDED.filter((k) => keys.has(k));
     const unknown = ingredients.filter((i) => !i.ingredient_key).length;
