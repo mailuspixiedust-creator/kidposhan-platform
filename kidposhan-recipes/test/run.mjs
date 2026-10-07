@@ -485,10 +485,14 @@ const pageHtml = `<html><head><meta property="og:image" content="${U}hero.jpg"><
   <div class="jp-relatedposts"><img src="https://blog.in/wp-content/uploads/2015/08/other-dish-360x480.jpg" width="360"></div>
 </div>
 <div class="sidebar"><img src="${U}sidebar-thing.jpg" width="500"></div></body></html>`;
+// a "related recipes" list in the MIDDLE of the article must not hide the step photos that come after it
+const midRelated = pageHtml.replace(`<img src="${U}step-2.jpg" width="500">`, `<ul class="wp-block-yoast-seo-related-links"><li><a href="/other/">Other</a></li></ul><img src="${U}step-2.jpg" width="500">`);
+if (midRelated === pageHtml) throw new Error('test fixture did not change');
 const found = collectImages(pageHtml, 'https://blog.in/spicy-dish/', [U + 'hero-500x427.jpg', U + 'hero.jpg', U + 'hero-480x270.jpg']);
 ok(found[0] === U + 'hero.jpg', 'The hero is the uncropped photo, not a size-cropped copy');
 ok(found.join('|') === [U + 'hero.jpg', U + 'step-1.jpg', U + 'step-2.jpg', U + 'step-3.jpg'].join('|'), 'Step photos of the same dish are collected once each, in page order: ' + found.map((x) => x.split('/').pop()).join(', '));
 ok(!found.some((u) => /logo|hqdefault|tiny-icon|360x480|other-dish|sidebar/.test(u)), 'Logos, video thumbnails, tiny icons, cropped thumbnails, other dishes and sidebar images are left out');
+ok(collectImages(midRelated, 'https://blog.in/spicy-dish/', [U + 'hero.jpg']).includes(U + 'step-3.jpg'), 'Step photos after a mid-article related-recipes block are still collected');
 ok(collectImages('<html><body>no body markers <img src="https://x.in/a.jpg"></body></html>', 'https://x.in/p/', ['https://x.in/hero.jpg']).join() === 'https://x.in/hero.jpg', 'A page with no clear post body gives just the hero');
 ok(collectImages('<html></html>', 'https://x.in/', []).length === 0, 'No photo at all gives an empty list');
 

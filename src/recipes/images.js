@@ -9,7 +9,9 @@ const MAX_IMAGES = 30;
 const CROP = /-\d{2,4}x\d{2,4}(?=\.[a-z0-9]+$)/i;
 const NOT_PHOTO = /(logo|avatar|gravatar|icon|sprite|stars?[-_.]|rating|pinterest|share|button|banner|\badv|emoji|spacer|pixel|\.svg|\.gif|\/vi\/|hqdefault|youtube)/i;
 const BODY_START = /class=["'][^"']*(?:entry-content|post-content|article-content|recipe-content|post-body|single-content)/i;
-const BODY_END = /class=["'][^"']*(?:related|yarpp|jp-relatedposts|post-navigation|comments-area|comment-respond|sidebar|widget-area|site-footer|author-box|newsletter)/i;
+// Only blocks that really END the article. A "related recipes" list can sit in the MIDDLE of a post (step photos follow it), so it is
+// not an end marker: other recipes' thumbnails are already excluded by their different folder and crop-size names.
+const BODY_END = /class=["'][^"']*(?:comments-area|comment-respond|sidebar|widget-area|site-footer)/i;
 
 const strip = (u) => String(u || '').split('#')[0].split('?')[0];
 const dirOf = (u) => strip(u).replace(/[^/]*$/, '');
