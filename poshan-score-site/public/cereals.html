@@ -218,6 +218,10 @@
 
   footer{ text-align:center; padding:40px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
   footer b{ color:var(--ink); }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
 </style>
 </head>
 <body>
@@ -229,9 +233,10 @@
   </a>
   <div class="nav-links">
     <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="browse.html">Browse</a>
-    <a href="cereals.html">Cereal Aisle</a>
+    <a href="cereals.html" aria-current="page">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
@@ -242,9 +247,10 @@
 </nav>
 <div class="mobile-menu" id="mobileMenu">
     <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="browse.html">Browse</a>
-    <a href="cereals.html">Cereal Aisle</a>
+    <a href="cereals.html" aria-current="page">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>

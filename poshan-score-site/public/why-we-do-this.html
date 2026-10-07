@@ -150,6 +150,10 @@
     .beat, .closing-card{ opacity:1; transform:none; animation:none !important; }
     h1, .lede{ opacity:1; animation:none !important; }
   }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
 </style>
 </head>
 <body>
@@ -161,11 +165,12 @@
   </a>
   <div class="nav-links">
     <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="browse.html">Browse</a>
     <a href="cereals.html">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
-    <a href="why-we-do-this.html">Why We Do This</a>
+    <a href="why-we-do-this.html" aria-current="page">Why We Do This</a>
   </div>
   <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -174,11 +179,12 @@
 </nav>
 <div class="mobile-menu" id="mobileMenu">
     <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="browse.html">Browse</a>
     <a href="cereals.html">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
-    <a href="why-we-do-this.html">Why We Do This</a>
+    <a href="why-we-do-this.html" aria-current="page">Why We Do This</a>
   </div>
 
 <header class="hero">

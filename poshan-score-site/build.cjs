@@ -14,10 +14,14 @@ const MEAL_LINK = '<a href="meal-ideas.html">Meal Ideas</a>';
 
 for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
   let h = strip(fs.readFileSync(path.join(root, 'live-backup', name), 'utf8'));
-  const cereal = '<a href="cereals.html">Cereal Aisle</a>';
-  const n = h.split(cereal).length - 1;
-  if (n !== 2) throw new Error(`${name}: expected the Cereal Aisle link twice (nav + mobile menu), found ${n}`);
-  h = h.split(cereal).join(cereal + '\n    ' + MEAL_LINK);
+  // The original pages each listed a slightly different set of pages (only the home page had "Methodology"). Every page now lists all seven.
+  const PAGES = [['index.html', 'Home'], [name === 'index.html' ? '#metrics' : 'index.html#metrics', 'Methodology'], ['age-metrics.html', 'Age &amp; Metrics'], ['browse.html', 'Browse'], ['cereals.html', 'Cereal Aisle'], ['meal-ideas.html', 'Meal Ideas'], ['why-we-do-this.html', 'Why We Do This']];
+  const menu = PAGES.map(([href, label]) => `<a href="${href}"${href === name ? ' aria-current="page"' : ''}>${label}</a>`).join('\n    ');
+  let swapped = 0;
+  h = h.replace(/(<div class="nav-links">)[\s\S]*?(<\/div>)/, (m, o, c) => { swapped++; return o + '\n    ' + menu + '\n  ' + c; });
+  h = h.replace(/(<div class="mobile-menu"[^>]*>)[\s\S]*?(<\/div>)/, (m, o, c) => { swapped++; return o + '\n    ' + menu + '\n  ' + c; });
+  if (swapped !== 2) throw new Error(`${name}: expected to rebuild the desktop and the mobile menu, rebuilt ${swapped}`);
+
 
   if (name === 'index.html') {
     const a = h.indexOf('class="action-card a2"');
@@ -38,7 +42,7 @@ for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
     h = h.slice(0, k) + '.actions-grid .action-card.a3{ animation-delay:.3s; grid-column:1 / -1; } .action-card.a3 .action-dot{ background:var(--red); }\n  ' + h.slice(k);
   }
   // Seven links (with Meal Ideas) need more room than the original five: until the screen is wide enough, use the menu button.
-  h = h.replace('</style>', '@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}\n  @media(min-width:1180px){.nav-links{gap:22px}}\n</style>');
+  h = h.replace('</style>', '@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}\n  @media(min-width:1180px){.nav-links{gap:22px}}\n  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}\n  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}\n</style>');
   fs.writeFileSync(path.join(out, name), h);
 }
 
