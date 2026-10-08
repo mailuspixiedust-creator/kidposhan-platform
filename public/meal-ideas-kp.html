@@ -62,6 +62,7 @@ a{color:var(--leaf)}
 .dish .meta{font-size:14px;color:var(--muted)}
 .dtag{justify-self:start;margin-top:6px;font-size:12px;font-weight:600;padding:1px 8px;border-radius:6px}
 .dtag.veg,.dtag.jain{background:var(--leaf-2);color:var(--leaf)}
+.dtag.mayo{background:#FBEFC9;color:#6b4a00}
 .dtag.egg,.dtag.nonveg{background:color-mix(in srgb,var(--chilli) 14%,var(--paper));color:var(--chilli)}
 .note{margin:14px 18px 0;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
 .hint{margin:30px 18px 0;color:var(--muted)}
@@ -544,6 +545,9 @@ const PREF=[['veg','Veg'],['jain','Jain'],['nonveg','Non-veg']];
 const DIETS={veg:['veg','jain'],jain:['jain'],nonveg:['nonveg','egg','veg','jain']};
 const RELATED={breakfast:['snack_4pm','dinner'],lunchbox:['lunch','snack_4pm'],lunch:['lunchbox','dinner'],snack_4pm:['breakfast','lunchbox'],dinner:['lunch','breakfast']};
 const DIET_LABEL={veg:'Veg',jain:'Jain',egg:'Egg',nonveg:'Non-veg'};
+// A vegetable dish that uses mayonnaise also appears under Non-veg (mayonnaise can contain egg). There it is labelled "With mayonnaise", not "Veg".
+const mayoInNonveg=(diet,mayo)=>S.pref==='nonveg'&&!!mayo&&(diet==='veg'||diet==='jain');
+const dietLabel=(diet,mayo)=>mayoInNonveg(diet,mayo)?'With mayonnaise':(DIET_LABEL[diet]||'');
 const RETAILERS=[
  {id:'blinkit',label:'Blinkit',kind:'Quick delivery',url:q=>`https://blinkit.com/s/?q=${q}`},
  {id:'instamart',label:'Instamart',kind:'Quick delivery',url:q=>`https://www.swiggy.com/instamart/search?query=${q}`},
@@ -608,7 +612,7 @@ function demoSearch(q){
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const toCard=r=>({mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
 async function search(q){
   if(!LIVE) return demoSearch(q).map(toCard);
   const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
@@ -778,7 +782,7 @@ function renderMenu(){
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
             <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
-            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>`).join('')}</div>`;
       }
       html+=`<div id="menuPacks"></div>`;
     }
@@ -908,7 +912,7 @@ async function getRecipe(id){
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
   const res=await fetch(`${API}/api/kp/recipes/${id}${S.pref?`?pref=${S.pref}`:''}`); if(!res.ok) return null; const d=await res.json();
   return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
-    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,
+    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,
     ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
     images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
@@ -931,7 +935,7 @@ async function renderRecipe(id){
   r.ings.forEach((ing,i)=>{const k=`${r.id}:${i}`;if(!S.items[k])S.items[k]={state:ing.pantry?'home':null,name:ing.name,key:ing.key,recipe:r.name,buy:ing.buy}});
   persist();
   const doneKey=`kp_steps_${r.id}`, done=new Set(JSON.parse(load(doneKey)||'[]'));
-  const facts=[r.mins?`${r.mins} min`:'',r.min?ageTxt(r.min):'',DIET_LABEL[r.diet]||'',...(r.occ||[]).map(o=>lab(OCC,o))].filter(Boolean);
+  const facts=[r.mins?`${r.mins} min`:'',r.min?ageTxt(r.min):'',dietLabel(r.diet,r.mayo),...(r.occ||[]).map(o=>lab(OCC,o))].filter(Boolean);
   const ingHTML=r.ings.map((ing,i)=>{const k=`${r.id}:${i}`,st=S.items[k].state;
     return `<div class="ing-item ${st==='buy'?'buying':''}"><div class="ing-row"><span><b>${esc(ing.name)}</b><span class="q">${esc(ing.qty||ing.raw||'')}</span></span>
       <button class="tick home" data-k="${k}" data-s="home" aria-pressed="${st==='home'}" aria-label="${esc(ing.name)}: at home">${CHECK}</button>

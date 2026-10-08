@@ -466,6 +466,8 @@ db.prepare("UPDATE kp_recipes SET mayo_flex = 1, diet = 'veg', kp_steps_json = ?
 db.prepare("INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?, 9, '1/2 cup Mayonnaise', 0.5, 'cup', 'Mayonnaise', NULL, 0)").run(mayoId);
 const nvIds = await ids('nonveg'), vgIds = await ids('veg'), jnIds = await ids('jain');
 ok(nvIds.includes(mayoId) && vgIds.includes(mayoId) && !jnIds.includes(mayoId), 'A mayonnaise recipe shows in both the Veg and the Non-veg search (not Jain unless tagged Jain)');
+const mayoRows = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=48&occasion=lunch&season=all&pref=nonveg&limit=50'), env, ctx)).json()).results;
+ok(mayoRows.find((x) => x.id === mayoId)?.mayo_flex === 1 && mayoRows.filter((x) => x.mayo_flex !== 1).every((x) => x.diet !== 'veg' && x.diet !== 'jain'), 'Non-veg results mark the mayonnaise recipe (so the page can label it "With mayonnaise") and contain no other veg or Jain dish');
 const detail = async (q) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + mayoId + q), env, ctx)).json());
 const dVegView = await detail('?pref=veg'), dNonView = await detail('?pref=nonveg'), dPlain = await detail('');
 const mayoLine = (d) => d.ingredients.find((i) => /mayonnaise/i.test(i.raw_text)).raw_text;

@@ -46,7 +46,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   const args = [];
   const diets = DIETS[q.pref];
   let sql = `
-    SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
+    SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.mayo_flex, r.age_min_months, r.age_max_months,
            ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_hidden = 0 AND r.poshan_score IS NOT NULL THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
            (SELECT round(avg(stars), 1) FROM kp_ratings WHERE recipe_id = r.id) AS rating_avg,
            (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id) AS rating_count,
