@@ -123,11 +123,15 @@ a{color:var(--leaf)}
 .pack .buys a{font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;padding:4px 9px;background:var(--leaf-2);color:var(--leaf)}
 .pack .price{font-weight:700;font-size:15px;margin-top:4px}
 .pack .for{font-size:12px;color:var(--leaf);font-weight:600;margin-top:4px}
-.buy-card{flex-basis:min(62vw,230px)}
+.buy-card{flex-basis:min(74vw,290px)}
 .buy-head{background:var(--leaf-2);padding:12px 12px 10px;display:grid;gap:2px}
 .buy-card .buys{padding:10px 12px 12px;margin-top:0}
 .buy-card h3{font-size:18px}
 .empty-packs{margin-top:10px;color:var(--muted);font-size:15px}
+.buy-list{display:grid;padding:4px 10px 10px}
+.buy-list a{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 6px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14.5px;border-radius:8px}
+.buy-list a:last-child{border-bottom:0}.buy-list a:hover,.buy-list a:focus-visible{background:var(--leaf-2)}
+.buy-list a small{color:var(--muted);font-size:12px;white-space:nowrap;margin-left:auto}.buy-list a em{font-style:normal;font-weight:700;font-size:13px}
 
 /* ---------- shopping tray ---------- */
 .tray{position:fixed;left:0;right:0;bottom:0;z-index:5;transform:translateY(120%);transition:transform .28s ease}
@@ -909,6 +913,16 @@ async function getRecipe(id){
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
     images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
 }
+// [{name, qty, buy:[{label,url,price}]}] -> [{label, lines:[{name, qty, url, price}]}]: the ingredients to buy, clubbed under each store
+function byPlatform(items){
+  const m=new Map();
+  for(const it of items) for(const b of (it.buy||[])){
+    if(!b.url) continue;
+    if(!m.has(b.label)) m.set(b.label,{label:b.label,lines:[]});
+    m.get(b.label).lines.push({name:it.name,qty:it.qty,url:b.url,price:b.price});
+  }
+  return [...m.values()];
+}
 async function renderRecipe(id){
   app.innerHTML=`<p class="hint">Loading recipe…</p>`;
   const r=await getRecipe(id);
@@ -927,7 +941,9 @@ async function renderRecipe(id){
   window.__gal={list:photos,credit:r.source?{name:r.source.name,url:r.source.url}:null};
   const galleryHTML=photos.length?`<section class="section gallery"><h2>Photos <span class="count">${photos.length}</span></h2><div class="carousel gal" role="list">${photos.map((u,i)=>`<button class="gal-item" role="listitem" data-g="${i}" aria-label="Open photo ${i+1} of ${photos.length}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.gal-item').remove()"></button>`).join('')}</div><p class="credit">Photos: ${esc(r.source?r.source.name:'the creator')}. ${r.source?`<a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a>`:''}</p></section>`:'';
   const buyList=r.ings.map((ing,i)=>({ing,k:`${r.id}:${i}`})).filter(x=>S.items[x.k].state==='buy');
-  const buyHTML=buyList.length?`<div class="carousel packs" role="list">${buyList.map(({ing})=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(ing.name)}</h3><span class="size">${esc(ing.qty||'')}</span></div><div class="buys">${(ing.buy||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}${b.price?` ₹${esc(b.price)}`:''}${b.eta?` · ${esc(b.eta)}`:''}</a>`).join('')||'<span class="size">No store links yet</span>'}</div></div>`).join('')}</div>`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here with where to get it.</p>`;
+  const platforms=byPlatform(buyList.map(({ing})=>({name:ing.name,qty:ing.qty,buy:ing.buy})));
+  const noLink=buyList.filter(({ing})=>!(ing.buy||[]).length).map(({ing})=>ing.name);
+  const buyHTML=buyList.length?`<div class="carousel packs" role="list">${platforms.map(p=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(p.label)}</h3><span class="size">${p.lines.length} ${p.lines.length===1?'item':'items'} to buy</span></div><div class="buy-list">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.name)}</span>${l.qty?`<small>${esc(l.qty)}</small>`:''}${l.price?`<em>₹${esc(l.price)}</em>`:''}</a>`).join('')}</div></div>`).join('')}</div>${noLink.length?`<p class="empty-packs">No store link yet: ${esc(noLink.join(', '))}.</p>`:''}`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here, grouped under each store.</p>`;
   let stepsHTML;
   if(r.steps&&r.steps.length){
     stepsHTML=`<p class="lead">Tap a step when it's done.${r.demo?' Sample layout: real steps come word for word from the creator.':''}</p><ol class="steps">${r.steps.map((s,i)=>`<li class="step" role="button" tabindex="0" data-step="${i}" aria-pressed="${done.has(i)}">${s.section?`<span class="sec">${esc(s.section)}</span>`:''}<span class="t">${esc(s.text)}</span></li>`).join('')}</ol>`;
@@ -980,8 +996,9 @@ function renderTray(){
   tray.classList.toggle('show',list.length>0);
   document.getElementById('tcount').textContent=`${list.length} ${list.length===1?'item':'items'} to buy`;
   const pin=load('kp_pincode')||'';
-  tbody.innerHTML=list.map(i=>`<div class="titem"><b>${esc(i.name)}</b> <small>for ${esc([...i.recipes].join(', '))}</small>
-    <div class="links">${(i.buy||[]).slice(0,4).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}</a>`).join('')}</div></div>`).join('')+
+  const trayNoLink=list.filter(i=>!(i.buy||[]).length).map(i=>i.name);
+  tbody.innerHTML=byPlatform(list).map(p=>`<div class="titem"><b>${esc(p.label)}</b> <small>${p.lines.length} ${p.lines.length===1?'item':'items'}</small>
+    <div class="links">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join('')}</div></div>`).join('')+(trayNoLink.length?`<p class="tnote">No store link yet: ${esc(trayNoLink.join(', '))}.</p>`:'')+
    `<div class="ttools"><label>Pincode <input id="pin" inputmode="numeric" maxlength="6" value="${esc(pin)}" placeholder="700078"></label><button id="copy">Copy list</button><span id="copied" role="status"></span></div>
     <p class="tnote">Live prices and delivery times for your pincode will appear once store data is connected.</p>`;
   const p=document.getElementById('pin'); if(p) p.oninput=e=>savePin(e.target.value.replace(/\D/g,''));
