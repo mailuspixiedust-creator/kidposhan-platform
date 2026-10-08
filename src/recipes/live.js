@@ -6,6 +6,7 @@
 //        -> owner ticks Publish -> parents see them from the next search.
 
 import { processPending } from './pipeline.js';
+import { tavilySearchRaw } from './tavily.js';
 
 const COOLDOWN_HOURS = 24;
 const MAX_EXTRACT_NOW = 6;       // extracted inside the search request's waitUntil; the cron drains the rest
@@ -29,15 +30,7 @@ export function queryText(q) {
   return `indian ${pref} ${occ} recipe for ${age} ${season}`.replace(/\s+/g, ' ').trim();
 }
 
-async function tavily(env, body) {
-  const res = await fetch('https://api.tavily.com/search', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.TAVILY_API_KEY}` },
-    body: JSON.stringify({ api_key: env.TAVILY_API_KEY, search_depth: 'basic', max_results: 10, ...body }),
-  });
-  if (!res.ok) throw new Error(`Tavily ${res.status}`);
-  return (await res.json()).results || [];
-}
+const tavily = (env, body) => tavilySearchRaw(env, body);   // counted against the daily cap
 
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return null; } };
 

@@ -140,11 +140,22 @@ body{overflow-x:hidden}
 @media (hover:none){.btn:active,.fchip:active,.tab:active{opacity:.8}}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chilli);margin-left:4px;vertical-align:middle}
 @media (max-width:720px){
-  /* all five tabs fit across the screen; counts sit under the names (no hidden, scroll-away tabs) */
-  .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:0;padding:0 6px}
+  /* all seven tabs fit on the screen in two rows; counts sit under the names (no hidden, scroll-away tabs) */
+  .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;gap:0;padding:0 6px}
   .tab{padding:8px 2px;font-size:13px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:50px;white-space:normal}
   .tab .n{margin:0;font-size:11px;font-weight:600;min-height:1em}
 }
+.vcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+.vcard textarea{width:100%;min-height:64px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit;resize:vertical}
+.vcard .meta{color:var(--muted);font-size:13px;margin:0 0 6px}
+.vhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:22px 0 10px}
+.vhead h2{font-size:20px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;background:var(--steel);border:1px solid var(--line)}
+.pill.replied_yes{background:#DDF2E0;color:#1c5a2a}.pill.replied_no{background:#F9DCD8;color:#8a1f12}.pill.replied_other,.pill.bounced{background:#FBEFC9;color:#6b4a00}
+.arow{display:grid;grid-template-columns:1fr;gap:8px}
+.arow input[type=email]{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
+.mailprev{white-space:pre-wrap;background:var(--steel);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;margin-top:6px}
+.tally{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
 </style>
 </head>
 <body>
@@ -180,6 +191,8 @@ const demo={
 };
 
 let reviewedFilter='all', unreviewedCount=0;
+let tav=null, joined={total:0,visitors:[]};
+let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:''};
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
 let tab='approved', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
 const app=document.getElementById('app');
@@ -199,6 +212,11 @@ async function demoApi(path,opts){
     const c={new:0,active:0,paused:0,blocked:0};demo.sites.forEach(x=>c[x.state]++);c.all=demo.sites.length;
     return {counts:c,items:demo.sites.filter(x=>(st==='all'||x.state===st)&&(!q||(x.name+x.url+x.area).toLowerCase().includes(q)))}}
   if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
+  if(u.pathname==='/api/kp/admin/tavily') return {configured:true,cap_per_day:25,used_today:3,used_last_7_days:12,account:{plan:'Researcher',used:88,limit:1000}};
+  if(u.pathname==='/api/kp/admin/visitors') return {total:0,visitors:[]};
+  if(u.pathname==='/api/kp/admin/remarks') return {remarks:[],counts:{}};
+  if(u.pathname==='/api/kp/admin/payments') return {payments:[],totals:{}};
+  if(u.pathname==='/api/kp/admin/outreach') return {sources:[],tally:{}};
   let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];if(b.action==='mark')return {ok:1};
     if(b.action==='publish'&&b.occasions&&!b.occasions.length) throw new Error('pick at least one meal before publishing');
     for(const k of ['pending','approved','rejected']){const i=demo[k].findIndex(x=>x.id===id);if(i>=0){const [it]=demo[k].splice(i,1);Object.assign(it,b);demo[{publish:'approved',reject:'rejected',pending:'pending'}[b.action]].unshift(it)}}
@@ -214,7 +232,7 @@ function render(){
     document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
     return;
   }
-  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites']];
+  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['authors','Authors']];
   app.innerHTML=`<h1>Recipe review</h1>
     <p class="sub">Recipes that pass the automatic checks go live by themselves. Review them here afterwards: pull one back, edit its steps or ingredients, or tick "Reviewed by me". Recipes that failed a check are held with the reason shown.</p>
     ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
@@ -224,6 +242,8 @@ function render(){
   const list=document.getElementById('list');
   if(tab==='packs'){renderPacks(list);return}
   if(tab==='sites'){renderSites(list);return}
+  if(tab==='visitors'){renderVisitors(list);return}
+  if(tab==='authors'){renderAuthors(list);return}
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
     `<p class="empty">${tab==='pending'?'Nothing is held. Recipes that pass the checks go live by themselves; any that fail appear here with the reason.':'Nothing here yet.'}</p>`;
   bindCards();
@@ -356,11 +376,90 @@ function bindCards(){
   });
 }
 
+const ago=t=>{if(!t)return '';const d=Math.floor((Date.now()/1000-t)/86400);return d<1?'today':d===1?'yesterday':d+' days ago'};
+function renderVisitors(list){
+  const R=vis.remarks, P=vis.payments, tot=vis.totals;
+  list.innerHTML=`<div class="vhead"><h2>Remarks</h2><div class="filters" role="group" aria-label="Remark status">${[['pending','Waiting'],['approved','Published'],['rejected','Rejected']].map(([k,l])=>`<button class="fchip" data-rs="${k}" aria-pressed="${vis.rStatus===k}">${l}<span class="n">${vis.rCounts[k]??0}</span></button>`).join('')}</div></div>
+   <p class="sub">A visitor's remark appears on the recipe page only after you approve it. You can tidy the wording before approving.</p>
+   ${R.length?R.map(m=>`<div class="vcard" data-rm="${m.id}"><p class="meta"><b>${esc(m.display_name)}</b> · mobile ending ${esc(m.mobile_tail||'')} · on <a href="meal-ideas-kp.html#/r/${m.recipe_id}" target="_blank" rel="noopener">${esc(m.recipe_name)}</a> · ${ago(m.created_at)}</p>
+     <textarea aria-label="Remark text">${esc(m.body)}</textarea>
+     <div class="actions" style="margin-top:8px">${m.status!=='approved'?'<button class="btn publish" data-ra="approve">Approve and publish</button>':'<button class="btn undo" data-ra="unpublish">Take back</button>'}${m.status!=='rejected'?'<button class="btn reject" data-ra="reject">Reject</button>':''}</div><p class="saved" data-saved role="status"></p></div>`).join(''):`<p class="empty">No ${vis.rStatus==='pending'?'remarks waiting':vis.rStatus+' remarks'}.</p>`}
+   <div class="vhead"><h2>₹5 support payments</h2><div class="filters" role="group" aria-label="Payment status">${[['claimed','To confirm'],['confirmed','Confirmed'],['rejected','Rejected']].map(([k,l])=>`<button class="fchip" data-ps="${k}" aria-pressed="${vis.pStatus===k}">${l}<span class="n">${(tot[k]||{}).count??0}</span></button>`).join('')}</div></div>
+   <p class="sub">Confirmed so far: ₹${(tot.confirmed||{}).rupees||0}. Visitors pay by UPI and tell us; check each against your UPI app, then confirm. Needs the UPI_ID secret to be set.</p>
+   ${P.length?P.map(x=>`<div class="vcard" data-pm="${x.id}"><p class="meta"><b>₹${x.amount_paise/100}</b> · ${esc(x.payer||'Guest')}${x.mobile_tail?' (ending '+esc(x.mobile_tail)+')':''} · ${x.recipe_name?'on '+esc(x.recipe_name):'general'} · ${ago(x.created_at)}</p><p>Reference they entered: <b>${esc(x.payer_note||'none')}</b></p>
+     <div class="actions">${x.status==='claimed'?'<button class="btn publish" data-pa="confirm">Confirm received</button><button class="btn reject" data-pa="reject">Not received</button>':''}</div><p class="saved" data-saved role="status"></p></div>`).join(''):`<p class="empty">Nothing here.</p>`}`;
+  list.insertAdjacentHTML('beforeend',`<div class="vhead"><h2>People who joined (${joined.total})</h2><button class="btn undo" id="csv" ${joined.total?'':'disabled'}>Copy as CSV</button></div>
+   <p class="sub">Name, mobile and email given on the recipe pages. None of it is verified and none of it is shown to the public.</p>
+   ${joined.visitors.length?'<div class="vcard" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--muted)"><th>Name</th><th>Mobile</th><th>Email</th><th>Joined</th><th>Rated</th><th>Remarks</th></tr></thead><tbody>'+joined.visitors.map(v=>`<tr style="border-top:1px solid var(--line)"><td>${esc(v.name)}</td><td>${esc(v.mobile)}</td><td>${esc(v.email||'')}</td><td>${ago(v.created_at)}</td><td>${v.ratings}</td><td>${v.remarks}</td></tr>`).join('')+'</tbody></table></div>':'<p class="empty">Nobody yet.</p>'}`);
+  const csvBtn=document.getElementById('csv'); if(csvBtn) csvBtn.onclick=async()=>{
+    const q=x=>'"'+String(x??'').replace(/"/g,'""')+'"';
+    const text=['name,mobile,email,joined'].concat(joined.visitors.map(v=>[v.name,v.mobile,v.email,new Date(v.created_at*1000).toISOString().slice(0,10)].map(q).join(','))).join('\n');
+    try{await navigator.clipboard.writeText(text);csvBtn.textContent='Copied'}catch(e){prompt('Copy this:',text)}
+  };
+  list.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{vis.rStatus=b.dataset.rs;load()});
+  list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{vis.pStatus=b.dataset.ps;load()});
+  list.querySelectorAll('[data-rm]').forEach(card=>{
+    const id=+card.dataset.rm, ta=card.querySelector('textarea'), saved=card.querySelector('[data-saved]'), orig=ta.value;
+    card.querySelectorAll('[data-ra]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;
+      try{
+        if(ta.value!==orig&&b.dataset.ra==='approve') await api(`/api/kp/admin/remarks/${id}`,{method:'POST',body:JSON.stringify({action:'edit',body:ta.value})});
+        await api(`/api/kp/admin/remarks/${id}`,{method:'POST',body:JSON.stringify({action:b.dataset.ra})});
+        load();
+      }catch(e){saved.textContent=e.message;b.disabled=false}
+    });
+  });
+  list.querySelectorAll('[data-pm]').forEach(card=>{
+    const id=+card.dataset.pm, saved=card.querySelector('[data-saved]');
+    card.querySelectorAll('[data-pa]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/api/kp/admin/payments/${id}`,{method:'POST',body:JSON.stringify({action:b.dataset.pa})});load()}catch(e){saved.textContent=e.message;b.disabled=false}});
+  });
+}
+
+const OUT_LABEL={no_email:'No email yet',not_sent:'Not sent',sent:'Sent, waiting',replied_yes:'Replied: yes',replied_no:'Replied: no',replied_other:'Replied: other',no_reply:'No reply (14+ days)',bounced:'Bounced'};
+function renderAuthors(list){
+  const t=auth.tally, ready=auth.sources.filter(x=>x.status==='not_sent');
+  list.innerHTML=`<div class="vhead"><h2>Authors: permission by email</h2></div>
+   <p class="sub">Type each site's contact email, preview the message, then send. One email per address, never repeated. Replies are read from your Gmail and sorted as yes / no / other for you to confirm. Needs the four GMAIL secrets (see OUTREACH.md).</p>
+   <div class="tally">${Object.keys(OUT_LABEL).map(k=>`<span class="pill ${k}">${OUT_LABEL[k]}: ${t[k]||0}</span>`).join('')}</div>
+   <div class="actions"><button class="btn undo" id="chk">Check for replies now</button>${ready.length?`<button class="btn publish" id="sendall">Send to all ready (${Math.min(ready.length,20)})</button>`:''}</div>
+   <p class="saved" id="amsg" role="status">${esc(auth.msg||'')}</p>
+   ${auth.sources.map(x=>`<div class="vcard" data-as="${x.id}"><div class="vhead" style="margin:0 0 6px"><h3>${esc(x.name)}</h3><span class="pill ${x.status}">${OUT_LABEL[x.status]||x.status}</span></div>
+     <p class="meta"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a> · ${x.live_recipes} live recipe${x.live_recipes===1?'':'s'}${x.sent_at?' · sent '+ago(x.sent_at):''}${x.replied_at?' · replied '+ago(x.replied_at):''}</p>
+     ${x.reply_snippet?`<p class="why">They wrote: "${esc(x.reply_snippet)}"</p>`:''}
+     <div class="arow"><input type="email" data-email placeholder="contact email" value="${esc(x.contact_email||'')}" aria-label="Contact email for ${esc(x.name)}" ${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?'readonly':''}>
+      <div class="actions">${x.status==='not_sent'?'<button class="btn undo" data-prev>Preview email</button><button class="btn publish" data-send>Send</button>':''}${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?`<select data-mark aria-label="Your decision"><option value="">Mark as…</option>${['replied_yes','replied_no','replied_other','no_reply','bounced'].map(k=>`<option value="${k}">${OUT_LABEL[k]}</option>`).join('')}</select>`:''}</div>
+      <div class="mailprev" data-pv hidden></div><p class="saved" data-saved role="status"></p></div></div>`).join('')||'<p class="empty">No sites with live recipes yet.</p>'}`;
+  document.getElementById('chk').onclick=async e=>{e.target.disabled=true;try{const d=await api('/api/kp/admin/outreach/check',{method:'POST',body:'{}'});auth.msg=d.replies.length?`${d.replies.length} new repl${d.replies.length===1?'y':'ies'} found.`:'No new replies.';load()}catch(err){auth.msg=err.message;render()}};
+  const sa=document.getElementById('sendall'); if(sa) sa.onclick=async()=>{
+    if(!confirm(`Send the permission email to ${Math.min(ready.length,20)} site(s) now? This cannot be undone.`))return;
+    sa.disabled=true;try{const d=await api('/api/kp/admin/outreach/send',{method:'POST',body:JSON.stringify({source_ids:ready.slice(0,20).map(x=>x.id)})});auth.msg=`Sent ${d.results.filter(r=>r.sent).length}; skipped or failed ${d.results.filter(r=>!r.sent).length}.`;load()}catch(err){auth.msg=err.message;render()}};
+  list.querySelectorAll('[data-as]').forEach(card=>{
+    const id=+card.dataset.as, saved=card.querySelector('[data-saved]'), inp=card.querySelector('[data-email]'), pv=card.querySelector('[data-pv]');
+    const x=auth.sources.find(s=>s.id===id); let last=inp.value;
+    inp.onblur=async()=>{if(inp.readOnly||inp.value===last)return;try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value;saved.textContent='Email saved';setTimeout(load,400)}catch(e){saved.textContent=e.message}};
+    const pb=card.querySelector('[data-prev]'); if(pb) pb.onclick=async()=>{try{if(inp.value!==last){await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value}const d=await api(`/api/kp/admin/outreach/preview?source_id=${id}`);pv.hidden=false;pv.textContent=`To: ${d.to||'(no email yet)'}\nSubject: ${d.subject}\n\n${d.text}`}catch(e){saved.textContent=e.message}};
+    const sb=card.querySelector('[data-send]'); if(sb) sb.onclick=async()=>{
+      if(!inp.value){saved.textContent='Type the email address first.';return}
+      if(!confirm(`Send the permission email to ${inp.value} now? This cannot be undone.`))return;
+      sb.disabled=true;try{if(inp.value!==last)await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});const d=await api('/api/kp/admin/outreach/send',{method:'POST',body:JSON.stringify({source_ids:[id]})});const r=d.results[0];auth.msg=r.sent?`Sent to ${r.to}.`:`Not sent: ${r.skipped||r.error}`;load()}catch(e){saved.textContent=e.message;sb.disabled=false}};
+    const mk=card.querySelector('[data-mark]'); if(mk) mk.onchange=async()=>{
+      if(!mk.value)return; let remove=false;
+      if(mk.value==='replied_no') remove=confirm(`${x.name} said no. Take their ${x.live_recipes} live recipe(s) down and hide their photos now?\n\nOK = take down. Cancel = only record the reply.`);
+      try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({status:mk.value,remove})});load()}catch(e){saved.textContent=e.message}};
+  });
+}
+
 const STATES=[['new','New'],['active','Active'],['paused','Paused'],['blocked','Blocked'],['all','All']];
 const RIGHTS=[['not_requested','Not asked'],['requested','Asked'],['granted','Granted'],['refused','Refused']];
 const RIGHTS_HELP={granted:'Their steps show word for word on KidPoshan, with credit.',requested:'Waiting for their reply. Parents see KidPoshan-written steps and a credit link meanwhile.',refused:'Parents see KidPoshan-written steps and a credit link. Consider switching their photos off below.',not_requested:'Parents see KidPoshan-written steps and a credit link.'};
+function tavilyStrip(){
+  if(!tav) return '';
+  if(!tav.configured) return '<p class="banner">Tavily is not connected (no TAVILY_API_KEY), so search-based discovery is off.</p>';
+  const a=tav.account, acct=a&&a.limit!=null?`Tavily account: <b>${a.used??'?'} of ${a.limit}</b> credits used${a.plan?' ('+esc(a.plan)+' plan)':''}. `:(tav.account_error?esc(tav.account_error)+'. ':'');
+  return `<p class="banner">${acct}Searches made by recipe finding: <b>${tav.used_today} of ${tav.cap_per_day}</b> allowed today, ${tav.used_last_7_days} in the last 7 days. The daily limit stops the free quota running out; change it with the TAVILY_DAILY_CAP variable.</p>`;
+}
 function renderSites(list){
-  list.innerHTML=`<div class="site-tools">
+  list.innerHTML=`${tavilyStrip()}<div class="site-tools">
     <div class="filters" role="group" aria-label="Show sites">${STATES.map(([k,l])=>`<button class="fchip" data-state-filter="${k}" aria-pressed="${siteState===k}">${l}<span class="n">${siteCounts[k]??''}</span></button>`).join('')}</div>
     <input class="sitesearch" id="sq" type="search" placeholder="Search by name, website or area" value="${esc(siteQ)}" aria-label="Search sites"></div>
     <div id="sitelist">${sites.length?sites.map(siteHTML).join(''):`<p class="empty">${siteState==='new'?'No new sites. Sites found by parent searches appear here for your go-ahead.':'No sites match.'}</p>`}</div>`;
@@ -415,7 +514,12 @@ async function load(append=false){
     const [p,a,r,c]=await Promise.all(['pending','approved','rejected'].map(st=>api(`/api/kp/admin/review?status=${st}&limit=1`)).concat([api('/api/kp/admin/sources?state=new')]));
     siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
     unreviewedCount=a.unreviewed||0; counts={pending:p.total,approved:`${a.total}${a.unreviewed?'<b class="dot" title="'+a.unreviewed+' not reviewed"></b>':''}`,rejected:r.total,sites:c.counts.new||''};
-    if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts}
+    if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts;tav=await api('/api/kp/admin/tavily').catch(()=>null)}
+    const [rw,pw]=await Promise.all([api('/api/kp/admin/remarks?status='+vis.rStatus),api('/api/kp/admin/payments?status='+vis.pStatus)]);
+    vis.remarks=rw.remarks;vis.rCounts=rw.counts;vis.payments=pw.payments;vis.totals=pw.totals;
+    counts.visitors=(rw.counts.pending||0)+((pw.totals.claimed||{}).count||0)||'';
+    if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
+    if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
     if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
     render();

@@ -51,12 +51,19 @@ db.exec(fs.readFileSync('migrations/0013_photos_hidden.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0014_publish_by_default.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0015_mayo_flex.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0016_recipe_images.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0017_image_width.sql', 'utf8'));
+db.exec("CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT UNIQUE, mobile TEXT UNIQUE, name TEXT NOT NULL, password_hash TEXT, password_salt TEXT, password_iterations INTEGER, role TEXT NOT NULL DEFAULT 'parent', created_at INTEGER NOT NULL); CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at INTEGER NOT NULL);");
+db.exec(fs.readFileSync('migrations/0018_visitors_rate_remarks_pay_outreach.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0019_tavily_calls.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0020_visitors_without_otp.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0021_visitor_email.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0022_site_visitors.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
   all: async () => ({ results: db.prepare(sql).all(...args) }),
   first: async () => db.prepare(sql).get(...args) ?? null,
-  run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
+  run: async () => { const r = db.prepare(sql).run(...args); return { meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } }; },
   _run: () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
 });
 const env = { CRAWL_MIN_GAP_MS: 0, DB: { prepare: (q) => wrap(q), batch: async (list) => list.map((s) => s._run()) } };
@@ -504,5 +511,190 @@ await updateSource(env, 1, { photos_hidden: true });
 const gHidden = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + gId), env, ctx)).json();
 await updateSource(env, 1, { photos_hidden: false });
 ok(gHidden.images.length === 0 && gHidden.image_url === null, "Hiding a site's photos hides the whole gallery too");
+
+// ---- sharpest photo first: width read from file headers, hero = sharpest, sharp-photo recipes lead the menu ----
+import { sizeOf, rankImages } from '../../src/recipes/imgsize.js';
+const png = new Uint8Array(32); png.set([0x89, 0x50, 0x4e, 0x47, 13, 10, 26, 10], 0); png.set([0, 0, 0x03, 0x20], 16); png.set([0, 0, 0x02, 0x58], 20);
+ok(sizeOf(png)?.w === 800 && sizeOf(png)?.h === 600, 'PNG width/height are read from the header');
+const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xc0, 0, 11, 8, 1, 0x2c, 2, 0x80, 3, 0, 0]);   // 640 x 300
+ok(sizeOf(jpg)?.w === 640 && sizeOf(jpg)?.h === 300, 'JPEG width/height are read past other segments');
+ok(sizeOf(new Uint8Array([1, 2, 3, 4, 5])) === null, 'Unknown bytes give no size');
+const widths = { 'a.jpg': 109, 'b.jpg': 640, 'c.jpg': 700, 'd.jpg': 1400 };
+const fakeProbe = async (u) => widths[u.split('/').pop()] || 0;
+const rk1 = await rankImages(['https://x/a.jpg', 'https://x/b.jpg', 'https://x/c.jpg'], { probe: fakeProbe });
+ok(rk1.images[0].endsWith('b.jpg') && rk1.width === 640, 'A thumbnail hero is replaced by the sharper photo (700 vs 640 is not 1.25x, so 640 stays)');
+const rk2 = await rankImages(['https://x/b.jpg', 'https://x/d.jpg'], { probe: fakeProbe });
+ok(rk2.images[0].endsWith('d.jpg') && rk2.width === 1400 && rk2.images.length === 2, 'A clearly sharper photo (1400 vs 640) becomes the hero and nothing is dropped');
+const rk3 = await rankImages(['https://x/b.jpg', 'https://x/c.jpg'], { probe: fakeProbe });
+ok(rk3.images[0].endsWith('b.jpg'), 'A slightly sharper step photo does not displace the finished-dish photo');
+const rk4 = await rankImages(['https://x/zz.jpg'], { probe: fakeProbe });
+ok(rk4.width === 0 && rk4.images.length === 1, 'An unmeasurable photo is kept, with width 0');
+
+const sharpId = mkRecipe('https://site.in/sharp-dish/', { status: 'approved' });
+const blurId = mkRecipe('https://site.in/blur-dish/', { status: 'approved' });
+db.prepare('UPDATE kp_recipes SET image_w = 800, poshan_score = 40, score_status = ? WHERE id = ?').run('estimated', sharpId);
+db.prepare('UPDATE kp_recipes SET image_w = 109, poshan_score = 95, score_status = ? WHERE id = ?').run('estimated', blurId);
+const sharpRes = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&limit=50'), env, ctx)).json();
+const sharpIds = sharpRes.results.map((x) => x.id);
+ok(sharpIds.includes(sharpId) && sharpIds.includes(blurId) && sharpIds.indexOf(sharpId) < sharpIds.indexOf(blurId), 'A recipe with a sharp photo is listed before one with a tiny photo, even when the tiny-photo recipe scores higher');
+
+// ---- visitors: mobile + OTP login, ratings, remarks, support payment, author outreach ----
+import { normaliseMobile, joinVisitor, listVisitors, userFromRequest, rateRecipe, ratingFor, addRemark, approvedRemarks, listRemarks, reviewRemark, payConfig, claimPayment, listPayments, reviewPayment, setName, UserError } from '../../src/recipes/social.js';
+import { buildMessage, rawEmail, classifyReply, setContactEmail, sendOutreach, checkReplies, listOutreach, markOutreach, previewMessage } from '../../src/recipes/outreach.js';
+const throwsMsg = async (fn) => { try { await fn(); return null; } catch (e) { return e.message; } };
+
+ok(normaliseMobile('+91 98765 43210') === '9876543210' && normaliseMobile('09876543210') === '9876543210' && normaliseMobile('919876543210') === '9876543210', 'Mobile numbers are accepted with +91, 0 or 91 in front');
+ok(!!(await throwsMsg(() => normaliseMobile('12345'))) && !!(await throwsMsg(() => normaliseMobile('5876543210'))), 'Short numbers and numbers not starting 6-9 are refused');
+
+ok(/name/i.test(await throwsMsg(() => joinVisitor(env, { name: ' ', mobile: '9876543210', email: 'a@b.in' }))), 'A name is required');
+ok(/10-digit/.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '123', email: 'a@b.in' }))), 'A bad mobile number is refused');
+const v_sess = await joinVisitor(env, { name: ' Asha  K ', mobile: '+91 98765 43210', email: 'a@b.in' });
+ok(v_sess.token && v_sess.name === 'Asha K', 'Name and mobile give a session token, with the name tidied');
+const visitor = await userFromRequest(new Request('https://w/', { headers: { authorization: 'Bearer ' + v_sess.token } }), env);
+ok(visitor && visitor.mobile === '9876543210' && visitor.name === 'Asha K', 'The session token identifies the visitor by name and number');
+ok(await userFromRequest(new Request('https://w/', { headers: { authorization: 'Bearer nope' } }), env) === null && await userFromRequest(new Request('https://w/'), env) === null, 'No or a wrong token means not logged in');
+const again = await joinVisitor(env, { name: 'Asha', mobile: '9876543210', email: 'a@b.in' });
+ok(db.prepare('SELECT count(*) n FROM kp_visitors').get().n === 1 && again.token !== v_sess.token, 'The same number gives the same visitor back, with a new session');
+ok(db.prepare('SELECT count(*) n FROM users').get().n === 0, "Visitors never touch the main app's accounts");
+for (let i = 0; i < 8; i++) await joinVisitor(env, { name: 'Asha', mobile: '9876543210', email: 'a@b.in' });
+ok(/Too many tries/.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '9876543210', email: 'a@b.in' }))), 'One number cannot create more than 10 sessions an hour');
+const joinHttp = await routeRecipes(new Request('https://w/api/kp/auth/join', { method: 'POST', headers: { origin: 'https://www.kidposhan.in' }, body: JSON.stringify({ name: 'Ravi', mobile: '9811111111', email: 'Ravi@Example.com' }) }), env, ctx);
+const joinBody = await joinHttp.json();
+ok(joinHttp.status === 200 && joinBody.token && joinHttp.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'Joining over HTTP works and answers CORS for kidposhan.in');
+const meHttp = await routeRecipes(new Request('https://w/api/kp/auth/me', { headers: { authorization: 'Bearer ' + joinBody.token } }), env, ctx);
+ok((await meHttp.json()).name === 'Ravi', 'The me endpoint returns the visitor name');
+ok((await routeRecipes(new Request('https://w/api/kp/auth/otp', { method: 'POST', body: '{}' }), env, ctx)).status === 404, 'The old OTP endpoint is gone');
+
+const rrId = mkRecipe('https://site.in/v_rated-dish/', { status: 'approved' });
+const hiddenId = mkRecipe('https://site.in/not-live/', { status: 'pending' });
+ok(/Choose 1 to 5/.test(await throwsMsg(() => rateRecipe(env, visitor, rrId, 9))), 'Stars outside 1-5 are refused');
+ok(/not available/.test(await throwsMsg(() => rateRecipe(env, visitor, hiddenId, 5))), 'A recipe that is not live cannot be rated');
+await rateRecipe(env, visitor, rrId, 5);
+const v2 = await userFromRequest(new Request('https://w/', { headers: { authorization: 'Bearer ' + joinBody.token } }), env);
+const after2 = await rateRecipe(env, v2, rrId, 3);
+ok(after2.count === 2 && after2.average === 4 && after2.liked === 1 && after2.mine === 3, 'Two ratings give average 4.0, 2 raters, 1 who liked it (4-5 stars)');
+const v_changed = await rateRecipe(env, v2, rrId, 4);
+ok(v_changed.count === 2 && v_changed.average === 4.5 && v_changed.liked === 2, 'Rating again replaces the earlier rating instead of adding one');
+const v_list = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&limit=50'), env, ctx)).json();
+const v_rated = v_list.results.find((x) => x.id === rrId);
+ok(v_rated && v_rated.rating_avg === 4.5 && v_rated.rating_count === 2 && v_rated.liked_count === 2, 'Search results carry the average stars, number of raters and number who liked it');
+
+await setName(env, visitor, 'Asha');
+const asha = { ...visitor, name: 'Asha' };
+const rm = await addRemark(env, asha, rrId, 'My toddler <b>loved</b> this');
+ok(rm.received && (await approvedRemarks(env, rrId)).length === 0, 'A new remark is received but NOT public');
+const v_pend = await listRemarks(env, { status: 'pending' });
+ok(v_pend.remarks.length === 1 && v_pend.remarks[0].mobile_tail === '3210' && !/[<>]/.test(v_pend.remarks[0].body), 'The admin sees it pending, with the last 4 digits only, and markup stripped');
+const socialPending = await (await routeRecipes(new Request('https://w/api/kp/recipes/' + rrId + '/social'), env, ctx)).json();
+ok(socialPending.remarks.length === 0 && socialPending.rating.count === 2, 'The public endpoint hides pending remarks and shows the rating');
+await reviewRemark(env, v_pend.remarks[0].id, { action: 'edit', body: 'My toddler loved this' });
+await reviewRemark(env, v_pend.remarks[0].id, { action: 'approve' });
+const v_pub = await approvedRemarks(env, rrId);
+ok(v_pub.length === 1 && v_pub[0].name === 'Asha' && v_pub[0].body === 'My toddler loved this' && v_pub[0].mobile === undefined && v_pub[0].mobile_tail === undefined, 'After approval the edited remark is public with the name only');
+await addRemark(env, asha, rrId, 'second one'); await reviewRemark(env, (await listRemarks(env)).remarks[0].id, { action: 'reject' });
+ok((await approvedRemarks(env, rrId)).length === 1, 'A rejected remark never appears');
+
+const noAuth = await routeRecipes(new Request('https://w/api/kp/recipes/' + rrId + '/rate', { method: 'POST', body: '{"stars":5}' }), env, ctx);
+ok(noAuth.status === 401, 'Rating without logging in answers 401');
+const viaHttp = await routeRecipes(new Request('https://w/api/kp/recipes/' + rrId + '/rate', { method: 'POST', headers: { authorization: 'Bearer ' + v_sess.token, origin: 'https://www.kidposhan.in' }, body: '{"stars":2}' }), env, ctx);
+ok(viaHttp.status === 200 && viaHttp.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'A logged-in rating over HTTP works and answers CORS for kidposhan.in');
+const pre = await routeRecipes(new Request('https://w/api/kp/recipes/' + rrId + '/rate', { method: 'OPTIONS', headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+ok(pre.status === 204 && /authorization/i.test(pre.headers.get('access-control-allow-headers')), 'The CORS preflight allows the Authorization header for kidposhan.in');
+const preBad = await routeRecipes(new Request('https://w/api/kp/recipes/' + rrId + '/rate', { method: 'OPTIONS', headers: { origin: 'https://evil.example' } }), env, ctx);
+ok(preBad.status === 403, 'A preflight from another site is refused');
+const adminNoTok = await routeRecipes(new Request('https://w/api/kp/admin/remarks'), { ...env, ADMIN_TOKEN: 't' }, ctx);
+ok(adminNoTok.status === 401, 'Remark moderation needs the admin token');
+
+ok(payConfig({}).ready === false && payConfig({ UPI_ID: 'bad id' }).ready === false, 'Support payment is off until a valid UPI id is set');
+const v_pc = payConfig({ UPI_ID: 'kidposhan@okhdfcbank', UPI_PAYEE_NAME: 'KidPoshan' }, 7);
+ok(v_pc.ready && v_pc.amount_rupees === 5 && /^upi:\/\/pay\?/.test(v_pc.link) && /am=5\.00/.test(v_pc.link) && /pa=kidposhan%40okhdfcbank/.test(v_pc.link) && /cu=INR/.test(v_pc.link), 'The UPI link asks for exactly Rs 5.00 to the configured id');
+const v_cl = await claimPayment(env, asha, rrId, 'UTR 123456789012');
+ok(v_cl.received && (await listPayments(env)).payments.length === 1, 'A claimed payment is recorded for the admin');
+await reviewPayment(env, v_cl.id, { action: 'confirm' });
+const v_tot = await listPayments(env, { status: 'confirmed' });
+ok(v_tot.payments.length === 1 && v_tot.totals.confirmed.rupees === 5, 'The admin confirms it and the total shows Rs 5');
+
+// ---- outreach ----
+const sid = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active) VALUES ('Spice Blog','https://spice.in','India',1) RETURNING id").get().id;
+const sid2 = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active) VALUES ('Spice Twin','https://twin.in','India',1) RETURNING id").get().id;
+const orId = mkRecipe('https://spice.in/dal/', { status: 'approved', name: 'Dal Tadka | Spice Blog' });
+db.prepare('UPDATE kp_recipes SET source_id = ? WHERE id = ?').run(sid, orId);
+ok(!!(await throwsMsg(() => setContactEmail(env, sid, 'not-an-email'))), 'A bad email address is refused');
+await setContactEmail(env, sid, ' Owner@Spice.IN '); await setContactEmail(env, sid2, 'owner@spice.in');
+const v_msg = buildMessage({}, { name: 'Spice Blog' }, ['Dal Tadka']);
+ok(/with your permission/.test(v_msg.text) && /not a selling site/.test(v_msg.text) && /share a portion/.test(v_msg.text) && /YES/.test(v_msg.text) && /NO/.test(v_msg.text) && /Dal Tadka/.test(v_msg.text), 'The email asks permission, says it is not a selling site, promises a share, and asks for YES or NO');
+ok(/Spice Blog/.test((await previewMessage(env, sid)).subject), 'The preview shows the subject for that site');
+const mime = rawEmail('me@gmail.com', 'owner@spice.in', 'Permission – Spice', 'Hello दाल');
+ok(/^From: me@gmail.com/m.test(mime) && /^To: owner@spice.in/m.test(mime) && /Subject: =\?UTF-8\?B\?/.test(mime) && /Content-Transfer-Encoding: base64/.test(mime), 'The raw email has the right headers and encodes the subject and body safely');
+const sends = []; const fakeSend = async (e, to, sub, text) => { sends.push(to); return { threadId: 'T-' + to }; };
+const sr = await sendOutreach(env, [sid, sid2], { send: fakeSend });
+ok(sends.length === 1 && sr[0].sent && sr[1].skipped === 'already emailed', 'One email goes out per address; a second source with the same address is skipped');
+const sr2 = await sendOutreach(env, [sid], { send: fakeSend });
+ok(sends.length === 1 && sr2[0].skipped === 'already emailed', 'A site is never emailed twice');
+const noMail = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active) VALUES ('NoMail','https://nomail.in','India',1) RETURNING id").get().id;
+ok((await sendOutreach(env, [noMail], { send: fakeSend }))[0].skipped === 'no email address', 'A site with no email address is skipped');
+ok(/not connected/.test(await throwsMsg(() => checkReplies(env, { fetchFn: async () => ({}) }))), 'Reply checking says Gmail is not connected when the secrets are missing');
+const gEnv = { ...env, GMAIL_CLIENT_ID: 'c', GMAIL_CLIENT_SECRET: 's', GMAIL_REFRESH_TOKEN: 'r', GMAIL_SENDER: 'me@gmail.com' };
+const fakeFetch = async (u) => String(u).includes('oauth2') ? { ok: true, json: async () => ({ access_token: 'tok' }) }
+  : { ok: true, json: async () => ({ messages: [{ internalDate: '1000000', snippet: 'Hello', payload: { headers: [{ name: 'From', value: 'Me <me@gmail.com>' }] } }, { internalDate: '2000000', snippet: 'Yes, you can use my recipes. Happy to help!', payload: { headers: [{ name: 'From', value: 'Owner <owner@spice.in>' }] } }] }) };
+const v_rep = await checkReplies(gEnv, { fetchFn: fakeFetch });
+ok(v_rep.length === 1 && v_rep[0].status === 'replied_yes', 'A reply saying yes is tracked as replied_yes');
+const v_lst = await listOutreach(env);
+const v_row = v_lst.sources.find((x) => x.id === sid);
+ok(v_row.status === 'replied_yes' && /Happy to help/.test(v_row.reply_snippet) && v_row.replied_at === 2000, 'The listing shows who replied, how, and what they said');
+ok(v_lst.sources.find((x) => x.id === noMail) === undefined || ['no_email','not_sent'].includes(v_lst.sources.find((x) => x.id === noMail).status), 'Sites never emailed show as not v_sent / no email');
+ok(classifyReply('No, please remove my recipes') === 'replied_no' && classifyReply('Sure, go ahead') === 'replied_yes' && classifyReply('Who are you?') === 'replied_other' && classifyReply('Yes but do not use my photos') === 'replied_other', 'Reply wording is classified as yes / no / other, and mixed answers are left for the owner');
+const v_decline = await markOutreach(env, sid, { status: 'replied_no', note: 'asked to remove', remove: true });
+ok(v_decline.removed === 1 && db.prepare('SELECT review_status FROM kp_recipes WHERE id = ?').get(orId).review_status === 'rejected' && db.prepare('SELECT photos_hidden FROM kp_recipe_sources WHERE id = ?').get(sid).photos_hidden === 1, 'When the owner confirms a NO with remove, that site\'s live recipes come down and its photos are hidden');
+const v_keep = await markOutreach(env, sid, { status: 'replied_yes' });
+ok(v_keep.removed === 0, 'Marking yes removes nothing');
+
+// ---- Tavily: every search is counted and a daily cap protects the free quota ----
+import { spendTavily, tavilySearchRaw, tavilyUsage, dailyCap, DEFAULT_DAILY_CAP } from '../../src/recipes/tavily.js';
+ok(dailyCap({}) === DEFAULT_DAILY_CAP && dailyCap({ TAVILY_DAILY_CAP: '8' }) === 8 && dailyCap({ TAVILY_DAILY_CAP: 'abc' }) === DEFAULT_DAILY_CAP, 'The daily cap defaults to 25 and can be set with TAVILY_DAILY_CAP');
+db.prepare('DELETE FROM kp_tavily_calls').run();   // earlier tests also spent searches today
+const tEnv = { ...env, TAVILY_API_KEY: 'k', TAVILY_DAILY_CAP: '3' };
+let tCalls = 0; const tFetch = async (u, o) => { tCalls++; return { ok: true, json: async () => ({ results: [{ url: 'https://a.in/x' }] }) }; };
+const tr1 = await tavilySearchRaw(tEnv, { query: 'a' }, tFetch); await tavilySearchRaw(tEnv, { query: 'b' }, tFetch); await tavilySearchRaw(tEnv, { query: 'c' }, tFetch);
+ok(tr1.length === 1 && tCalls === 3, 'Searches under the cap go through and return results');
+let tCap = null; try { await tavilySearchRaw(tEnv, { query: 'd' }, tFetch); } catch (e) { tCap = e; }
+ok(tCap && tCap.code === 'tavily_cap' && tCalls === 3, 'The 4th search of the day is refused before Tavily is called, so it costs no credit');
+const tUse = await tavilyUsage(tEnv, async () => ({ ok: true, json: async () => ({ account: { current_plan: 'Researcher', plan_usage: 88, plan_limit: 1000 } }) }));
+ok(tUse.used_today === 3 && tUse.cap_per_day === 3 && tUse.account.used === 88 && tUse.account.limit === 1000 && tUse.account.plan === 'Researcher', 'Usage shows our count for today and the account usage from Tavily');
+const tUse2 = await tavilyUsage(tEnv, async () => ({ ok: false, status: 401 }));
+ok(tUse2.account === null && /401/.test(tUse2.account_error), 'If Tavily will not give account usage, our own count still shows');
+ok((await tavilyUsage({ DB: env.DB })).configured === false, 'Without a key, usage says Tavily is not connected');
+db.prepare("UPDATE kp_tavily_calls SET day = date('now','-1 day')").run();
+await tavilySearchRaw(tEnv, { query: 'e' }, tFetch);
+ok(tCalls === 4, 'The count starts again the next day');
+const tAdmin = await routeRecipes(new Request('https://w/api/kp/admin/tavily', { headers: { 'x-admin-token': 't' } }), { ...tEnv, ADMIN_TOKEN: 't' }, ctx);
+const tBody = await tAdmin.json();
+ok(tAdmin.status === 200 && tBody.used_today === 1 && tBody.cap_per_day === 3, 'The admin endpoint reports the usage');
+ok((await routeRecipes(new Request('https://w/api/kp/admin/tavily'), { ...tEnv, ADMIN_TOKEN: 't' }, ctx)).status === 401, 'The admin endpoint needs the admin token');
+
+// ---- email on the join form, the admin list of people, and the visitor count ----
+import { recordVisit, visitCount } from '../../src/recipes/visits.js';
+ok(/valid email/i.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '9811111111', email: 'nope' }))) && /valid email/i.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '9811111111' }))), 'A missing or malformed email is refused');
+const ravi = db.prepare("SELECT name, mobile, email FROM kp_visitors WHERE mobile = '9811111111'").get();
+ok(ravi && ravi.email === 'ravi@example.com' && ravi.name === 'Ravi', 'The email is stored tidied (lower case)');
+const people = await listVisitors(env);
+ok(people.total === 2 && people.visitors.some((v) => v.email === 'ravi@example.com' && v.ratings >= 0 && v.remarks >= 0), 'The admin list shows who joined, with email and how much they took part');
+ok((await routeRecipes(new Request('https://w/api/kp/admin/visitors'), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 401 && (await (await routeRecipes(new Request('https://w/api/kp/admin/visitors', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx)).json()).total === 2, 'The visitor list needs the admin token');
+
+const vc0 = await visitCount(env);
+const vc1 = await recordVisit(env, 'abcdef0123456789abcd', 'Mozilla/5.0 (iPhone)');
+const vc2 = await recordVisit(env, 'abcdef0123456789abcd', 'Mozilla/5.0 (iPhone)');
+ok(vc1 === vc0 + 1 && vc2 === vc1, 'A browser is counted once, however many pages it opens');
+ok(await recordVisit(env, 'zzzzzzzzzzzzzzzzzzzz1', 'Mozilla/5.0') === vc1 + 1, 'A different browser adds one');
+const vcBefore = await visitCount(env);
+await recordVisit(env, 'botbotbotbotbotbotbot', 'Mozilla/5.0 (compatible; Googlebot/2.1)'); await recordVisit(env, 'bad id!', 'Mozilla/5.0'); await recordVisit(env, '', 'Mozilla/5.0');
+ok(await visitCount(env) === vcBefore, 'Crawlers and malformed ids are not counted');
+const vHttp = await routeRecipes(new Request('https://w/api/kp/visit', { method: 'POST', headers: { origin: 'https://www.kidposhan.in', 'user-agent': 'Mozilla/5.0' }, body: JSON.stringify({ vid: 'httpvisitor0123456789' }) }), env, ctx);
+const vBody = await vHttp.json();
+ok(vHttp.status === 200 && vBody.count === vcBefore + 1 && vHttp.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'The visit endpoint counts over HTTP and answers CORS for kidposhan.in');
+const vGet = await (await routeRecipes(new Request('https://w/api/kp/visit'), env, ctx)).json();
+ok(vGet.count === vcBefore + 1, 'A plain GET returns the count without adding anyone');
+const vPre = await routeRecipes(new Request('https://w/api/kp/visit', { method: 'OPTIONS', headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+ok(vPre.status === 204, 'The visit endpoint answers the CORS preflight');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

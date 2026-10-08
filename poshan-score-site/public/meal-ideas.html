@@ -404,6 +404,45 @@ img,svg{max-width:100%}
 .lb-cap a{color:#f6e4bc}
 body.lb-open{overflow:hidden}
 @media (max-width:600px){.lb-p,.lb-n{top:auto;bottom:56px;transform:none}.lb-p{left:calc(50% - 56px)}.lb-n{right:calc(50% - 56px)}.lb{padding-bottom:116px}}
+
+/* ===== ratings, remarks, support ===== */
+.stars{display:inline-block;letter-spacing:2px;background:linear-gradient(90deg,var(--gold) var(--p,0%),#DCD2BC var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;line-height:1}
+.dish .rate{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.dish .rate .stars{font-size:13px;letter-spacing:1px;margin-right:4px}
+.ratebox{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:4px 0 14px}
+.ratebox .avg{display:flex;align-items:center;gap:8px}.ratebox .big{font-family:var(--display);font-size:30px;line-height:1}
+.ratebox .stars{font-size:20px}.ratebox .cnt{color:var(--muted);font-size:14px}
+.rate-me{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.rate-me .st{background:none;border:0;padding:2px 3px;font-size:26px;line-height:1;cursor:pointer;color:#CFC4AB;transition:transform .15s}
+.rate-me .st.on,.rate-me .st:hover,.rate-me .st:focus-visible{color:var(--gold)}.rate-me .st:hover{transform:scale(1.15)}
+.rmk{border-top:1px solid var(--line);padding:12px 0}.rmk b{display:block}.rmk time{color:var(--muted);font-size:12.5px}.rmk p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rmk-form textarea,.rmk-form input,.kpmodal input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
+.rmk-form textarea{min-height:84px;resize:vertical;margin-bottom:8px}.rmk-form input{margin-bottom:8px}
+.kbtn{display:inline-block;border:0;border-radius:99px;padding:11px 20px;background:var(--ink);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.kbtn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.kbtn[disabled]{opacity:.55;cursor:default}
+.support{background:linear-gradient(135deg,#FFF6DF,#FDFBF6);border:1px solid #EADBB0;border-radius:18px;padding:18px 20px}
+.support .upi{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.support code{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;overflow-wrap:anywhere}
+.support details{margin-top:8px}.support summary{cursor:pointer;color:var(--muted)}
+.kpmsg{margin:8px 0 0;font-size:14px;color:var(--muted)}.kpmsg.err{color:#A12A1D}.kpmsg.ok{color:#1c6a3a}
+.kpjoin{display:grid;gap:10px}.kpjoin label{display:grid;gap:4px;font-size:13.5px;color:var(--muted);font-weight:600}
+.kpjoin input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.85);font:inherit;font-weight:400;color:var(--ink)}
+.kpjoin .kbtn{justify-self:start}.kpfine{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.kpfloat{position:fixed;right:16px;bottom:34px;width:min(360px,calc(100vw - 32px));z-index:150;box-sizing:border-box;padding:16px 16px 18px;border-radius:18px;overflow:hidden;
+  background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(14px) saturate(1.25);backdrop-filter:blur(14px) saturate(1.25);border:1px solid rgba(231,223,206,.95);
+  box-shadow:0 12px 40px rgba(34,26,18,.22);animation:kpUp .45s ease both;transition:opacity .4s ease,transform .4s ease}
+.kpfloat.out{opacity:0;transform:translateY(14px);pointer-events:none}
+.kpfloat h2{margin:0 0 2px;font-size:19px}.kpfloat>p{margin:0 0 10px;font-size:14px;color:var(--muted)}
+.kpfloat .x{position:absolute;top:6px;right:10px;background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--muted)}
+.kpfloat .bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--gold);transform-origin:left;animation:kpBar 10s linear forwards}
+.kpfloat.hold .bar{display:none}
+@keyframes kpUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes kpBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (max-width:520px){.kpfloat{left:12px;right:12px;bottom:34px;width:auto}}
+@media (prefers-reduced-motion:reduce){.kpfloat{animation:none;transition:none}}
+.kpmodal-bg{position:fixed;inset:0;background:rgba(20,15,8,.55);display:grid;place-items:center;z-index:200;padding:16px}
+.kpmodal{background:var(--bg);border-radius:18px;padding:22px;width:min(420px,100%);box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}
+.kpmodal h2{margin:0 0 6px;font-size:22px}.kpmodal p{margin:0 0 12px;color:var(--muted);font-size:14.5px}.kpmodal .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kpmodal .x{position:absolute;top:8px;right:12px;background:none;border:0;font-size:26px;cursor:pointer;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -565,7 +604,7 @@ function demoSearch(q){
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const toCard=r=>({rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
 async function search(q){
   if(!LIVE) return demoSearch(q).map(toCard);
   const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
@@ -605,7 +644,7 @@ const bandOf=v=>v>=80?'Excellent':v>=58?'Good':v>=40?'Fair':'Occasional';
 // "Vegetable Biryani Recipe (Pressure Cooker Veg Biryani)" -> "Vegetable Biryani"; source titles often repeat themselves with "|".
 const nice=n=>{const t=String(n||'').split('|')[0].replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();return t||String(n||'')};
 // A photo laid over the drawn illustration: if the photo fails to load (hot-link blocked, deleted), the illustration is simply what shows.
-const photoImg=(src,alt,credit,hero)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="${hero?'eager':'lazy'}" decoding="async" referrerpolicy="no-referrer"${hero?' onload="heroFit(this)"':''} onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
+const photoImg=(src,alt,credit,hero)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="${hero?'eager':'lazy'}" decoding="async" referrerpolicy="no-referrer" onload="${hero?'heroFit(this)':'tinyPhoto(this,200)'}" onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
 const badgeHTML=(v,kind)=>v==null||v===''?'':`<span class="badge" data-band="${bandOf(+v)}" title="${kind==='estimated'?'Poshan Score, estimated from ingredients':'Poshan Score'}">${esc(v)}<small>Poshan</small></span>`;
 
 function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
@@ -646,8 +685,14 @@ const revealIO=!REDUCED&&'IntersectionObserver' in window?new IntersectionObserv
 function reveal(){if(!revealIO)return;document.querySelectorAll('.shelf-head,.section,.sheet .title-row,.legend').forEach(el=>{if(el.classList.contains('reveal'))return;el.classList.add('reveal');revealIO.observe(el)})}
 /* ===== photo gallery viewer + sharp hero ===== */
 // A small photo is never stretched across a wide hero: it is shown at its own size over a soft blurred copy of itself.
+// Some sources only publish a thumbnail (e.g. 109px wide). Blown up it is only a smear, so below a minimum size the illustrated art is shown instead.
+function tinyPhoto(img,min){
+  if(!img.naturalWidth||img.naturalWidth>=min) return false;
+  img.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove()); img.remove(); return true;
+}
 function heroFit(img){
   const h=img.closest('.hero'); if(!h) return;
+  if(tinyPhoto(img,320)){h.classList.remove('lowres');return}
   if(img.naturalWidth&&img.naturalWidth<h.clientWidth*0.95){h.classList.add('lowres');h.style.setProperty('--hero-bg',`url("${img.src}")`)}
   else h.classList.remove('lowres');
 }
@@ -729,7 +774,7 @@ function renderMenu(){
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
             <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
-            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span><span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${x.diet}">${DIET_LABEL[x.diet]||''}</span></div></button>`).join('')}</div>`;
       }
       html+=`<div id="menuPacks"></div>`;
     }
@@ -745,6 +790,112 @@ function renderMenu(){
   app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash='#/r/'+b.dataset.open});
 }
 
+/* ===== visitors: login, rating, remarks, support ===== */
+const TOK_KEY='kp_visitor_token';
+const getTok=()=>{try{return localStorage.getItem(TOK_KEY)||''}catch(e){return ''}};
+const setTok=t=>{try{t?localStorage.setItem(TOK_KEY,t):localStorage.removeItem(TOK_KEY)}catch(e){}};
+async function vapi(path,{method='GET',body}={}){
+  const h={}; if(body) h['content-type']='application/json'; const t=getTok(); if(t) h.authorization='Bearer '+t;
+  const res=await fetch(API+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  const d=await res.json().catch(()=>({}));
+  if(!res.ok){ if(res.status===401&&t&&path!=='/api/kp/auth/me') setTok(''); const e=new Error(d.error||'Something went wrong. Please try again.'); e.status=res.status; throw e }
+  return d;
+}
+// The name + mobile + email form, used by the pop-up (when someone rates or remarks) and by the floating panel. Not verified.
+function joinForm(onDone){
+  const f=document.createElement('form'); f.className='kpjoin'; f.noValidate=true;
+  f.innerHTML=`<label>Your name<input name="name" type="text" autocomplete="name" maxlength="40" placeholder="Your name" required></label>
+    <label>Mobile number<input name="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit mobile number" required></label>
+    <label>Email<input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
+    <button class="kbtn" type="submit">Submit</button>
+    <p class="kpmsg" role="status"></p><p class="kpfine">We use these to know who rated or wrote a remark. Your mobile number and email are never shown on the site.</p>`;
+  const msg=(t,k)=>{const m=f.querySelector('.kpmsg');m.textContent=t||'';m.className='kpmsg '+(k||'')};
+  f.onsubmit=async e=>{ e.preventDefault(); const btn=f.querySelector('button'); btn.disabled=true; msg('One moment…');
+    try{ const d=await vapi('/api/kp/auth/join',{method:'POST',body:{name:f.name.value,mobile:f.mobile.value,email:f.email.value}}); setTok(d.token); msg('Thank you, '+d.name+'!','ok'); onDone&&onDone(d) }
+    catch(x){ msg(x.message,'err'); btn.disabled=false } };
+  return f;
+}
+// Pop-up for someone who taps a star or wants to send a remark. Resolves once they submit; rejects if they close it.
+function askLogin(why){
+  return new Promise((resolve,reject)=>{
+    const prev=document.activeElement, bg=document.createElement('div'); bg.className='kpmodal-bg';
+    bg.innerHTML=`<div class="kpmodal" role="dialog" aria-modal="true" aria-labelledby="kpm-h"><button class="x" aria-label="Close">×</button><h2 id="kpm-h">Tell us who you are</h2><p>${esc(why||'Add your details once and you can rate and write remarks.')}</p></div>`;
+    const box=bg.firstElementChild; document.body.appendChild(bg);
+    const close=()=>{bg.remove();document.removeEventListener('keydown',onKey);prev&&prev.focus&&prev.focus()};
+    const onKey=e=>{if(e.key==='Escape'){close();reject(new Error('closed'))}};
+    document.addEventListener('keydown',onKey);
+    box.querySelector('.x').onclick=()=>{close();reject(new Error('closed'))};
+    bg.onclick=e=>{if(e.target===bg){close();reject(new Error('closed'))}};
+    const f=joinForm(d=>{setTimeout(close,500);resolve(d)}); box.appendChild(f); f.name.focus();
+  });
+}
+// Floating, see-through panel on the recipe page. It leaves by itself after 10 seconds unless the visitor starts filling it in;
+// once they do, it stays until they submit (or close it). Shown at most once per browser session, and never to someone already joined.
+function floatingJoin(){
+  if(!LIVE||getTok()||document.querySelector('.kpfloat')) return;
+  try{ if(sessionStorage.getItem('kp_float_shown')) return; sessionStorage.setItem('kp_float_shown','1') }catch(e){}
+  const el=document.createElement('aside'); el.className='kpfloat'; el.setAttribute('role','region'); el.setAttribute('aria-label','Join KidPoshan');
+  el.innerHTML='<button class="x" type="button" aria-label="Close">×</button><h2>Join KidPoshan</h2><p>Add your details to rate recipes and share remarks.</p><span class="bar" aria-hidden="true"></span>';
+  const gone=()=>{el.classList.add('out');setTimeout(()=>el.remove(),450)};
+  let timer=setTimeout(gone,10000);
+  const hold=()=>{clearTimeout(timer);el.classList.add('hold')};            // filling it in: wait for Submit
+  el.addEventListener('input',hold); el.addEventListener('focusin',hold);
+  el.querySelector('.x').onclick=()=>{clearTimeout(timer);gone()};
+  const f=joinForm(()=>{ clearTimeout(timer); el.classList.add('hold'); setTimeout(gone,2200);
+    const m=location.hash.match(/#\/r\/(\d+)/); if(m) loadSocial(+m[1]) });
+  el.appendChild(f); document.body.appendChild(el);
+}
+const starsHTML=avg=>`<span class="stars" style="--p:${Math.round((avg||0)/5*100)}%" aria-hidden="true">★★★★★</span>`;
+async function loadSocial(id){
+  const rb=document.getElementById('rateBox'), mb=document.getElementById('remarksBox'); if(!rb&&!mb) return;
+  let d; try{ d=await vapi(`/api/kp/recipes/${id}/social`) }catch(e){ if(rb) rb.remove(); if(mb) mb.remove(); return }
+  const rt=d.rating, named=d.me&&d.me.name&&d.me.name!=='A parent';
+  if(rb){
+    rb.innerHTML=`<div class="avg">${rt.count?`<span class="big">${rt.average}</span>${starsHTML(rt.average)}<span class="cnt">${rt.count} ${rt.count===1?'rating':'ratings'} · ${rt.liked} liked it</span>`:'<span class="cnt">No ratings yet. Be the first to rate.</span>'}</div>
+      <div class="rate-me" role="group" aria-label="Rate this recipe"><span>${rt.mine?'Your rating':'Rate it'}</span>${[1,2,3,4,5].map(n=>`<button class="st ${rt.mine>=n?'on':''}" data-star="${n}" aria-label="${n} star${n>1?'s':''}" aria-pressed="${rt.mine===n}">★</button>`).join('')}</div><span class="kpmsg" id="rmsg" role="status"></span>`;
+    rb.querySelectorAll('[data-star]').forEach(b=>b.onclick=async()=>{
+      const stars=+b.dataset.star, say=(t,k)=>{const m=document.getElementById('rmsg');if(m){m.textContent=t;m.className='kpmsg '+(k||'')}};
+      try{
+        try{ await vapi(`/api/kp/recipes/${id}/rate`,{method:'POST',body:{stars}}) }
+        catch(e){ if(e.status!==401) throw e; await askLogin('Add your name and mobile number to rate this recipe. Your number is never shown.'); await vapi(`/api/kp/recipes/${id}/rate`,{method:'POST',body:{stars}}) }
+        await loadSocial(id); const m=document.getElementById('rmsg'); if(m){m.textContent='Thank you for rating!';m.className='kpmsg ok'}
+      }catch(e){ if(e.message!=='closed') say(e.message,'err') }
+    });
+  }
+  if(mb){
+    mb.innerHTML=`<h2>Remarks from parents</h2>${d.remarks.length?d.remarks.map(m=>`<div class="rmk"><b>${esc(m.name)}</b><time datetime="${new Date(m.created_at*1000).toISOString()}">${new Date(m.created_at*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</time><p>${esc(m.body)}</p></div>`).join(''):'<p class="lead">No remarks yet.</p>'}
+      <div class="rmk-form" id="rmkForm"><p class="lead">Tried it? Tell other parents. Remarks appear after our team approves them.</p>
+      <div id="rmkIn">${d.me?`${named?'':'<input id="rmkName" maxlength="40" placeholder="Your name (shown with your remark)" autocomplete="name">'}<textarea id="rmkText" maxlength="600" placeholder="Your remark" aria-label="Your remark"></textarea><button class="kbtn" id="rmkGo">Send remark</button>`:'<button class="kbtn alt" id="rmkLogin">Add your name and mobile to send a remark</button>'}</div><p class="kpmsg" id="rmkMsg" role="status"></p></div>`;
+    const msg=(t,k)=>{const m=document.getElementById('rmkMsg');if(m){m.textContent=t;m.className='kpmsg '+(k||'')}};
+    const lg=document.getElementById('rmkLogin'); if(lg) lg.onclick=async()=>{ try{ await askLogin('Add your name and mobile number to send a remark. Only your name is shown, never your number.'); loadSocial(id) }catch(e){} };
+    const go=document.getElementById('rmkGo'); if(go) go.onclick=async()=>{
+      go.disabled=true; msg('Sending…');
+      try{
+        const nm=document.getElementById('rmkName'); if(nm) await vapi('/api/kp/auth/name',{method:'POST',body:{name:nm.value}});
+        const r=await vapi(`/api/kp/recipes/${id}/remarks`,{method:'POST',body:{body:document.getElementById('rmkText').value}});
+        document.getElementById('rmkIn').innerHTML=''; msg(r.message,'ok');
+      }catch(e){ msg(e.message,'err'); go.disabled=false }
+    };
+  }
+}
+// ₹5 support by UPI: opens the visitor's UPI app; they then tell us, and we confirm it against our UPI account.
+async function loadSupport(id){
+  const box=document.getElementById('supportBox'); if(!box) return;
+  let c; try{ c=await vapi(`/api/kp/pay/config?recipe_id=${id}`) }catch(e){ return }
+  if(!c.ready) return;
+  box.hidden=false;
+  box.innerHTML=`<h2>Support the author · ₹${c.amount_rupees}</h2><p class="lead">KidPoshan is free for parents. If this recipe helped, ₹${c.amount_rupees} goes towards sharing with the recipe's author and keeping the site running.</p>
+    <div class="upi"><a class="kbtn" href="${esc(c.link)}" id="upiGo">Pay ₹${c.amount_rupees} with UPI</a><span>or pay to <code id="upiId">${esc(c.upi_id)}</code></span><button class="kbtn alt" id="upiCopy" type="button">Copy</button></div>
+    <details><summary>Already paid? Tell us</summary><div class="rmk-form" style="margin-top:8px"><input id="upiRef" maxlength="60" placeholder="UPI reference / transaction id (optional)" aria-label="UPI reference"><button class="kbtn" id="upiDone">I have paid ₹${c.amount_rupees}</button></div></details>
+    <p class="kpmsg" id="upiMsg" role="status">We confirm each payment against our UPI account before counting it. Payment is optional and does not unlock anything.</p>`;
+  const msg=(t,k)=>{const m=document.getElementById('upiMsg');m.textContent=t;m.className='kpmsg '+(k||'')};
+  document.getElementById('upiCopy').onclick=async e=>{try{await navigator.clipboard.writeText(c.upi_id);e.target.textContent='Copied'}catch(x){msg('Select the UPI id and copy it.','err')}};
+  document.getElementById('upiDone').onclick=async e=>{
+    e.target.disabled=true;
+    try{ const r=await vapi(`/api/kp/recipes/${id}/support`,{method:'POST',body:{note:document.getElementById('upiRef').value}}); msg(r.message,'ok') }
+    catch(x){ msg(x.message,'err'); e.target.disabled=false }
+  };
+}
 /* ===== recipe page ===== */
 async function getRecipe(id){
   if(!LIVE){const r=RECIPES.find(x=>x.id===id); if(!r) return null;
@@ -788,6 +939,7 @@ async function renderRecipe(id){
     <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
     ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
+    ${LIVE?'<div id="rateBox" class="ratebox"></div>':''}
     ${galleryHTML}
     <div class="cols"><div class="col-a">
     <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to add an ingredient to the To buy list below.</p>${r.mayo_note?`<p class="lead mayo-note">${esc(r.mayo_note)}</p>`:''}
@@ -798,6 +950,7 @@ async function renderRecipe(id){
     </div></div>
     ${r.source?`<p class="credit">${r.method_by==='kidposhan'?'Steps written by KidPoshan. ':''}Recipe idea from ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a></p>`:''}
     <section class="section"><h2>Ready-to-buy packs</h2><p class="lead">For busy days. Scored for kids.</p><div id="packs"><p class="empty-packs">Finding packs…</p></div></section>
+    ${LIVE?'<section class="section" id="remarksBox"></section><section class="section support" id="supportBox" hidden></section>':''}
    </article>`;
   app.querySelectorAll('.gal-item').forEach(b=>b.onclick=()=>openLightbox(+b.dataset.g));
   app.querySelectorAll('.hero>img').forEach(i=>{if(i.complete&&i.naturalWidth) heroFit(i)});
@@ -807,6 +960,7 @@ async function renderRecipe(id){
   const toggleStep=el=>{const i=+el.dataset.step;done.has(i)?done.delete(i):done.add(i);save(doneKey,JSON.stringify([...done]));el.setAttribute('aria-pressed',done.has(i))};
   app.querySelectorAll('.step').forEach(el=>{el.onclick=()=>toggleStep(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStep(el)}}});
   renderTray();
+  if(LIVE){loadSocial(r.id);loadSupport(r.id);setTimeout(floatingJoin,1200)}
   const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
   if(packs.hide){box.closest('section')?.remove();return}
   box.innerHTML=packs.length?`<div class="carousel packs" role="list">${packs.map(p=>`<div class="pack" role="listitem">
@@ -838,5 +992,6 @@ function route(){const m=location.hash.match(/^#\/r\/(\d+)/); if(m) renderRecipe
 window.addEventListener('hashchange',()=>{route();if(!location.hash.startsWith('#/r/'))window.scrollTo(0,0)});
 route();
 </script>
+<script src="/kp-visits.js" defer></script>
 </body>
 </html>

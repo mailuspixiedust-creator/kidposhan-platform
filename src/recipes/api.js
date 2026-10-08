@@ -48,6 +48,9 @@ async function queryTier(env, q, tier, excludeIds, take) {
   let sql = `
     SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.age_min_months, r.age_max_months,
            ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_hidden = 0 AND r.poshan_score IS NOT NULL THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
+           (SELECT round(avg(stars), 1) FROM kp_ratings WHERE recipe_id = r.id) AS rating_avg,
+           (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id) AS rating_count,
+           (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id AND stars >= 4) AS liked_count,
            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
            (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -68,8 +71,9 @@ async function queryTier(env, q, tier, excludeIds, take) {
     sql += ` AND r.id NOT IN (${excludeIds.map(() => '?').join(',')})`;
     args.push(...excludeIds);
   }
-  // Registry rule: final order is Poshan Score descending. Unscored recipes go last.
-  sql += ` ORDER BY (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC, r.completeness = 'complete' DESC, r.id LIMIT ?`;
+  // Recipes with a sharp photo come first, then Poshan Score descending (unscored last). Photo bands: 500px+ sharp, 300px+ ok, the rest (or hidden/unmeasured) last.
+  sql += ` ORDER BY CASE WHEN s.photos_hidden = 0 AND r.image_w >= 500 THEN 0 WHEN s.photos_hidden = 0 AND r.image_w >= 300 THEN 1 ELSE 2 END,
+           (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC, r.completeness = 'complete' DESC, r.id LIMIT ?`;
   args.push(take);
   const { results } = await env.DB.prepare(sql).bind(...args).all();
   return results;

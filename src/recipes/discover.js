@@ -5,6 +5,7 @@
 // The source URL itself is also enqueued, because several registry entries are single recipe pages.
 
 import { fetchHtml, UA } from './extract.js';
+import { tavilySearchRaw } from './tavily.js';
 
 const SKIP = /\/(tag|tags|category|categories|label|author|page\/\d+|search|feed|wp-content|wp-json|wp-admin|about|contact|privacy|disclaimer|terms|shop|cart|account|login|subscribe|amp)(\/|$)|\.(jpe?g|png|webp|gif|svg|pdf|xml|css|js)$|[?&](share|replytocom|utm_)/i;
 const RECIPE_HINT = /recipe|how-to-make|-rice|dosa|idli|paratha|upma|poha|khichdi|curry|dal|sabzi|ladoo|cutlet|tikki|sandwich|soup|halwa|pulao|chilla|cheela|thepla|bhaat|kootu|roll|muffin|pancake|porridge|kheer|puree|bites/i;
@@ -78,14 +79,10 @@ export async function tavilySearch(env, source, queries, { maxResults = 10 } = {
   const host = hostOf(source.url);
   const urls = new Set();
   for (const query of queries) {
-    const res = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${env.TAVILY_API_KEY}` },
-      body: JSON.stringify({ api_key: env.TAVILY_API_KEY, query, include_domains: [host], max_results: maxResults, search_depth: 'basic' }),
-    });
-    if (!res.ok) continue;
-    const data = await res.json();
-    for (const r of data.results || []) {
+    let results;
+    try { results = await tavilySearchRaw(env, { query, include_domains: [host], max_results: maxResults }); }   // counted against the daily cap
+    catch (e) { if (e.code === 'tavily_cap') throw e; continue; }
+    for (const r of results) {
       try {
         const u = new URL(r.url);
         if (!SKIP.test(u.pathname) && !isIndexPath(u.pathname)) { u.hash = ''; urls.add(u.toString()); }

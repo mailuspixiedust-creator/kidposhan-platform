@@ -18,8 +18,12 @@ import { readPackLabel, readLabelsPending } from './label.js';
 import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { autoPublishPending } from './autopublish.js';
-import { galleryPending } from './gallery.js';
+import { galleryPending, sizePending } from './gallery.js';
 import { listForReview, reviewRecipe, listSources, updateSource } from './review.js';
+import { UserError, joinVisitor, listVisitors, userFromRequest, logout, setName, rateRecipe, ratingFor, addRemark, approvedRemarks, claimPayment, payConfig, listRemarks, reviewRemark, listPayments, reviewPayment } from './social.js';
+import { tavilyUsage } from './tavily.js';
+import { recordVisit, visitCount } from './visits.js';
+import { setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
 
@@ -39,9 +43,51 @@ export function withCors(request, res) {
   return new Response(res.body, { status: res.status, headers: h });
 }
 
+// Visitor endpoints (login, rate, remark, support). Called from the main site too, so they answer CORS preflights for the allowed origins.
+async function routeVisitors(request, env, url, path) {
+  const m = path.match(/^\/api\/kp\/recipes\/(\d+)\/(social|rate|remarks|support)$/);
+  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit';
+  if (!m && !isAuth && !isPay && !isVisit) return null;
+  const origin = request.headers.get('origin');
+  if (request.method === 'OPTIONS') {
+    if (!origin || !ALLOWED_ORIGIN.test(origin)) return new Response(null, { status: 403 });
+    return new Response(null, { status: 204, headers: { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'content-type, authorization', 'access-control-max-age': '86400', vary: 'Origin' } });
+  }
+  const reply = (d, s = 200) => withCors(request, json(d, s));
+  try {
+    const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+    const user = await userFromRequest(request, env);
+    const need = () => { if (!user) throw new UserError('Please log in with your mobile number first.', 401); return user; };
+    if (path === '/api/kp/auth/join' && request.method === 'POST') return reply(await joinVisitor(env, body));
+    if (path === '/api/kp/auth/me' && request.method === 'GET') return user ? reply({ name: user.name, mobile_tail: String(user.mobile || '').slice(-4) }) : reply({ error: 'Not logged in' }, 401);
+    if (path === '/api/kp/auth/name' && request.method === 'POST') return reply(await setName(env, need(), body.name));
+    if (path === '/api/kp/auth/logout' && request.method === 'POST') { await logout(request, env); return reply({ ok: true }); }
+    if (isPay && request.method === 'GET') return reply(payConfig(env, +url.searchParams.get('recipe_id') || null));
+    if (isVisit) {
+      const count = request.method === 'POST' ? await recordVisit(env, body.vid, request.headers.get('user-agent') || '') : await visitCount(env);
+      return reply({ count });
+    }
+    if (m) {
+      const id = +m[1];
+      if (m[2] === 'social' && request.method === 'GET') return reply({ rating: await ratingFor(env, id, user), remarks: await approvedRemarks(env, id), me: user ? { name: user.name } : null });
+      if (m[2] === 'rate' && request.method === 'POST') return reply({ rating: await rateRecipe(env, need(), id, body.stars) });
+      if (m[2] === 'remarks' && request.method === 'POST') return reply(await addRemark(env, need(), id, body.body));
+      if (m[2] === 'support' && request.method === 'POST') return reply(await claimPayment(env, user, id, body.note));
+    }
+    return reply({ error: 'Not found' }, 404);
+  } catch (e) {
+    if (e instanceof UserError) return reply({ error: e.message }, e.status);
+    console.error('visitors', e);
+    return reply({ error: 'Something went wrong. Please try again.' }, 500);
+  }
+}
+
 export async function routeRecipes(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
+
+  const visitors = await routeVisitors(request, env, url, path);
+  if (visitors) return visitors;
 
   if (request.method === 'GET' && (path === '/api/kp/recipes' || /^\/api\/kp\/recipes\/\d+$/.test(path))) {
     return withCors(request, await handleRecipesApi(request, env, ctx));
@@ -91,6 +137,25 @@ export async function routeRecipes(request, env, ctx) {
     }
     m = path.match(/^\/api\/kp\/admin\/sources\/(\d+)$/);
     if (m && request.method === 'POST') return json(await updateSource(env, +m[1], await request.json()));
+    if (path === '/api/kp/admin/tavily' && request.method === 'GET') return json(await tavilyUsage(env));
+    if (path === '/api/kp/admin/visitors' && request.method === 'GET') return json(await listVisitors(env));
+    // ---- visitors: remarks to approve, support payments to confirm ----
+    if (path === '/api/kp/admin/remarks' && request.method === 'GET') return json(await listRemarks(env, { status: url.searchParams.get('status') || 'pending' }));
+    m = path.match(/^\/api\/kp\/admin\/remarks\/(\d+)$/);
+    if (m && request.method === 'POST') return json(await reviewRemark(env, +m[1], await request.json()));
+    if (path === '/api/kp/admin/payments' && request.method === 'GET') return json(await listPayments(env, { status: url.searchParams.get('status') || 'claimed' }));
+    m = path.match(/^\/api\/kp\/admin\/payments\/(\d+)$/);
+    if (m && request.method === 'POST') return json(await reviewPayment(env, +m[1], await request.json()));
+    // ---- author outreach by Gmail ----
+    if (path === '/api/kp/admin/outreach' && request.method === 'GET') return json(await listOutreach(env));
+    if (path === '/api/kp/admin/outreach/preview' && request.method === 'GET') return json(await previewMessage(env, +url.searchParams.get('source_id')));
+    if (path === '/api/kp/admin/outreach/send' && request.method === 'POST') return json({ results: await sendOutreach(env, ((await request.json()).source_ids || []).map(Number).filter(Boolean)) });
+    if (path === '/api/kp/admin/outreach/check' && request.method === 'POST') return json({ replies: await checkReplies(env) });
+    m = path.match(/^\/api\/kp\/admin\/outreach\/(\d+)$/);
+    if (m && request.method === 'POST') {
+      const b = await request.json();
+      return json(b.email !== undefined ? await setContactEmail(env, +m[1], b.email) : await markOutreach(env, +m[1], b));
+    }
   } catch (e) {
     return json({ error: e.message }, 400);
   }
@@ -119,6 +184,11 @@ export async function routeRecipes(request, env, ctx) {
   // POST /api/kp/admin/recipes/gallery?limit=4   collect the photos of recipes read before photo collection existed
   if (path.endsWith('/gallery') && request.method === 'POST') {
     return json({ gallery: await galleryPending(env, { limit: Math.min(+url.searchParams.get('limit') || 4, 10) }) });
+  }
+
+  // POST /api/kp/admin/recipes/photo-size?limit=6   measure stored photos: sharpest becomes the hero, sharper recipes sort first
+  if (path.endsWith('/photo-size') && request.method === 'POST') {
+    return json({ sized: await sizePending(env, { limit: Math.min(+url.searchParams.get('limit') || 6, 12) }) });
   }
 
   // POST /api/kp/admin/recipes/autopublish?limit=50[&recheck=1]  publish the waiting recipes that pass every check (recheck=1 also re-evaluates held ones)
@@ -185,6 +255,8 @@ export async function scheduledRecipes(env, cron) {
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
   try { console.log('gallery', JSON.stringify(await galleryPending(env, { limit: 4 }))); } catch (e) { console.error('gallery', e); }
+  if (env.GMAIL_REFRESH_TOKEN) { try { console.log('replies', JSON.stringify(await checkReplies(env))); } catch (e) { console.error('replies', e); } }
+  try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(
     `SELECT * FROM kp_recipe_sources WHERE status = 'registered' AND active = 1 AND crawl_mode = 'auto'

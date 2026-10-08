@@ -63,6 +63,14 @@ swap('<title>KidPoshan | Meal ideas</title>', '<title>Meal Ideas — Poshan Scor
 fs.writeFileSync(path.join(out, 'meal-ideas.html'), m);
 // /bot: the page KidPoshanBot's user-agent points at (https://kidposhan.in/bot)
 fs.copyFileSync(path.join(root, '..', 'public', 'bot.html'), path.join(out, 'bot.html'));
+// the small "Visitors" count at the bottom right of every page
+fs.copyFileSync(path.join(root, '..', 'public', 'kp-visits.js'), path.join(out, 'kp-visits.js'));
+for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html'))) {
+  let h = fs.readFileSync(path.join(out, f), 'utf8');
+  if (h.includes('kp-visits.js')) continue;
+  if (!h.includes('</body>')) throw new Error(f + ': no </body> to add the visitor count before');
+  fs.writeFileSync(path.join(out, f), h.replace('</body>', '<script src="/kp-visits.js" defer></script>\n</body>'));
+}
 
 fs.writeFileSync(path.join(root, 'wrangler.toml'), `# Same Worker that serves www.kidposhan.in: static pages only (no script, no bindings).
 name = "poshan-score"
