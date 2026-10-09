@@ -42,12 +42,25 @@ export const FOOD = {
   coriander_powder: [12, 42, 1, 35, 96, 0], black_pepper: [10, 25, 1.4, 20, 110, 0], baking_soda: [0, 0, 0, 27360, 220, 0],
 };
 
+// Foods common in European and Southeast Asian recipes (same layout and the same rounded USDA-style reference values).
+Object.assign(FOOD, {
+  pasta: [13, 3.2, 0.3, 6, 100, 0], noodles: [12, 3.3, 0.5, 20, 90, 0], rice_noodles: [6, 1.6, 0.1, 20, 100, 0],
+  tofu: [8, 1.9, 1.3, 7, 252, 0], tempeh: [19, 0, 2.5, 9, 166, 0], coconut_milk: [2.3, 0, 21, 13, 240, 0], fish_sauce: [5, 0, 0, 7851, 288, 0],
+  lemongrass: [1.8, 0, 0, 6, 67, 30], spring_onion: [1.8, 2.6, 0.03, 16, 100, 15], bok_choy: [1.5, 1, 0, 65, 70, 100], kale: [4.3, 3.6, 0.1, 38, 67, 0],
+  leek: [1.5, 1.8, 0.04, 20, 89, 90], celery: [0.7, 1.6, 0.04, 80, 101, 40], lettuce: [1.4, 1.3, 0, 28, 47, 0], asparagus: [2.2, 2.1, 0, 2, 134, 20],
+  root_veg: [1.2, 3.5, 0, 10, 130, 100], tomato_paste: [4.3, 4.1, 0.1, 100, 262, 0], mayonnaise: [1.1, 0, 11, 635, 220, 0], peanut_butter: [25, 6, 10, 200, 258, 0],
+  pork: [20, 0, 3.5, 60, 140, 0], beef: [20, 0, 5, 66, 140, 0], ham: [18, 0, 3.3, 1200, 140, 0], bacon: [37, 0, 14, 1717, 0, 10], turkey: [22, 0, 1, 70, 140, 0],
+  stock: [1, 0, 0.1, 360, 240, 0], quinoa: [14, 7, 0.7, 5, 170, 0], couscous: [13, 5, 0.1, 10, 173, 0], barley: [10, 17, 0.3, 9, 200, 0],
+  beans_cooked: [8, 6, 0.1, 5, 180, 0], flatbread: [9, 2.5, 1, 570, 0, 60], berries: [0.8, 2.5, 0, 1, 150, 0], avocado: [2, 6.7, 2.1, 7, 150, 200],
+  pear: [0.4, 3.1, 0, 1, 140, 180], orange: [0.9, 2.4, 0, 0, 180, 130], herbs: [3.5, 3.5, 0.2, 40, 20, 0],
+});
+
 // Share of the ingredient's weight that counts as ADDED sugar.
 export const SWEETENERS = { sugar: 1, jaggery: 0.95, honey: 0.82 };
 const WHOLE_GRAIN = new Set(['wheat_flour', 'ragi', 'oats', 'dalia']);
 const NO_QTY_GRAMS = { salt: 1.5, oil: 8, ghee: 8 }; // "to taste" / "as needed" assumptions, per recipe
 const SPICE_NO_QTY = 1;
-const LIQUID_ML = { milk: 1.03, curd: 1.03, oil: 0.92, ghee: 0.91, honey: 1.4, water: 1, lemon: 1 };
+const LIQUID_ML = { milk: 1.03, curd: 1.03, oil: 0.92, ghee: 0.91, honey: 1.4, water: 1, lemon: 1, coconut_milk: 1, stock: 1, fish_sauce: 1.2, cream: 1 };
 
 export function gramsFor(ing) {
   const key = ing.ingredient_key, f = key && FOOD[key];
@@ -62,6 +75,8 @@ export function gramsFor(ing) {
   switch (u) {
     case 'g': return { g: q };
     case 'kg': return { g: q * 1000 };
+    case 'oz': return { g: q * 28.35 };
+    case 'lb': return { g: q * 453.6 };
     case 'ml': return { g: q * (LIQUID_ML[key] || 1) };
     case 'l': return { g: q * 1000 * (LIQUID_ML[key] || 1) };
     case 'cup': case 'bowl': case 'glass': return cup ? { g: q * cup } : { g: null, why: 'no cup weight' };
@@ -71,7 +86,7 @@ export function gramsFor(ing) {
     case 'handful': return { g: 30 * q };
     case 'sprig': return { g: 2 * q };
     case 'inch': return { g: (key === 'ginger' ? 10 : 5) * q };
-    case 'piece': case 'slice': case 'clove': case null: case undefined:
+    case 'piece': case 'slice': case 'clove': case 'stalk': case null: case undefined:
       return piece ? { g: q * piece } : { g: null, why: 'no piece weight' };
     default: return { g: null, why: `unit ${u}` };
   }

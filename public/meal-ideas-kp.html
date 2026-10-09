@@ -129,6 +129,7 @@ a{color:var(--leaf)}
 .buy-card .buys{padding:10px 12px 12px;margin-top:0}
 .buy-card h3{font-size:18px}
 .empty-packs{margin-top:10px;color:var(--muted);font-size:15px}
+.plain-buy{margin:6px 0 0;padding-left:20px}.plain-buy li{margin:4px 0}.plain-buy small{color:var(--muted)}
 .buy-list{display:grid;padding:4px 10px 10px}
 .buy-list a{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 6px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14.5px;border-radius:8px}
 .buy-list a:last-child{border-bottom:0}.buy-list a:hover,.buy-list a:focus-visible{background:var(--leaf-2)}
@@ -620,6 +621,15 @@ async function search(q){
   return (await res.json()).results.map(toCard);
 }
 
+// The "More Asian recipes" / "European recipes" shelves: same filters, same Poshan Score ordering, never blocks the main list.
+async function searchWorld(q,world){
+  try{
+    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}&world=${world}`);
+    if(!res.ok) return [];
+    return (await res.json()).results.map(toCard);
+  }catch(e){ return [] }
+}
+
 /* ready-to-buy packs: demo types per dish shape; live mode uses the existing GET /api/products */
 const PACKS={
  bowl:[['Ragi porridge mix','200 g','#7B4B33'],['Instant khichdi mix','300 g','#E8BE45'],['Multigrain dalia','500 g','#C99A5B']],
@@ -758,6 +768,9 @@ async function loadMenuPacks(){
     if(document.getElementById('menuPacks')===box) box.innerHTML=menuPackHTML;
   }catch(e){}
 }
+function dishCard(x){ return `<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
+            <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>` }
 function renderMenu(){
   const ready=S.age&&S.occ&&S.season&&S.pref, showFilters=!S.results||S.editing;
   let html=`<section class="menu-hero pad ${S.results&&!S.editing?'compact':''}"><div class="hero-copy"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
@@ -773,17 +786,18 @@ function renderMenu(){
   if(S.error) html+=`<p class="note">${esc(S.error)}</p>`;
   if(S.results&&!S.editing){
     const r=S.results;
-    if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`;
+    const worldShelf=(w,t)=>{const g=((S.more||{})[w]||[]);if(!g.length)return '';return `<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div><div class="carousel" role="list">${g.map(dishCard).join('')}</div>`};
+    const moreHTML=worldShelf('asia','More Asian recipes')+worldShelf('europe','European recipes');
+    if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`+moreHTML;
     else{
       if(r.length<10) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
       html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Excellent">80+ Excellent</span><span class="lg" data-band="Good">58–79 Good</span><span class="lg" data-band="Fair">40–57 Fair</span><span class="lg" data-band="Occasional">Below 40 Occasional</span></div>`;
       for(const [m,t] of [['exact','Best for today'],['any_season','Good any season']]){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
-          <div class="carousel" role="list">${g.map(x=>`<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
-            <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
-            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>`).join('')}</div>`;
+          <div class="carousel" role="list">${g.map(dishCard).join('')}</div>`;
       }
+      html+=moreHTML;
       html+=`<div id="menuPacks"></div>`;
     }
   }
@@ -792,7 +806,9 @@ function renderMenu(){
   app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S[b.dataset.f]=b.dataset.f==='age'?+b.dataset.v:b.dataset.v;persist();renderMenu();
     const nb=app.querySelector(`.chip[data-f="${b.dataset.f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
   const go=document.getElementById('go'); if(go) go.onclick=async()=>{go.disabled=true;go.textContent='Finding meals…';S.error=null;
-    try{S.results=await search({age:S.age,occ:S.occ,season:S.season,pref:S.pref});S.editing=false}catch(e){S.error=e.message}
+    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};S.results=await search(q);
+      if(LIVE){const [asia,europe]=await Promise.all([searchWorld(q,'asia'),searchWorld(q,'europe')]);S.more={asia,europe}} else S.more={};
+      S.editing=false}catch(e){S.error=e.message}
     persist();renderMenu();window.scrollTo(0,0)};
   const ed=document.getElementById('edit'); if(ed) ed.onclick=()=>{S.editing=true;persist();renderMenu()};
   app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash='#/r/'+b.dataset.open});
@@ -912,7 +928,7 @@ async function getRecipe(id){
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
   const res=await fetch(`${API}/api/kp/recipes/${id}${S.pref?`?pref=${S.pref}`:''}`); if(!res.ok) return null; const d=await res.json();
   return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
-    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,
+    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',
     ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
     images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
@@ -945,9 +961,10 @@ async function renderRecipe(id){
   window.__gal={list:photos,credit:r.source?{name:r.source.name,url:r.source.url}:null};
   const galleryHTML=photos.length?`<section class="section gallery"><h2>Photos <span class="count">${photos.length}</span></h2><div class="carousel gal" role="list">${photos.map((u,i)=>`<button class="gal-item" role="listitem" data-g="${i}" aria-label="Open photo ${i+1} of ${photos.length}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.gal-item').remove()"></button>`).join('')}</div><p class="credit">Photos: ${esc(r.source?r.source.name:'the creator')}. ${r.source?`<a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a>`:''}</p></section>`:'';
   const buyList=r.ings.map((ing,i)=>({ing,k:`${r.id}:${i}`})).filter(x=>S.items[x.k].state==='buy');
+  const india=(r.world||'india')==='india';
   const platforms=byPlatform(buyList.map(({ing})=>({name:ing.name,qty:ing.qty,buy:ing.buy})));
   const noLink=buyList.filter(({ing})=>!(ing.buy||[]).length).map(({ing})=>ing.name);
-  const buyHTML=buyList.length?`<div class="carousel packs" role="list">${platforms.map(p=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(p.label)}</h3><span class="size">${p.lines.length} ${p.lines.length===1?'item':'items'} to buy</span></div><div class="buy-list">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.name)}</span>${l.qty?`<small>${esc(l.qty)}</small>`:''}${l.price?`<em>₹${esc(l.price)}</em>`:''}</a>`).join('')}</div></div>`).join('')}</div>${noLink.length?`<p class="empty-packs">No store link yet: ${esc(noLink.join(', '))}.</p>`:''}`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here, grouped under each store.</p>`;
+  const buyHTML=!india?(buyList.length?`<ul class="plain-buy">${buyList.map(({ing})=>`<li>${esc(ing.name)}${ing.qty?` <small>${esc(ing.qty)}</small>`:''}</li>`).join('')}</ul><p class="empty-packs">Store links are for India only, so this is your shopping list.</p>`:`<p class="empty-packs">Tick "To buy" on an ingredient to build a shopping list.</p>`):buyList.length?`<div class="carousel packs" role="list">${platforms.map(p=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(p.label)}</h3><span class="size">${p.lines.length} ${p.lines.length===1?'item':'items'} to buy</span></div><div class="buy-list">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.name)}</span>${l.qty?`<small>${esc(l.qty)}</small>`:''}${l.price?`<em>₹${esc(l.price)}</em>`:''}</a>`).join('')}</div></div>`).join('')}</div>${noLink.length?`<p class="empty-packs">No store link yet: ${esc(noLink.join(', '))}.</p>`:''}`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here, grouped under each store.</p>`;
   let stepsHTML;
   if(r.steps&&r.steps.length){
     stepsHTML=`<p class="lead">Tap a step when it's done.${r.demo?' Sample layout: real steps come word for word from the creator.':''}</p><ol class="steps">${r.steps.map((s,i)=>`<li class="step" role="button" tabindex="0" data-step="${i}" aria-pressed="${done.has(i)}">${s.section?`<span class="sec">${esc(s.section)}</span>`:''}<span class="t">${esc(s.text)}</span></li>`).join('')}</ol>`;
@@ -981,6 +998,7 @@ async function renderRecipe(id){
   app.querySelectorAll('.step').forEach(el=>{el.onclick=()=>toggleStep(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStep(el)}}});
   renderTray();
   if(LIVE){loadSocial(r.id);loadSupport(r.id);setTimeout(floatingJoin,1200)}
+  if(!india){document.getElementById('packs')?.closest('section')?.remove();return}
   const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
   if(packs.hide){box.closest('section')?.remove();return}
   box.innerHTML=packs.length?`<div class="carousel packs" role="list">${packs.map(p=>`<div class="pack" role="listitem">
@@ -1002,7 +1020,7 @@ function renderTray(){
   const pin=load('kp_pincode')||'';
   const trayNoLink=list.filter(i=>!(i.buy||[]).length).map(i=>i.name);
   tbody.innerHTML=byPlatform(list).map(p=>`<div class="titem"><b>${esc(p.label)}</b> <small>${p.lines.length} ${p.lines.length===1?'item':'items'}</small>
-    <div class="links">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join('')}</div></div>`).join('')+(trayNoLink.length?`<p class="tnote">No store link yet: ${esc(trayNoLink.join(', '))}.</p>`:'')+
+    <div class="links">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join('')}</div></div>`).join('')+(trayNoLink.length?`<p class="tnote">Also on your list (no store link): ${esc(trayNoLink.join(', '))}.</p>`:'')+
    `<div class="ttools"><label>Pincode <input id="pin" inputmode="numeric" maxlength="6" value="${esc(pin)}" placeholder="700078"></label><button id="copy">Copy list</button><span id="copied" role="status"></span></div>
     <p class="tnote">Live prices and delivery times for your pincode will appear once store data is connected.</p>`;
   const p=document.getElementById('pin'); if(p) p.oninput=e=>savePin(e.target.value.replace(/\D/g,''));

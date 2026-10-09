@@ -18,6 +18,8 @@ const RELATED = {
   snack_4pm: ['breakfast', 'lunchbox'], dinner: ['lunch', 'breakfast'],
 };
 const DIETS = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'] };
+// Where a recipe site's food comes from: the main list is India; Asian and European recipes are separate shelves.
+const WORLDS = ['india', 'asia', 'europe'];
 // Parents only ever see recipes the owner has published in the review screen.
 const VISIBLE = "('approved')";
 
@@ -34,12 +36,14 @@ function readParams(url) {
   const season = p.get('season') || 'all';
   const pref = p.get('pref') || 'veg';
   const limit = Math.min(Math.max(parseInt(p.get('limit'), 10) || 12, MIN_RESULTS), 30);
+  const world = p.get('world') || 'india';
   const errors = [];
   if (!Number.isFinite(age) || age < 6 || age > 144) errors.push('age_months must be 6-144');
   if (!OCCASIONS.includes(occasion)) errors.push(`occasion must be one of ${OCCASIONS.join(', ')}`);
   if (!SEASONS.includes(season)) errors.push(`season must be one of ${SEASONS.join(', ')}`);
   if (!DIETS[pref]) errors.push('pref must be veg, jain or nonveg');
-  return { age, occasion, season, pref, limit, errors };
+  if (!WORLDS.includes(world)) errors.push(`world must be one of ${WORLDS.join(', ')}`);
+  return { age, occasion, season, pref, limit, world, errors };
 }
 
 async function queryTier(env, q, tier, excludeIds, take) {
@@ -56,8 +60,9 @@ async function queryTier(env, q, tier, excludeIds, take) {
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
      WHERE r.review_status IN ${VISIBLE}
        AND (r.diet IN (${diets.map(() => '?').join(',')})${q.pref === 'nonveg' ? ' OR r.mayo_flex = 1' : ''})
-       AND r.age_min_months <= ? AND r.age_max_months >= ?`;
-  args.push(...diets, q.age, q.age);
+       AND r.age_min_months <= ? AND r.age_max_months >= ?
+       AND s.world = ?`;
+  args.push(...diets, q.age, q.age, q.world || 'india');
 
   if (tier.season) {
     sql += ` AND EXISTS (SELECT 1 FROM kp_recipe_seasons x WHERE x.recipe_id = r.id AND x.season IN (?, 'all'))`;
@@ -71,9 +76,11 @@ async function queryTier(env, q, tier, excludeIds, take) {
     sql += ` AND r.id NOT IN (${excludeIds.map(() => '?').join(',')})`;
     args.push(...excludeIds);
   }
-  // Recipes with a sharp photo come first, then Poshan Score descending (unscored last). Photo bands: 500px+ sharp, 300px+ ok, the rest (or hidden/unmeasured) last.
-  sql += ` ORDER BY CASE WHEN s.photos_hidden = 0 AND r.image_w >= 500 THEN 0 WHEN s.photos_hidden = 0 AND r.image_w >= 300 THEN 1 ELSE 2 END,
-           (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC, r.completeness = 'complete' DESC, r.id LIMIT ?`;
+  // Always Poshan Score descending (unscored last). Only between recipes with the same score does a sharper photo come first.
+  // Photo bands: 500px+ sharp, 300px+ ok, the rest (or hidden/unmeasured) last.
+  sql += ` ORDER BY (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC,
+           CASE WHEN s.photos_hidden = 0 AND r.image_w >= 500 THEN 0 WHEN s.photos_hidden = 0 AND r.image_w >= 300 THEN 1 ELSE 2 END,
+           r.completeness = 'complete' DESC, r.id LIMIT ?`;
   args.push(take);
   const { results } = await env.DB.prepare(sql).bind(...args).all();
   return results;
@@ -86,8 +93,10 @@ export async function searchRecipes(env, q) {
     { match: 'related_occasion',    season: true,  occasions: RELATED[q.occasion] },
     { match: 'related_any_season',  season: false, occasions: RELATED[q.occasion] },
   ];
+  // Asian and European shelves only show dishes for this meal (exact season, then any season): no filler from other meals.
+  const useTiers = (q.world || 'india') === 'india' ? tiers : tiers.slice(0, 2);
   const results = [];
-  for (const tier of tiers) {
+  for (const tier of useTiers) {
     if (results.length >= q.limit) break;
     const rows = await queryTier(env, q, tier, results.map((r) => r.id), q.limit - results.length);
     rows.forEach((r) => results.push({
@@ -98,7 +107,7 @@ export async function searchRecipes(env, q) {
     }));
   }
   return {
-    query: { age_months: q.age, occasion: q.occasion, season: q.season, pref: q.pref },
+    query: { age_months: q.age, occasion: q.occasion, season: q.season, pref: q.pref, world: q.world || 'india' },
     count: results.length,
     exact_count: results.filter((r) => r.match === 'exact').length,
     coverage_gap: results.length < MIN_RESULTS, // log these: they tell you which recipes to source next
@@ -115,7 +124,7 @@ export function mayoFor(text) {
 
 export async function recipeDetail(env, id, { pref = '' } = {}) {
   const r = await env.DB.prepare(
-    `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden
+    `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden, s.world
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.id = ? AND r.review_status IN ${VISIBLE}`
   ).bind(id).first();
@@ -135,7 +144,8 @@ export async function recipeDetail(env, id, { pref = '' } = {}) {
       name: fix(i.name),
       is_pantry: !!i.is_pantry,
       default_state: i.is_pantry ? 'at_home' : null, // UI: pantry staples pre-ticked "At home"
-      buy: i.ingredient_key === 'water' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
+      // the store links are Indian apps: recipes from other parts of the world get none
+      buy: i.ingredient_key === 'water' || r.world !== 'india' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
     });
   }
   const methodAllowed = r.rights_status === 'granted';
@@ -150,6 +160,7 @@ export async function recipeDetail(env, id, { pref = '' } = {}) {
     image_url: r.photos_hidden ? null : r.image_url,
     // every photo of the dish for the carousel (hero first); switched off together with the hero when the site's photos are hidden
     images: r.photos_hidden ? [] : (() => { try { return JSON.parse(r.images_json || '[]'); } catch { return []; } })(),
+    world: r.world,
     description: r.description,
     servings: r.servings,
     total_minutes: r.total_minutes,
@@ -185,7 +196,7 @@ export async function handleRecipesApi(request, env, ctx) {
   // Keep the catalogue growing: every filter combination looks for new recipes at most once a day.
   // Runs after the response is sent, so parents never wait for it.
   out.discovery = 'recent';
-  if (ctx?.waitUntil && (await shouldDiscover(env, queryKey(q)))) {
+  if (q.world === 'india' && ctx?.waitUntil && (await shouldDiscover(env, queryKey(q)))) {
     out.discovery = 'started';
     ctx.waitUntil(discoverForQuery(env, q, { publishedCount: out.count }).catch((e) => console.error('discovery', e)));
   }

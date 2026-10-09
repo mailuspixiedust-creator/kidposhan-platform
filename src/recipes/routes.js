@@ -266,5 +266,6 @@ export async function scheduledRecipes(env, cron) {
     try { await discoverSource(env, s, { useTavily: false, maxPages: 1 }); } catch (e) { console.error('recrawl', s.id, e); }
     await env.DB.prepare("UPDATE kp_recipe_sources SET last_crawled_at = datetime('now') WHERE id = ?").bind(s.id).run();
   }
-  await processPending(env, { limit: 8 });
+  await processPending(env, { limit: 5, world: 'india' });
+  await processPending(env, { limit: 4, world: 'other' });   // Asian and European sites get their own share of every run
 }

@@ -485,6 +485,7 @@ function siteHTML(s){
     <div><span class="lbl">Status</span>${stateCtl}</div>
     <div><span class="lbl">Permission to show their steps word for word</span><select data-rights>${RIGHTS.map(([k,l])=>`<option value="${k}" ${s.rights_status===k?'selected':''}>${l}</option>`).join('')}</select><p class="why" data-rights-help>${RIGHTS_HELP[s.rights_status]||''}</p></div>
     <div><label class="chk"><input type="checkbox" data-photos ${s.photos_hidden?'checked':''}> Hide this site's photos on KidPoshan</label><p class="why">Photos are shown with a credit and a link to the original. Tick this if the creator asks, or their photos don't load.</p></div>
+    <div><span class="lbl">Shown under</span><select data-world>${[['india','Main list (Indian recipes)'],['asia','More Asian recipes'],['europe','European recipes']].map(([k,l])=>`<option value="${k}" ${(s.world||'india')===k?'selected':''}>${l}</option>`).join('')}</select><p class="why">Where this site's recipes appear on the Meal Ideas page.</p></div>
     <div><span class="lbl">Your notes</span><textarea data-notes placeholder="e.g. emailed 12 Oct">${esc(s.owner_notes||'')}</textarea><p class="saved" data-saved role="status"></p></div>
    </div></div>`;
 }
@@ -498,6 +499,7 @@ function bindSites(){
       send({state:st},{active:'Site is active',paused:'Paused: no new recipes will be read',blocked:'Blocked'}[st],true);
     });
     const ph=card.querySelector('[data-photos]'); if(ph) ph.onchange=()=>send({photos_hidden:ph.checked},ph.checked?'Photos hidden':'Photos shown',false);
+    const wsel=card.querySelector('[data-world]'); if(wsel) wsel.onchange=()=>send({world:wsel.value},'Saved: recipes from this site now appear under "'+wsel.options[wsel.selectedIndex].text+'"',false);
     const sel=card.querySelector('[data-rights]');
     sel.onchange=()=>{
       if(sel.value==='granted'&&!confirm('Mark permission as granted? Their steps will appear word for word on KidPoshan.')){load();return}

@@ -60,6 +60,49 @@ const SYNONYMS = {
 };
 export const PANTRY = new Set(['salt', 'water', 'oil', 'ghee', 'turmeric', 'cumin', 'mustard_seeds', 'hing', 'red_chilli_powder', 'garam_masala', 'coriander_powder', 'black_pepper', 'sugar', 'baking_soda', 'dry_red_chilli', 'cardamom', 'cinnamon', 'cloves', 'bay_leaf', 'fennel_seeds', 'oregano', 'vanilla', 'baking_powder', 'vinegar', 'soy_sauce', 'cornstarch', 'cocoa', 'tamarind']);
 
+// ---- added for European and Southeast Asian recipes: ounces and pounds, and the common foods those recipes use ----
+UNITS.push(['oz', /^(ounces?|oz)\b/i], ['lb', /^(pounds?|lbs?)\b/i], ['stalk', /^(stalks?)\b/i]);
+Object.assign(SYNONYMS, {
+  pasta: ['pasta', 'spaghetti', 'penne', 'macaroni', 'fusilli', 'tagliatelle', 'linguine', 'lasagne', 'lasagna', 'farfalle', 'rigatoni', 'orzo'],
+  noodles: ['noodles', 'egg noodles', 'wheat noodles', 'ramen', 'udon', 'soba', 'instant noodles'],
+  rice_noodles: ['rice noodles', 'rice vermicelli', 'glass noodles', 'vermicelli noodles', 'rice stick noodles', 'pad thai noodles', 'bun'],
+  tofu: ['tofu', 'bean curd'], tempeh: ['tempeh'],
+  coconut_milk: ['coconut milk', 'coconut cream'], fish_sauce: ['fish sauce'],
+  lemongrass: ['lemongrass', 'lemon grass'], spring_onion: ['spring onion', 'spring onions', 'scallion', 'scallions', 'green onion', 'green onions'],
+  bok_choy: ['bok choy', 'pak choi', 'pak choy', 'choy sum', 'chinese cabbage'], kale: ['kale'], leek: ['leek', 'leeks'], celery: ['celery'],
+  lettuce: ['lettuce', 'salad leaves', 'romaine', 'rocket', 'arugula'], asparagus: ['asparagus'],
+  root_veg: ['parsnip', 'parsnips', 'turnip', 'turnips', 'swede', 'celeriac'],
+  tomato_paste: ['tomato paste', 'tomato puree', 'tomato purée'], mayonnaise: ['mayonnaise', 'mayo'], peanut_butter: ['peanut butter'],
+  pork: ['pork', 'pork mince', 'pork belly'], beef: ['beef', 'beef mince', 'minced beef', 'steak'], ham: ['ham', 'gammon'], bacon: ['bacon', 'pancetta'],
+  turkey: ['turkey', 'turkey mince'], stock: ['chicken stock', 'vegetable stock', 'beef stock', 'fish stock', 'stock', 'broth', 'stock cube', 'bouillon'],
+  quinoa: ['quinoa'], couscous: ['couscous'], barley: ['barley', 'pearl barley'],
+  beans_cooked: ['black beans', 'cannellini beans', 'white beans', 'haricot beans', 'butter beans', 'baked beans', 'borlotti beans', 'refried beans'],
+  flatbread: ['tortilla', 'tortillas', 'wrap', 'wraps', 'pita', 'pitta', 'flatbread'],
+  berries: ['strawberries', 'blueberries', 'raspberries', 'blackberries', 'berries', 'strawberry', 'blueberry', 'raspberry'],
+  avocado: ['avocado', 'avocados'], pear: ['pear', 'pears'], orange: ['orange', 'oranges', 'orange juice'],
+  herbs: ['basil', 'parsley', 'thyme', 'rosemary', 'dill', 'sage', 'chives', 'mixed herbs', 'italian seasoning', 'coriander stalks', 'thai basil'],
+});
+const ALSO = {
+  cheese: ['cheddar', 'mozzarella', 'parmesan', 'gouda', 'feta', 'halloumi', 'ricotta', 'mascarpone', 'emmental', 'gruyere', 'grated cheese'],
+  fish: ['salmon', 'tuna', 'cod', 'haddock', 'sardines', 'mackerel', 'anchovies', 'white fish', 'sea bass', 'tilapia', 'trout', 'basa'],
+  oil: ['olive oil', 'vegetable oil', 'sesame oil', 'canola oil', 'rapeseed oil', 'cooking oil', 'peanut oil'],
+  sugar: ['caster sugar', 'brown sugar', 'palm sugar', 'icing sugar', 'powdered sugar', 'granulated sugar', 'coconut sugar'],
+  maida: ['plain flour', 'self-raising flour', 'self raising flour', 'bread flour', 'strong flour', 'cake flour'],
+  rice: ['jasmine rice', 'sticky rice', 'glutinous rice', 'arborio rice', 'risotto rice', 'brown rice', 'basmati rice'],
+  vinegar: ['rice vinegar', 'balsamic vinegar', 'white wine vinegar', 'apple cider vinegar', 'cider vinegar'],
+  soy_sauce: ['oyster sauce', 'hoisin sauce', 'tamari', 'kecap manis', 'dark soy sauce', 'light soy sauce'],
+  masoor_dal: ['lentils', 'brown lentils', 'green lentils', 'puy lentils'],
+  pumpkin: ['butternut squash', 'squash'], capsicum: ['red pepper', 'green pepper', 'yellow pepper', 'peppers'],
+  red_chilli_powder: ['chilli flakes', 'chili flakes', 'red pepper flakes', 'paprika', 'cayenne', 'cayenne pepper'],
+  ginger: ['galangal'], onion: ['shallot', 'shallots', 'red onion', 'red onions'],
+  green_chilli: ['birds eye chilli', "bird's eye chilli", 'thai chilli', 'fresh chilli', 'jalapeno', 'jalapeño', 'red chillies fresh'],
+  tomato: ['chopped tomatoes', 'tinned tomatoes', 'canned tomatoes', 'passata', 'cherry tomatoes', 'plum tomatoes'],
+  corn: ['sweetcorn'], cream: ['sour cream', 'double cream', 'single cream', 'heavy cream', 'whipping cream', 'cream cheese'],
+  salt: ['sea salt', 'kosher salt'], curd: ['greek yogurt', 'greek yoghurt', 'natural yogurt', 'plain yogurt'],
+};
+for (const [k, w] of Object.entries(ALSO)) SYNONYMS[k].push(...w);
+PANTRY.add('herbs');
+
 // Build a longest-first matcher so "green chilli" wins over "chilli", "sweet potato" over "potato".
 const MATCHERS = Object.entries(SYNONYMS)
   .flatMap(([key, words]) => words.map((w) => [key, w]))

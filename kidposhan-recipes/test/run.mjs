@@ -58,6 +58,7 @@ db.exec(fs.readFileSync('migrations/0019_tavily_calls.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0020_visitors_without_otp.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0021_visitor_email.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0022_site_visitors.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0023_world_regions.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -538,7 +539,10 @@ db.prepare('UPDATE kp_recipes SET image_w = 800, poshan_score = 40, score_status
 db.prepare('UPDATE kp_recipes SET image_w = 109, poshan_score = 95, score_status = ? WHERE id = ?').run('estimated', blurId);
 const sharpRes = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&limit=50'), env, ctx)).json();
 const sharpIds = sharpRes.results.map((x) => x.id);
-ok(sharpIds.includes(sharpId) && sharpIds.includes(blurId) && sharpIds.indexOf(sharpId) < sharpIds.indexOf(blurId), 'A recipe with a sharp photo is listed before one with a tiny photo, even when the tiny-photo recipe scores higher');
+ok(sharpIds.includes(sharpId) && sharpIds.includes(blurId) && sharpIds.indexOf(blurId) < sharpIds.indexOf(sharpId), 'Menus are always in descending Poshan Score order: the higher score comes first even when its photo is tiny');
+db.prepare('UPDATE kp_recipes SET poshan_score = 70 WHERE id IN (?, ?)').run(sharpId, blurId);
+const tieIds = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&limit=50'), env, ctx)).json()).results.map((x) => x.id);
+ok(tieIds.indexOf(sharpId) < tieIds.indexOf(blurId), 'With the same score, the recipe with the sharper photo comes first');
 
 // ---- visitors: mobile + OTP login, ratings, remarks, support payment, author outreach ----
 import { normaliseMobile, joinVisitor, listVisitors, userFromRequest, rateRecipe, ratingFor, addRemark, approvedRemarks, listRemarks, reviewRemark, payConfig, claimPayment, listPayments, reviewPayment, setName, UserError } from '../../src/recipes/social.js';
@@ -698,5 +702,36 @@ const vGet = await (await routeRecipes(new Request('https://w/api/kp/visit'), en
 ok(vGet.count === vcBefore + 1, 'A plain GET returns the count without adding anyone');
 const vPre = await routeRecipes(new Request('https://w/api/kp/visit', { method: 'OPTIONS', headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
 ok(vPre.status === 204, 'The visit endpoint answers the CORS preflight');
+
+// ---- More Asian recipes / European recipes: separate shelves, same Poshan Score ordering ----
+const asiaSrc = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, world) VALUES ('Asia Site','https://asia.example','Thailand',1,'asia') RETURNING id").get().id;
+const euSrc = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, world) VALUES ('Europe Site','https://eu.example','UK',1,'europe') RETURNING id").get().id;
+const mkWorld = (src, name, score, occ = 'lunch') => {
+  const id = mkRecipe('https://w.example/' + name.replace(/\W/g, '') + Math.random(), { status: 'approved', name });
+  db.prepare('UPDATE kp_recipes SET source_id = ?, poshan_score = ?, score_status = ? WHERE id = ?').run(src, score, 'estimated', id);
+  if (occ !== 'lunch') { db.prepare('DELETE FROM kp_recipe_occasions WHERE recipe_id = ?').run(id); db.prepare('INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, ?)').run(id, occ); }
+  return id;
+};
+const aLow = mkWorld(asiaSrc, 'Tofu Stir Fry', 55), aHigh = mkWorld(asiaSrc, 'Veg Pho', 82), aDinner = mkWorld(asiaSrc, 'Dinner Only Curry', 90, 'dinner');
+const eLow = mkWorld(euSrc, 'Cheese Pasta', 48), eHigh = mkWorld(euSrc, 'Lentil Soup', 77);
+const wq = (w) => handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&limit=50&world=' + w), env, ctx).then((r) => r.json());
+const asiaRes = await wq('asia'), euRes = await wq('europe'), inRes = await wq('india');
+ok(asiaRes.results.map((x) => x.id).join() === [aHigh, aLow].join(), 'The Asian shelf lists only Asian recipes for this meal, highest Poshan Score first (no dinner-only filler): ' + asiaRes.results.map((x) => x.name));
+ok(euRes.results.map((x) => x.id).join() === [eHigh, eLow].join(), 'The European shelf lists only European recipes, highest Poshan Score first');
+ok(![aHigh, aLow, eHigh, eLow].some((id) => inRes.results.some((x) => x.id === id)), 'The main (Indian) list never contains Asian or European recipes');
+ok(asiaRes.query.world === 'asia' && (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&world=mars'), env, ctx)).json()).error.includes('world must be'), 'The world is reported back, and an unknown world is refused');
+for (let i = 1; i < inRes.results.length; i++) if (inRes.results[i].match === inRes.results[i - 1].match && inRes.results[i].poshan_score != null && inRes.results[i - 1].poshan_score != null) { if (inRes.results[i].poshan_score > inRes.results[i - 1].poshan_score) { ok(false, 'Indian list not in descending score order within a shelf'); break; } }
+const wd = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + aHigh), env, ctx)).json();
+ok(wd.world === 'asia' && wd.ingredients.every((i) => i.buy.length === 0), 'An Asian recipe reports its world and carries no Indian store links');
+
+// ---- ingredients common in European and Southeast Asian recipes are understood and weighed ----
+import { parseIngredientLine as pil } from '../../src/recipes/normalize.js';
+import { gramsFor as gf } from '../../src/recipes/nutrients.js';
+const key = (t) => pil(t).ingredient_key;
+ok(key('200 g spaghetti') === 'pasta' && key('1 can coconut milk') === 'coconut_milk' && key('2 tbsp fish sauce') === 'fish_sauce' && key('1 block firm tofu') === 'tofu' && key('2 stalks lemongrass') === 'lemongrass', 'Pasta, coconut milk, fish sauce, tofu and lemongrass are recognised (and coconut milk is not plain milk or coconut)');
+ok(key('250 g salmon fillet') === 'fish' && key('100 g cheddar cheese') === 'cheese' && key('2 tbsp olive oil') === 'oil' && key('1 cup brown rice') === 'rice' && key('200 g plain flour') === 'maida' && key('2 spring onions') === 'spring_onion' && key('1 tbsp peanut butter') === 'peanut_butter', 'Salmon, cheddar, olive oil, brown rice, plain flour, spring onions and peanut butter map to the right foods');
+ok(key('1 cup rice flour') === 'rice' && key('1/2 cup ragi flour') === 'ragi' && key('1 cup wheat flour') === 'wheat_flour' && key('1 cup milk') === 'milk', 'Indian foods still map as before (rice flour, ragi flour, wheat flour, milk)');
+ok(Math.round(gf(pil('8 oz pasta')).g) === 227 && Math.round(gf(pil('1 lb potatoes')).g) === 454, 'Ounces and pounds are converted to grams');
+ok(pil('2 tbsp chopped parsley').is_pantry === true && pil('1 tbsp fish sauce').is_pantry === false, 'Herbs count as pantry; fish sauce does not');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

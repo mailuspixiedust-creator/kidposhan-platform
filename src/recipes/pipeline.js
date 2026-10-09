@@ -133,7 +133,8 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
   return id;
 }
 
-export async function processPending(env, { limit = 10, queryKey = null } = {}) {
+// world: null = every site; 'india' = the main list; 'other' = the Asian and European sites (so a big Indian backlog cannot starve them)
+export async function processPending(env, { limit = 10, queryKey = null, world = null } = {}) {
   // Candidates found for a live parent search go first, so they reach the review screen quickly.
   const { results: cands } = await env.DB.prepare(
     `SELECT c.id, c.url, c.source_id, c.query_key, s.url AS source_url, s.notes AS source_notes, s.status AS source_status
@@ -141,9 +142,10 @@ export async function processPending(env, { limit = 10, queryKey = null } = {}) 
       WHERE (c.status = 'pending' OR (c.status = 'error' AND c.attempts < 3))
         AND (s.status = 'suggested' OR (s.status = 'registered' AND s.active = 1))
         AND (? IS NULL OR c.query_key = ?)
+        AND (? IS NULL OR (? = 'india' AND s.world = 'india') OR (? = 'other' AND s.world != 'india'))
         AND (c.not_before IS NULL OR c.not_before <= ?)
       ORDER BY c.query_key IS NULL, c.discovered_via = 'self', c.id LIMIT ?`
-  ).bind(queryKey, queryKey, Date.now(), limit * 5).all();
+  ).bind(queryKey, queryKey, world, world, world, Date.now(), limit * 5).all();
   // Spread each run across sites: at most 2 pages per site, so pacing rarely has to wait.
   const perHost = new Map(), picked = [];
   for (const c of cands) {
