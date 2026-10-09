@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>KidPoshan recipe review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Mukta:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--steel:#E4EAEC;--paper:#FAFCFC;--ink:#17323A;--muted:#5A6E74;--line:#C9D4D7;--leaf:#2D6A46;--leaf-soft:#DCEBE1;--turmeric:#E3A21A;--turmeric-soft:#FBEFD2;--chilli:#B4432E;
+--display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;--body:"Mukta","Segoe UI",system-ui,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--steel:#132227;--paper:#1A2D33;--ink:#E6EEF0;--muted:#9DB0B5;--line:#2E454C;--leaf:#7CC497;--leaf-soft:#1F3B2C;--turmeric:#F0B840;--turmeric-soft:#3A3018;--chilli:#E6806B}}
+:root[data-theme="dark"]{--steel:#132227;--paper:#1A2D33;--ink:#E6EEF0;--muted:#9DB0B5;--line:#2E454C;--leaf:#7CC497;--leaf-soft:#1F3B2C;--turmeric:#F0B840;--turmeric-soft:#3A3018;--chilli:#E6806B}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--steel);color:var(--ink);font:400 16px/1.5 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0}
+h1{font-size:32px}h2{font-size:22px}h3{font-size:16px;font-weight:600;font-family:var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px}
+.sub{color:var(--muted);margin-top:4px}
+.banner{margin-top:14px;padding:10px 14px;border-left:4px solid var(--turmeric);background:var(--paper);border-radius:6px;font-size:15px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 14px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--leaf)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pf span{font-size:12px;color:var(--muted);display:block}
+.pf input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
+.tab .n{font-weight:500;margin-left:4px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+.card>div{padding:16px}
+.card .right{border-left:1px solid var(--line);display:grid;gap:12px;align-content:start}
+.src{font-size:14px;color:var(--muted);margin-top:4px}
+.src a{color:var(--leaf)}
+.flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.flag{font-size:13px;padding:1px 8px;border-radius:6px;background:var(--turmeric-soft);border:1px solid var(--turmeric)}
+.flag.new{background:var(--leaf-soft);border-color:var(--leaf)}
+.found{font-size:13px;color:var(--muted);margin-top:6px}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:600;font-size:15px}
+.ing{margin:6px 0 0;padding-left:18px;font-size:15px}
+.steps{margin:6px 0 0;padding-left:20px;font-size:14px;color:var(--muted)}
+.lbl{font-size:13px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--steel)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{display:flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:14px;cursor:pointer}
+.checks input{accent-color:var(--leaf)}
+.why{font-size:13px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer}
+.publish{background:var(--leaf);color:var(--paper)}
+.reject{background:transparent;border:1px solid var(--chilli);color:var(--chilli)}
+.undo{background:transparent;border:1px solid var(--line)}
+.done{font-size:14px;font-weight:600}
+.err{color:var(--chilli);font-size:14px}
+.empty{color:var(--muted);padding:30px 0}
+.site-tools{display:grid;gap:10px;margin-bottom:14px}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.fchip .n{font-weight:500;opacity:.8;margin-left:3px}
+.sitesearch{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);max-width:420px}
+.site{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:16px}
+.site .stats{font-size:14px;margin-top:6px}
+.site .warn{font-size:13px;color:var(--chilli);margin-top:2px}
+.tagline{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{font-size:12px;padding:1px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.tag.granted{border-color:var(--leaf);color:var(--leaf);background:var(--leaf-soft)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"][data-state="active"]{background:var(--leaf);color:var(--paper)}
+.seg button[aria-pressed="true"][data-state="paused"]{background:var(--turmeric);color:#2A1E00}
+.seg button[aria-pressed="true"][data-state="blocked"]{background:var(--chilli);color:#fff}
+.kpsteps{width:100%;min-height:150px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit;font-size:14px;line-height:1.5;resize:vertical}
+.site textarea{width:100%;min-height:54px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--steel);font:inherit;font-size:14px;resize:vertical}
+.saved{font-size:12px;color:var(--leaf);min-height:1em}
+@media (max-width:720px){.site{grid-template-columns:1fr}}
+.login{max-width:420px;margin-top:40px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:10px}
+.login input{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--steel)}
+.more{display:block;margin:10px auto}
+@media (max-width:720px){.card{grid-template-columns:1fr}.card .right{border-left:0;border-top:1px solid var(--line)}.row{grid-template-columns:1fr 1fr}}
+
+/* ---------- publish-by-default: status, bookmark, held reasons ---------- */
+.live{font-size:14px;color:var(--muted);margin-top:6px}
+.live b{color:var(--chilli)}
+.hold{margin-top:8px;padding:8px 12px;border-left:4px solid var(--turmeric);background:var(--turmeric-soft);border-radius:6px;font-size:14px}
+.hold ul{margin:4px 0 0;padding-left:18px}
+.bookmark{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px}
+.bookmark label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:15px}
+.bookmark input[type=checkbox]{width:20px;height:20px;accent-color:var(--leaf)}
+.bookmark input[type=text]{flex:1 1 200px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
+.bookmark .saved{flex:0 0 100%}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--leaf)}
+
+/* ---------- responsive: phones to wide desktops ---------- */
+html{-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+@media (min-width:1280px){.wrap{max-width:1180px}}
+@media (min-width:1600px){.wrap{max-width:1360px}.card{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}}
+@media (max-width:900px){
+  .wrap{padding:16px 12px 70px}
+  h1{font-size:26px}
+}
+@media (max-width:720px){
+  /* tabs: one swipeable, sticky row instead of wrapping */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:0;z-index:10;background:var(--steel);margin:14px -12px 12px;padding:0 12px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:12px 14px;white-space:nowrap;min-height:44px}
+  .card>div{padding:14px 12px}
+  /* thumb-sized controls, and 16px inputs so iPhones do not zoom in */
+  .btn,.fchip,.seg button{min-height:44px}
+  select,input[type=text],input[type=number],input[type=password],textarea,.kpsteps,.sitesearch,.pf input{font-size:16px;min-height:44px}
+  textarea,.kpsteps{min-height:140px}
+  .checks label{padding:8px 12px;min-height:40px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .actions .btn,.actions .done{width:100%}
+  .actions>.publish:first-child{grid-column:1 / -1}
+  .bookmark{padding:12px}
+  .bookmark input[type=text]{flex:1 1 100%}
+  .bookmark .btn{flex:1 1 100%}
+  .site{padding:12px}
+  .seg{display:flex;width:100%}
+  .seg button{flex:1}
+  .sitesearch{max-width:none;width:100%}
+  .login{margin-top:20px}
+}
+@media (max-width:420px){
+  .row{grid-template-columns:1fr}
+  .pgrid{grid-template-columns:1fr 1fr}
+  .actions{grid-template-columns:1fr}
+  h1{font-size:23px}
+  h2{font-size:19px}
+}
+@media (hover:none){.btn:active,.fchip:active,.tab:active{opacity:.8}}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chilli);margin-left:4px;vertical-align:middle}
+@media (max-width:720px){
+  /* all seven tabs fit on the screen in two rows; counts sit under the names (no hidden, scroll-away tabs) */
+  .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;gap:0;padding:0 6px}
+  .tab{padding:8px 2px;font-size:13px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:50px;white-space:normal}
+  .tab .n{margin:0;font-size:11px;font-weight:600;min-height:1em}
+}
+.vcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+.vcard textarea{width:100%;min-height:64px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit;resize:vertical}
+.vcard .meta{color:var(--muted);font-size:13px;margin:0 0 6px}
+.vhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:22px 0 10px}
+.vhead h2{font-size:20px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;background:var(--steel);border:1px solid var(--line)}
+.pill.replied_yes{background:#DDF2E0;color:#1c5a2a}.pill.replied_no{background:#F9DCD8;color:#8a1f12}.pill.replied_other,.pill.bounced{background:#FBEFC9;color:#6b4a00}
+.arow{display:grid;grid-template-columns:1fr;gap:8px}
+.arow input[type=email]{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--steel);color:inherit;font:inherit}
+.mailprev{white-space:pre-wrap;background:var(--steel);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;margin-top:6px}
+.tally{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script>
+const P=new URLSearchParams(location.search);
+const DEMO=P.has('demo')||!/kidposhan|workers\.dev|localhost|127\.0\.0\.1/.test(location.hostname);
+const API=P.get('api')||'';
+const OCC=[['breakfast','Breakfast'],['lunchbox','School lunchbox'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
+const SEA=[['summer','Summer'],['monsoon','Monsoon'],['winter','Winter'],['all','All seasons']];
+const DIET=[['veg','Veg'],['jain','Jain'],['egg','Egg'],['nonveg','Non-veg']];
+const AGE=[6,9,12,18,24,36,48,60,72,96,120,144];
+const FLAG={partial:'Incomplete read',read_without_recipe_card:'No recipe card on page',no_name:'No title',no_meal_type:'Pick a meal',check_jain:'Check Jain',new_site:'New site'};
+const ageTxt=m=>m<12?`${m} months`:m%12?`${(m/12).toFixed(1)} years`:`${m/12} years`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyTxt=k=>{if(!k)return'';const [p,o,s,a]=k.split('|');return `${({veg:'Veg',jain:'Jain',nonveg:'Non-veg'})[p]||p}, ${(OCC.find(x=>x[0]===o)||[])[1]||o}, ${s==='all'?'all seasons':s}, ${a}`};
+
+/* ---- demo data: invented examples to show the screen, not real recipes ---- */
+const demo={
+ pending:[
+  {id:101,name:'Sample: Jain moong chilla',source_name:'newsite.example',source_status:'suggested',source_id:9,source_url:'#',flags:['new_site'],found_for:'jain|breakfast|all|toddler',diet:'jain',age_min_months:24,age_max_months:144,occasions:['breakfast'],seasons:['all'],ingredients:['1 cup moong dal, soaked','2 tbsp coriander leaves','Salt to taste'],instructions:[{text:'(Creator\'s method text appears here, word for word)'}],tag_reasons:{diet:'no onion/garlic/root vegetables found',age:'chilli -> 2y+',occasion:'breakfast',season:'all'},extraction_method:'jsonld',source_rating:4.7,source_rating_count:58},
+  {id:102,name:'Sample: Ragi porridge for babies',source_name:'Registered blog A',source_status:'registered',source_id:3,source_url:'#',flags:[],found_for:'veg|breakfast|all|infant',diet:'jain',age_min_months:6,age_max_months:36,occasions:['breakfast','snack_4pm'],seasons:['all'],ingredients:['2 tbsp ragi flour','1 cup water','½ tsp ghee'],instructions:[{text:'(Creator\'s method text appears here, word for word)'}],tag_reasons:{diet:'no onion/garlic/root vegetables found',age:'marked for babies -> 6m+',occasion:'breakfast, snack_4pm',season:'all'},extraction_method:'wprm'},
+  {id:103,name:'Sample: Bhutta chaat',source_name:'Registered blog B',source_status:'registered',source_id:4,source_url:'#',flags:['read_without_recipe_card','no_meal_type'],found_for:null,diet:'veg',age_min_months:36,age_max_months:144,occasions:[],seasons:['monsoon'],ingredients:['2 sweet corn cobs','1 small onion','Lemon juice','Salt to taste'],instructions:[],tag_reasons:{diet:'not Jain: onion',age:'general recipe -> 12m+',occasion:'no occasion signal - review',season:'monsoon'},extraction_method:'heuristic'},
+ ],
+ approved:[],rejected:[],
+ sites:[
+  {id:9,name:'newsite.example',url:'https://newsite.example/',platform:'Website',region:'Unknown',area:'',notes:'Found by parent search: indian jain breakfast recipe for toddler',state:'new',pending:1,published:0,rejected:0,robots_blocked:0,errors:0,rights_status:'not_requested',owner_notes:''},
+  {id:1,name:'Sample registered blog A',url:'https://blog-a.example/',platform:'Website',region:'South',area:'Tamil Nadu',notes:'Kids lunchbox collection',state:'active',pending:4,published:12,rejected:2,robots_blocked:0,errors:1,rights_status:'requested',owner_notes:'Emailed 2 Oct, awaiting reply'},
+  {id:2,name:'Sample registered blog B',url:'https://blog-b.example/',platform:'Website',region:'East',area:'West Bengal',notes:'Bengali family recipes',state:'active',pending:0,published:7,rejected:0,robots_blocked:0,errors:0,rights_status:'granted',owner_notes:'Agreed by email, credit + link'},
+  {id:3,name:'Sample media site',url:'https://media.example/',platform:'Web / Media',region:'Pan-India',area:'India',notes:'Listicles',state:'paused',pending:0,published:2,rejected:5,robots_blocked:3,errors:0,rights_status:'not_requested',owner_notes:'Mostly listicles, paused'},
+  {id:4,name:'Sample Instagram creator',url:'https://instagram.com/sample',platform:'Instagram',region:'Pan-India',area:'India',notes:'Added by hand',crawl_mode:'manual',state:'active',pending:0,published:1,rejected:0,robots_blocked:0,errors:0,rights_status:'granted',owner_notes:''},
+ ],
+};
+
+let reviewedFilter='all', unreviewedCount=0;
+let tav=null, joined={total:0,visitors:[]};
+let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:''};
+let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
+let tab='approved', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
+const app=document.getElementById('app');
+
+async function api(path,opts={}){
+  if(DEMO) return demoApi(path,opts);
+  const r=await fetch(API+path,{...opts,headers:{'content-type':'application/json','x-admin-token':token,...(opts.headers||{})}});
+  const d=await r.json().catch(()=>({error:`HTTP ${r.status}`}));
+  if(r.status===401){sessionStorage.removeItem('kp_admin');token='';render();throw new Error('Token not accepted');}
+  if(!r.ok) throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
+}
+async function demoApi(path,opts){
+  const u=new URL(path,'https://x');
+  if(u.pathname==='/api/kp/admin/review'){const s=u.searchParams.get('status');return {status:s,total:demo[s].length,items:demo[s]}}
+  if(u.pathname==='/api/kp/admin/sources'){const st=u.searchParams.get('state')||'all',q=(u.searchParams.get('q')||'').toLowerCase();
+    const c={new:0,active:0,paused:0,blocked:0};demo.sites.forEach(x=>c[x.state]++);c.all=demo.sites.length;
+    return {counts:c,items:demo.sites.filter(x=>(st==='all'||x.state===st)&&(!q||(x.name+x.url+x.area).toLowerCase().includes(q)))}}
+  if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
+  if(u.pathname==='/api/kp/admin/tavily') return {configured:true,cap_per_day:25,used_today:3,used_last_7_days:12,account:{plan:'Researcher',used:88,limit:1000}};
+  if(u.pathname==='/api/kp/admin/visitors') return {total:0,visitors:[]};
+  if(u.pathname==='/api/kp/admin/remarks') return {remarks:[],counts:{}};
+  if(u.pathname==='/api/kp/admin/payments') return {payments:[],totals:{}};
+  if(u.pathname==='/api/kp/admin/outreach') return {sources:[],tally:{}};
+  let m=u.pathname.match(/review\/(\d+)/); if(m){const b=JSON.parse(opts.body);const id=+m[1];if(b.action==='mark')return {ok:1};
+    if(b.action==='publish'&&b.occasions&&!b.occasions.length) throw new Error('pick at least one meal before publishing');
+    for(const k of ['pending','approved','rejected']){const i=demo[k].findIndex(x=>x.id===id);if(i>=0){const [it]=demo[k].splice(i,1);Object.assign(it,b);demo[{publish:'approved',reject:'rejected',pending:'pending'}[b.action]].unshift(it)}}
+    return {ok:1}}
+  m=u.pathname.match(/sources\/(\d+)/); if(m){const b=JSON.parse(opts.body);const s=demo.sites.find(x=>x.id===+m[1]);Object.assign(s,b);return s}
+}
+
+function render(){
+  if(!DEMO&&!token){
+    app.innerHTML=`<h1>Recipe review</h1><form class="login" id="login"><label for="tok"><b>Admin token</b></label>
+      <input id="tok" type="password" autocomplete="current-password" required><button class="btn publish">Open review</button>
+      <span class="sub">Kept only for this browser tab.</span></form>`;
+    document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
+    return;
+  }
+  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['authors','Authors']];
+  app.innerHTML=`<h1>Recipe review</h1>
+    <p class="sub">Recipes that pass the automatic checks go live by themselves. Review them here afterwards: pull one back, edit its steps or ingredients, or tick "Reviewed by me". Recipes that failed a check are held with the reason shown.</p>
+    ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
+    <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}<span class="n">${counts[k]??''}</span></button>`).join('')}</div>
+    <div id="list"></div>`;
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;offset=0;load()});
+  const list=document.getElementById('list');
+  if(tab==='packs'){renderPacks(list);return}
+  if(tab==='sites'){renderSites(list);return}
+  if(tab==='visitors'){renderVisitors(list);return}
+  if(tab==='authors'){renderAuthors(list);return}
+  list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
+    `<p class="empty">${tab==='pending'?'Nothing is held. Recipes that pass the checks go live by themselves; any that fail appear here with the reason.':'Nothing here yet.'}</p>`;
+  bindCards();
+  const fchips=[['all','All'],['no','Not reviewed'],['yes','Reviewed']].map(([k,l])=>`<button class="fchip" data-rf="${k}" aria-pressed="${reviewedFilter===k}">${l}</button>`).join('');
+  list.insertAdjacentHTML('afterbegin',`${tab==='approved'&&unreviewedCount?`<p class="banner"><b>${unreviewedCount}</b> recipe${unreviewedCount===1?'':'s'} went live automatically and ${unreviewedCount===1?'is':'are'} waiting for your review. You can pull any of them back, edit the steps or ingredients, or tick "Reviewed by me".</p>`:''}<div class="filters" role="group" aria-label="Review filter" style="margin-bottom:12px">${fchips}</div>`);
+  list.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{reviewedFilter=b.dataset.rf;offset=0;load()});
+  const more=document.getElementById('more'); if(more) more.onclick=()=>{offset+=20;load(true)};
+}
+
+function packCard(p){
+  const n=p.nutrition||{}, f=(k,l,ph)=>`<label class="pf"><span>${l}</span><input type="number" step="any" min="0" name="${k}" value="${n[k]??''}" placeholder="${ph||''}"></label>`;
+  const d=p.score_detail, inp=d?.inputs||{};
+  const score=p.score_status==='exact'
+    ?`<p><b>Poshan Score ${p.kidposhan_score}</b> (${esc(d?.engine?.band||'')}), exact, per 100 g from the label.</p><p class="why">Counted from the ingredient list: ${inp.additives} additive${inp.additives===1?'':'s'}${d?.additives_found?.length?' ('+esc(d.additives_found.join(', '))+')':''}, palm oil ${inp.palmOil?'yes':'no'}, maida ${inp.maida?'yes':'no'}, whole grain first ${inp.wholeGrain?'yes':'no'}.</p>`
+    :`<p class="why">Score pending: enter the label values below (per 100 g, from the pack photo). All five of protein, fibre, added sugars, saturated fat and sodium are needed. Enter 0 for added sugars only if the ingredients list no sugar, jaggery, syrup or honey.</p>`;
+  const acts=p.status==='candidate'
+    ?`<button class="btn publish" data-pact="approve">Approve</button><button class="btn reject" data-pact="reject">Reject</button>`
+    :`<button class="btn undo" data-pact="candidate">Move back to waiting</button>${p.status==='rejected'?'<button class="btn publish" data-pact="approve">Approve</button>':''}`;
+  const saveAs=p.status==='approved'?'approve':p.status==='rejected'?'reject':'candidate';
+  return `<article class="card" data-pid="${p.id}" data-save="${saveAs}">
+   <div><h2>${esc(p.name)}</h2>
+    <p class="src">${esc(p.brand||'')} ${p.pack_size?'· '+esc(p.pack_size):''} · ${esc(p.retailer||'')}. <a href="${esc(p.product_url)}" target="_blank" rel="noopener">Open product page</a></p>
+    <details><summary>Ingredients (${p.ingredients.length})</summary><ul class="ing">${p.ingredients.map(i=>`<li>${esc(i)}</li>`).join('')||'<li>Not found on the page: read it from the pack.</li>'}</ul></details>
+    ${score}
+    ${p.label_note?`<p class="why"><b>${p.label_source==='owner'?'Checked by you':p.label_source==='pack_image'?'Read from the pack image, not yet checked by you':'Label'}:</b> ${esc(p.label_note)}</p>`:''}
+    ${p.label_image_url?`<p><a href="${esc(p.label_image_url)}" target="_blank" rel="noopener"><img src="${esc(p.label_image_url)}" alt="Pack photo the label was read from" style="max-width:100%;max-height:420px;border-radius:8px;border:1px solid var(--line)"></a><span class="why">Compare the numbers on the right with this photo. Approve counts as checked.</span></p>`:''}</div>
+   <div class="right">
+    <div><span class="lbl">Dish type this pack is for</span><select name="kind">${packKinds.map(k=>`<option value="${k.kind}" ${k.kind===p.kind?'selected':''}>${esc(k.label)}</option>`).join('')}</select></div>
+    <span class="lbl">Label, per 100 g</span>
+    <div class="pgrid">${f('protein_g','Protein g')}${f('fibre_g','Fibre g')}${f('sugars_g','Total sugars g')}${f('added_sugars_g','Added sugars g')}${f('saturated_fat_g','Saturated fat g')}${f('sodium_mg','Sodium mg')}</div>
+    <div class="actions"><button class="btn undo" data-pact="save">Save label &amp; score</button>${acts}</div><p class="err" role="alert"></p>
+   </div></article>`;
+}
+function renderPacks(list){
+  const c=packCounts;
+  list.innerHTML=`<p class="sub">Ready-made versions of dishes (ragi dosa → a ragi dosa mix). Parents see only packs you approve. Type the label values from the pack photo to get an exact Poshan Score.</p>
+    <div class="tabs" role="tablist">${[['candidate','Waiting'],['approved','Approved'],['rejected','Rejected']].map(([k,l])=>`<button class="tab" aria-selected="${packStatus===k}" data-ps="${k}">${l}<span class="n">${c[k]??0}</span></button>`).join('')}</div>
+    <p><button class="btn undo" id="findpacks">Find packs for my published recipes</button> <span class="why" id="packmsg">${esc(packMsg)}</span></p>
+    ${packs.length?packs.map(packCard).join(''):'<p class="empty">Nothing here. The site looks for packs automatically, one dish type every 3 hours, or press "Find more packs now".</p>'}`;
+  list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{packStatus=b.dataset.ps;load()});
+  document.getElementById('findpacks').onclick=async e=>{e.target.disabled=true;document.getElementById('packmsg').textContent='Searching, about 90 seconds…';
+    try{
+      let r=await api('/api/kp/admin/products/research?scope=published',{method:'POST'});
+      if(r.skipped) r=await api('/api/kp/admin/products/research',{method:'POST'}); // published recipes are covered: carry on with the general rotation
+      packMsg=`Searched "${r.query}": ${r.added} new, ${r.already_known} already known. Press again for the next dish type.`;
+    }catch(x){packMsg='Search failed: '+x.message}
+    load()};
+  list.querySelectorAll('[data-pact]').forEach(b=>b.onclick=async()=>{
+    const card=b.closest('.card'), err=card.querySelector('.err'); err.textContent='';
+    const nutrition={}; card.querySelectorAll('.pgrid input').forEach(i=>nutrition[i.name]=i.value);
+    const action=b.dataset.pact==='save'?card.dataset.save:b.dataset.pact;
+    card.querySelectorAll('button').forEach(x=>x.disabled=true);
+    try{await api('/api/kp/admin/products/'+card.dataset.pid,{method:'POST',body:JSON.stringify({action,nutrition,kind:card.querySelector('[name=kind]').value})});load()}
+    catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
+  });
+}
+
+function cardHTML(r){
+  const chk=(name,arr,cur)=>`<div class="checks">${arr.map(([v,l])=>`<label><input type="checkbox" name="${name}" value="${v}" ${cur.includes(v)?'checked':''}>${l}</label>`).join('')}</div>`;
+  const sel=(name,arr,cur)=>`<select name="${name}">${arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
+  const ages=AGE.map(a=>[a,ageTxt(a)]);
+  const rating=r.source_rating?`, rated ${r.source_rating} by ${r.source_rating_count||'?'} on the site`:'';
+  const edits=`<button class="btn undo" data-act="${tab==='rejected'?'reject':'publish'}" data-saved="1" title="Save changes to steps, ingredients, tags and score without changing whether it is live or the reviewed bookmark">Save edits</button>`;
+  const action=tab==='pending'
+    ?`<button class="btn publish" data-act="publish">Publish now</button><button class="btn undo" data-act="publish" data-link="1" title="Show the recipe with ingredients and score, and link to the original for the steps">Publish with link to original steps</button><button class="btn reject" data-act="reject">Reject</button>`
+    :tab==='approved'
+    ?`${edits}<button class="btn reject" data-act="pending" title="Take it off parents' pages. It stays here and is never published automatically again">Pull back</button>`
+    :`<button class="btn publish" data-act="publish">Publish</button><button class="btn undo" data-act="pending">Move back to held</button>${edits}`;
+  const scoreBox=(()=>{
+    if(r.poshan_score==null) return `<div><span class="lbl">Poshan Score</span><p class="why">Pending: ${esc(r.score_detail?.reason||'not scored yet')}</p></div>`;
+    const d=r.score_detail||{}, inp=d.inputs||{}, src=d.sources||{};
+    const parts=['protein','fibre','satFat','sodium','addedSugar'].map(k=>`${k} ${inp[k]}${src[k]==='estimated'?' (est.)':''}`).join(', ');
+    const kind=r.score_status==='exact'?'From recipe data':'Estimated from ingredients';
+    return `<div><span class="lbl">Poshan Score</span><p><b>${r.poshan_score}</b> (${esc(d.engine?.band||'')}) · ${kind}</p>
+      <p class="why">Per serving, ${d.per_serving_basis||'?'} servings: ${esc(parts)}. ${(d.assumptions||[]).map(esc).join('; ')}</p>
+      ${r.poshan_score!=null?`<label class="chk"><input type="checkbox" name="score_hidden" ${r.score_hidden?'checked':''}> Hide this score from parents</label>`:''}</div>`;
+  })();
+  const kpSteps=`<details open><summary>KidPoshan steps (${{none:'not written yet',draft:'draft, needs your check',approved:(r.kp_steps_auto?'live, written automatically; edit if needed':'approved'),failed:'rewrite failed, write them here'}[r.kp_steps_status]||r.kp_steps_status})</summary>
+    <textarea name="kp_steps" class="kpsteps" rows="9" placeholder="No KidPoshan steps yet. One is being drafted automatically; or type the steps here, one per line.">${esc((r.kp_steps||[]).join('\n'))}</textarea>
+    <p class="why">One step per line, in KidPoshan's own words. Check every quantity and time against the original. Publishing saves and approves what is written here.</p></details>`;
+  return `<article class="card" data-id="${r.id}">
+   <div><h2>${esc(r.name)}</h2>
+    ${tab==='approved'?`<p class="live">${r.publish_origin==='auto'?'Went live automatically':'Published by you'}${r.publish_origin==='auto'&&r.auto_published_at?' on '+esc(String(r.auto_published_at).slice(0,10)):''}. ${r.owner_reviewed_at?'Reviewed '+esc(String(r.owner_reviewed_at).slice(0,10)):'<b>Not yet reviewed</b>'}.</p>`:''}
+    ${tab==='pending'&&r.hold_reasons?.length?`<div class="hold"><b>Held, not live yet:</b><ul>${r.hold_reasons.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:''}
+    <p class="src">${esc(r.source_name)}${r.source_status==='suggested'?' (not in your registry yet)':''}${rating}. <a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open original</a></p>
+    ${r.flags?.length?`<div class="flags">${r.flags.map(f=>`<span class="flag ${f==='new_site'?'new':''}">${FLAG[f]||f}</span>`).join('')}</div>`:''}
+    ${r.found_for?`<p class="found">Found for a parent search: ${esc(keyTxt(r.found_for))}</p>`:''}
+    <details open><summary>Ingredients (${r.ingredients.length})${r.ingredients_edited?', edited by you':''}</summary><textarea name="ingredients" class="kpsteps" rows="8" data-orig="${esc(r.ingredients.join('\n'))}">${esc(r.ingredients.join('\n'))}</textarea><p class="why">One ingredient per line, exactly as parents see it. Fix a quantity or a name and press Save edits. Your lines are kept even if the site is read again, and the score is worked out again.</p></details>
+    <details><summary>Method as published (${r.instructions.length} steps)</summary>${r.instructions.length?`<ol class="steps">${r.instructions.map(s=>`<li>${esc(s.text)}</li>`).join('')}</ol>`:'<p class="why">No steps found. Check the original.</p>'}</details>
+    ${kpSteps}
+    <div class="bookmark"><label><input type="checkbox" name="reviewed" ${r.owner_reviewed_at?'checked':''}> <b>Reviewed by me</b>${r.owner_reviewed_at?' ('+esc(String(r.owner_reviewed_at).slice(0,10))+')':''}</label>
+      <input type="text" name="note" maxlength="500" value="${esc(r.review_note||'')}" placeholder="Note to self (optional)"><button class="btn undo" data-mark="1">Save bookmark</button><span class="saved" data-msg role="status"></span></div>
+   </div>
+   <div class="right">
+    ${scoreBox}
+    <div><span class="lbl">Food type</span>${sel('diet',DIET,r.diet)}<p class="why">${esc(r.tag_reasons?.diet)}</p></div>
+    <div class="row"><div><span class="lbl">From age</span>${sel('age_min_months',ages,r.age_min_months)}</div><div><span class="lbl">Up to</span>${sel('age_max_months',ages,r.age_max_months)}</div></div>
+    <p class="why">${esc(r.tag_reasons?.age)}</p>
+    <div><span class="lbl">Meals</span>${chk('occasions',OCC,r.occasions)}</div>
+    <div><span class="lbl">Seasons</span>${chk('seasons',SEA,r.seasons)}</div>
+    <div class="actions">${action}</div><p class="err" role="alert"></p>
+   </div></article>`;
+}
+function bindCards(){
+  app.querySelectorAll('.card [data-mark]').forEach(b=>{
+    const card=b.closest('.card'), id=+card.dataset.id, msg=card.querySelector('[data-msg]'), box=card.querySelector('[name=reviewed]');
+    const save=async()=>{msg.textContent='Saving…';
+      try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify({action:'mark',reviewed:box.checked,note:card.querySelector('[name=note]').value})});msg.textContent=box.checked?'Marked as reviewed':'Marked as not reviewed';setTimeout(load,900)}
+      catch(e){msg.textContent=e.message}};
+    b.onclick=save; box.onchange=save;
+  });
+  app.querySelectorAll('.card [data-act]').forEach(b=>b.onclick=async()=>{
+    const card=b.closest('.card'), id=+card.dataset.id, err=card.querySelector('.err'); err.textContent='';
+    const vals=n=>[...card.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value);
+    const body={action:b.dataset.act,diet:card.querySelector('[name=diet]').value,
+      age_min_months:+card.querySelector('[name=age_min_months]').value,age_max_months:+card.querySelector('[name=age_max_months]').value,
+      occasions:vals('occasions'),seasons:vals('seasons')};
+    const ks=card.querySelector('[name=kp_steps]').value.split('\n').map(x=>x.trim()).filter(Boolean);
+    if(ks.length) body.kp_steps=ks;
+    if(b.dataset.link) body.steps_link_only=true;
+    if(b.dataset.saved) body.keep_review_mark=true;
+    const ing=card.querySelector('[name=ingredients]'); if(ing&&ing.value!==ing.dataset.orig) body.ingredients=ing.value.split('\n').map(x=>x.trim()).filter(Boolean);
+    const sh=card.querySelector('[name=score_hidden]'); if(sh) body.score_hidden=sh.checked;
+    if(body.age_min_months>body.age_max_months){err.textContent='"From age" is after "Up to".';return}
+    card.querySelectorAll('button').forEach(x=>x.disabled=true);
+    try{await api(`/api/kp/admin/review/${id}`,{method:'POST',body:JSON.stringify(body)});
+      card.querySelector('.actions').innerHTML=`<span class="done">${{publish:b.dataset.saved?'Saved':'Published',reject:b.dataset.saved?'Saved':'Rejected',pending:tab==='approved'?'Pulled back':'Moved back to held'}[body.action]}</span>`;
+      setTimeout(load,700);
+    }catch(e){err.textContent=e.message;card.querySelectorAll('button').forEach(x=>x.disabled=false)}
+  });
+}
+
+const ago=t=>{if(!t)return '';const d=Math.floor((Date.now()/1000-t)/86400);return d<1?'today':d===1?'yesterday':d+' days ago'};
+function renderVisitors(list){
+  const R=vis.remarks, P=vis.payments, tot=vis.totals;
+  list.innerHTML=`<div class="vhead"><h2>Remarks</h2><div class="filters" role="group" aria-label="Remark status">${[['pending','Waiting'],['approved','Published'],['rejected','Rejected']].map(([k,l])=>`<button class="fchip" data-rs="${k}" aria-pressed="${vis.rStatus===k}">${l}<span class="n">${vis.rCounts[k]??0}</span></button>`).join('')}</div></div>
+   <p class="sub">A visitor's remark appears on the recipe page only after you approve it. You can tidy the wording before approving.</p>
+   ${R.length?R.map(m=>`<div class="vcard" data-rm="${m.id}"><p class="meta"><b>${esc(m.display_name)}</b> · mobile ending ${esc(m.mobile_tail||'')} · on <a href="meal-ideas-kp.html#/r/${m.recipe_id}" target="_blank" rel="noopener">${esc(m.recipe_name)}</a> · ${ago(m.created_at)}</p>
+     <textarea aria-label="Remark text">${esc(m.body)}</textarea>
+     <div class="actions" style="margin-top:8px">${m.status!=='approved'?'<button class="btn publish" data-ra="approve">Approve and publish</button>':'<button class="btn undo" data-ra="unpublish">Take back</button>'}${m.status!=='rejected'?'<button class="btn reject" data-ra="reject">Reject</button>':''}</div><p class="saved" data-saved role="status"></p></div>`).join(''):`<p class="empty">No ${vis.rStatus==='pending'?'remarks waiting':vis.rStatus+' remarks'}.</p>`}
+   <div class="vhead"><h2>₹5 support payments</h2><div class="filters" role="group" aria-label="Payment status">${[['claimed','To confirm'],['confirmed','Confirmed'],['rejected','Rejected']].map(([k,l])=>`<button class="fchip" data-ps="${k}" aria-pressed="${vis.pStatus===k}">${l}<span class="n">${(tot[k]||{}).count??0}</span></button>`).join('')}</div></div>
+   <p class="sub">Confirmed so far: ₹${(tot.confirmed||{}).rupees||0}. Visitors pay by UPI and tell us; check each against your UPI app, then confirm. Needs the UPI_ID secret to be set.</p>
+   ${P.length?P.map(x=>`<div class="vcard" data-pm="${x.id}"><p class="meta"><b>₹${x.amount_paise/100}</b> · ${esc(x.payer||'Guest')}${x.mobile_tail?' (ending '+esc(x.mobile_tail)+')':''} · ${x.recipe_name?'on '+esc(x.recipe_name):'general'} · ${ago(x.created_at)}</p><p>Reference they entered: <b>${esc(x.payer_note||'none')}</b></p>
+     <div class="actions">${x.status==='claimed'?'<button class="btn publish" data-pa="confirm">Confirm received</button><button class="btn reject" data-pa="reject">Not received</button>':''}</div><p class="saved" data-saved role="status"></p></div>`).join(''):`<p class="empty">Nothing here.</p>`}`;
+  list.insertAdjacentHTML('beforeend',`<div class="vhead"><h2>People who joined (${joined.total})</h2><button class="btn undo" id="csv" ${joined.total?'':'disabled'}>Copy as CSV</button></div>
+   <p class="sub">Name, mobile and email given on the recipe pages. None of it is verified and none of it is shown to the public.</p>
+   ${joined.visitors.length?'<div class="vcard" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--muted)"><th>Name</th><th>Mobile</th><th>Email</th><th>Joined</th><th>Rated</th><th>Remarks</th></tr></thead><tbody>'+joined.visitors.map(v=>`<tr style="border-top:1px solid var(--line)"><td>${esc(v.name)}</td><td>${esc(v.mobile)}</td><td>${esc(v.email||'')}</td><td>${ago(v.created_at)}</td><td>${v.ratings}</td><td>${v.remarks}</td></tr>`).join('')+'</tbody></table></div>':'<p class="empty">Nobody yet.</p>'}`);
+  const csvBtn=document.getElementById('csv'); if(csvBtn) csvBtn.onclick=async()=>{
+    const q=x=>'"'+String(x??'').replace(/"/g,'""')+'"';
+    const text=['name,mobile,email,joined'].concat(joined.visitors.map(v=>[v.name,v.mobile,v.email,new Date(v.created_at*1000).toISOString().slice(0,10)].map(q).join(','))).join('\n');
+    try{await navigator.clipboard.writeText(text);csvBtn.textContent='Copied'}catch(e){prompt('Copy this:',text)}
+  };
+  list.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{vis.rStatus=b.dataset.rs;load()});
+  list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{vis.pStatus=b.dataset.ps;load()});
+  list.querySelectorAll('[data-rm]').forEach(card=>{
+    const id=+card.dataset.rm, ta=card.querySelector('textarea'), saved=card.querySelector('[data-saved]'), orig=ta.value;
+    card.querySelectorAll('[data-ra]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;
+      try{
+        if(ta.value!==orig&&b.dataset.ra==='approve') await api(`/api/kp/admin/remarks/${id}`,{method:'POST',body:JSON.stringify({action:'edit',body:ta.value})});
+        await api(`/api/kp/admin/remarks/${id}`,{method:'POST',body:JSON.stringify({action:b.dataset.ra})});
+        load();
+      }catch(e){saved.textContent=e.message;b.disabled=false}
+    });
+  });
+  list.querySelectorAll('[data-pm]').forEach(card=>{
+    const id=+card.dataset.pm, saved=card.querySelector('[data-saved]');
+    card.querySelectorAll('[data-pa]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/api/kp/admin/payments/${id}`,{method:'POST',body:JSON.stringify({action:b.dataset.pa})});load()}catch(e){saved.textContent=e.message;b.disabled=false}});
+  });
+}
+
+const OUT_LABEL={no_email:'No email yet',not_sent:'Not sent',sent:'Sent, waiting',replied_yes:'Replied: yes',replied_no:'Replied: no',replied_other:'Replied: other',no_reply:'No reply (14+ days)',bounced:'Bounced'};
+function renderAuthors(list){
+  const t=auth.tally, ready=auth.sources.filter(x=>x.status==='not_sent');
+  list.innerHTML=`<div class="vhead"><h2>Authors: permission by email</h2></div>
+   <p class="sub">Type each site's contact email, preview the message, then send. One email per address, never repeated. Replies are read from your Gmail and sorted as yes / no / other for you to confirm. Needs the four GMAIL secrets (see OUTREACH.md).</p>
+   <div class="tally">${Object.keys(OUT_LABEL).map(k=>`<span class="pill ${k}">${OUT_LABEL[k]}: ${t[k]||0}</span>`).join('')}</div>
+   <div class="actions"><button class="btn undo" id="chk">Check for replies now</button>${ready.length?`<button class="btn publish" id="sendall">Send to all ready (${Math.min(ready.length,20)})</button>`:''}</div>
+   <p class="saved" id="amsg" role="status">${esc(auth.msg||'')}</p>
+   ${auth.sources.map(x=>`<div class="vcard" data-as="${x.id}"><div class="vhead" style="margin:0 0 6px"><h3>${esc(x.name)}</h3><span class="pill ${x.status}">${OUT_LABEL[x.status]||x.status}</span></div>
+     <p class="meta"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a> · ${x.live_recipes} live recipe${x.live_recipes===1?'':'s'}${x.sent_at?' · sent '+ago(x.sent_at):''}${x.replied_at?' · replied '+ago(x.replied_at):''}</p>
+     ${x.reply_snippet?`<p class="why">They wrote: "${esc(x.reply_snippet)}"</p>`:''}
+     <div class="arow"><input type="email" data-email placeholder="contact email" value="${esc(x.contact_email||'')}" aria-label="Contact email for ${esc(x.name)}" ${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?'readonly':''}>
+      <div class="actions">${x.status==='not_sent'?'<button class="btn undo" data-prev>Preview email</button><button class="btn publish" data-send>Send</button>':''}${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?`<select data-mark aria-label="Your decision"><option value="">Mark as…</option>${['replied_yes','replied_no','replied_other','no_reply','bounced'].map(k=>`<option value="${k}">${OUT_LABEL[k]}</option>`).join('')}</select>`:''}</div>
+      <div class="mailprev" data-pv hidden></div><p class="saved" data-saved role="status"></p></div></div>`).join('')||'<p class="empty">No sites with live recipes yet.</p>'}`;
+  document.getElementById('chk').onclick=async e=>{e.target.disabled=true;try{const d=await api('/api/kp/admin/outreach/check',{method:'POST',body:'{}'});auth.msg=d.replies.length?`${d.replies.length} new repl${d.replies.length===1?'y':'ies'} found.`:'No new replies.';load()}catch(err){auth.msg=err.message;render()}};
+  const sa=document.getElementById('sendall'); if(sa) sa.onclick=async()=>{
+    if(!confirm(`Send the permission email to ${Math.min(ready.length,20)} site(s) now? This cannot be undone.`))return;
+    sa.disabled=true;try{const d=await api('/api/kp/admin/outreach/send',{method:'POST',body:JSON.stringify({source_ids:ready.slice(0,20).map(x=>x.id)})});auth.msg=`Sent ${d.results.filter(r=>r.sent).length}; skipped or failed ${d.results.filter(r=>!r.sent).length}.`;load()}catch(err){auth.msg=err.message;render()}};
+  list.querySelectorAll('[data-as]').forEach(card=>{
+    const id=+card.dataset.as, saved=card.querySelector('[data-saved]'), inp=card.querySelector('[data-email]'), pv=card.querySelector('[data-pv]');
+    const x=auth.sources.find(s=>s.id===id); let last=inp.value;
+    inp.onblur=async()=>{if(inp.readOnly||inp.value===last)return;try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value;saved.textContent='Email saved';setTimeout(load,400)}catch(e){saved.textContent=e.message}};
+    const pb=card.querySelector('[data-prev]'); if(pb) pb.onclick=async()=>{try{if(inp.value!==last){await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value}const d=await api(`/api/kp/admin/outreach/preview?source_id=${id}`);pv.hidden=false;pv.textContent=`To: ${d.to||'(no email yet)'}\nSubject: ${d.subject}\n\n${d.text}`}catch(e){saved.textContent=e.message}};
+    const sb=card.querySelector('[data-send]'); if(sb) sb.onclick=async()=>{
+      if(!inp.value){saved.textContent='Type the email address first.';return}
+      if(!confirm(`Send the permission email to ${inp.value} now? This cannot be undone.`))return;
+      sb.disabled=true;try{if(inp.value!==last)await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});const d=await api('/api/kp/admin/outreach/send',{method:'POST',body:JSON.stringify({source_ids:[id]})});const r=d.results[0];auth.msg=r.sent?`Sent to ${r.to}.`:`Not sent: ${r.skipped||r.error}`;load()}catch(e){saved.textContent=e.message;sb.disabled=false}};
+    const mk=card.querySelector('[data-mark]'); if(mk) mk.onchange=async()=>{
+      if(!mk.value)return; let remove=false;
+      if(mk.value==='replied_no') remove=confirm(`${x.name} said no. Take their ${x.live_recipes} live recipe(s) down and hide their photos now?\n\nOK = take down. Cancel = only record the reply.`);
+      try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({status:mk.value,remove})});load()}catch(e){saved.textContent=e.message}};
+  });
+}
+
+const STATES=[['new','New'],['active','Active'],['paused','Paused'],['blocked','Blocked'],['all','All']];
+const RIGHTS=[['not_requested','Not asked'],['requested','Asked'],['granted','Granted'],['refused','Refused']];
+const RIGHTS_HELP={granted:'Their steps show word for word on KidPoshan, with credit.',requested:'Waiting for their reply. Parents see KidPoshan-written steps and a credit link meanwhile.',refused:'Parents see KidPoshan-written steps and a credit link. Consider switching their photos off below.',not_requested:'Parents see KidPoshan-written steps and a credit link.'};
+function tavilyStrip(){
+  if(!tav) return '';
+  if(!tav.configured) return '<p class="banner">Tavily is not connected (no TAVILY_API_KEY), so search-based discovery is off.</p>';
+  const a=tav.account, acct=a&&a.limit!=null?`Tavily account: <b>${a.used??'?'} of ${a.limit}</b> credits used${a.plan?' ('+esc(a.plan)+' plan)':''}. `:(tav.account_error?esc(tav.account_error)+'. ':'');
+  return `<p class="banner">${acct}Searches made by recipe finding: <b>${tav.used_today} of ${tav.cap_per_day}</b> allowed today, ${tav.used_last_7_days} in the last 7 days. The daily limit stops the free quota running out; change it with the TAVILY_DAILY_CAP variable.</p>`;
+}
+function renderSites(list){
+  list.innerHTML=`${tavilyStrip()}<div class="site-tools">
+    <div class="filters" role="group" aria-label="Show sites">${STATES.map(([k,l])=>`<button class="fchip" data-state-filter="${k}" aria-pressed="${siteState===k}">${l}<span class="n">${siteCounts[k]??''}</span></button>`).join('')}</div>
+    <input class="sitesearch" id="sq" type="search" placeholder="Search by name, website or area" value="${esc(siteQ)}" aria-label="Search sites"></div>
+    <div id="sitelist">${sites.length?sites.map(siteHTML).join(''):`<p class="empty">${siteState==='new'?'No new sites. Sites found by parent searches appear here for your go-ahead.':'No sites match.'}</p>`}</div>`;
+  list.querySelectorAll('[data-state-filter]').forEach(b=>b.onclick=()=>{siteState=b.dataset.stateFilter;load()});
+  let t; const sq=document.getElementById('sq'); sq.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{siteQ=sq.value;load().then(()=>{const n=document.getElementById('sq');n.focus();n.setSelectionRange(n.value.length,n.value.length)})},300)};
+  bindSites();
+}
+function siteHTML(s){
+  const manual=s.crawl_mode==='manual'||/instagram|youtube/i.test(s.url);
+  const stateCtl=s.state==='new'
+    ?`<div class="actions"><button class="btn publish" data-set="active">Add to registry</button><button class="btn reject" data-set="blocked">Block</button></div>`
+    :`<div class="seg" role="group" aria-label="Site status">${[['active','Active'],['paused','Paused'],['blocked','Blocked']].map(([k,l])=>`<button data-set="${k}" data-state="${k}" aria-pressed="${s.state===k}">${l}</button>`).join('')}</div>`;
+  return `<div class="site" data-id="${s.id}">
+   <div><h3>${esc(s.name)}</h3>
+    <p class="src"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></p>
+    <div class="tagline">${[s.platform,[s.region,s.area].filter(x=>x&&x!=='Unknown').join(', ')].filter(Boolean).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${manual?'<span class="tag">Added by hand</span>':''}${s.rights_status==='granted'?'<span class="tag granted">Permission granted</span>':''}</div>
+    <p class="stats">${s.pending||0} waiting, ${s.published||0} published, ${s.rejected||0} rejected</p>
+    ${s.robots_blocked?`<p class="warn">${s.robots_blocked} page(s) skipped: the site's robots.txt asks readers to stay out.</p>`:''}
+    ${s.errors?`<p class="warn">${s.errors} page(s) couldn't be read.</p>`:''}
+    ${s.notes?`<p class="why">${esc(s.notes)}</p>`:''}
+   </div>
+   <div style="display:grid;gap:10px;align-content:start">
+    <div><span class="lbl">Status</span>${stateCtl}</div>
+    <div><span class="lbl">Permission to show their steps word for word</span><select data-rights>${RIGHTS.map(([k,l])=>`<option value="${k}" ${s.rights_status===k?'selected':''}>${l}</option>`).join('')}</select><p class="why" data-rights-help>${RIGHTS_HELP[s.rights_status]||''}</p></div>
+    <div><label class="chk"><input type="checkbox" data-photos ${s.photos_hidden?'checked':''}> Hide this site's photos on KidPoshan</label><p class="why">Photos are shown with a credit and a link to the original. Tick this if the creator asks, or their photos don't load.</p></div>
+    <div><span class="lbl">Shown under</span><select data-world>${[['india','Main list (Indian recipes)'],['asia','More Asian recipes'],['europe','European recipes']].map(([k,l])=>`<option value="${k}" ${(s.world||'india')===k?'selected':''}>${l}</option>`).join('')}</select><p class="why">Where this site's recipes appear on the Meal Ideas page.</p></div>
+    <div><span class="lbl">Your notes</span><textarea data-notes placeholder="e.g. emailed 12 Oct">${esc(s.owner_notes||'')}</textarea><p class="saved" data-saved role="status"></p></div>
+   </div></div>`;
+}
+function bindSites(){
+  app.querySelectorAll('.site').forEach(card=>{
+    const id=+card.dataset.id, saved=card.querySelector('[data-saved]');
+    const send=async(body,msg,reload)=>{saved.textContent='Saving…';try{await api(`/api/kp/admin/sources/${id}`,{method:'POST',body:JSON.stringify(body)});saved.textContent=msg;if(reload)setTimeout(load,500)}catch(e){saved.textContent='';alert(e.message)}};
+    card.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{
+      const st=b.dataset.set;
+      if(st==='blocked'&&!confirm('Block this site? Its waiting recipes will be rejected and it won\'t be read again. Recipes you already published stay up.'))return;
+      send({state:st},{active:'Site is active',paused:'Paused: no new recipes will be read',blocked:'Blocked'}[st],true);
+    });
+    const ph=card.querySelector('[data-photos]'); if(ph) ph.onchange=()=>send({photos_hidden:ph.checked},ph.checked?'Photos hidden':'Photos shown',false);
+    const wsel=card.querySelector('[data-world]'); if(wsel) wsel.onchange=()=>send({world:wsel.value},'Saved: recipes from this site now appear under "'+wsel.options[wsel.selectedIndex].text+'"',false);
+    const sel=card.querySelector('[data-rights]');
+    sel.onchange=()=>{
+      if(sel.value==='granted'&&!confirm('Mark permission as granted? Their steps will appear word for word on KidPoshan.')){load();return}
+      card.querySelector('[data-rights-help]').textContent=RIGHTS_HELP[sel.value];
+      send({rights_status:sel.value},'Permission saved',true);
+    };
+    const notes=card.querySelector('[data-notes]'); let last=notes.value;
+    notes.onblur=()=>{if(notes.value!==last){last=notes.value;send({owner_notes:notes.value},'Notes saved',false)}};
+  });
+}
+
+async function load(append=false){
+  try{
+    const [p,a,r,c]=await Promise.all(['pending','approved','rejected'].map(st=>api(`/api/kp/admin/review?status=${st}&limit=1`)).concat([api('/api/kp/admin/sources?state=new')]));
+    siteCounts=c.counts; if(siteState===null) siteState=c.counts.new?'new':'active';
+    unreviewedCount=a.unreviewed||0; counts={pending:p.total,approved:`${a.total}${a.unreviewed?'<b class="dot" title="'+a.unreviewed+' not reviewed"></b>':''}`,rejected:r.total,sites:c.counts.new||''};
+    if(tab==='sites'){const d=await api(`/api/kp/admin/sources?state=${siteState}&q=${encodeURIComponent(siteQ)}`);sites=d.items;siteCounts=d.counts;tav=await api('/api/kp/admin/tavily').catch(()=>null)}
+    const [rw,pw]=await Promise.all([api('/api/kp/admin/remarks?status='+vis.rStatus),api('/api/kp/admin/payments?status='+vis.pStatus)]);
+    vis.remarks=rw.remarks;vis.rCounts=rw.counts;vis.payments=pw.payments;vis.totals=pw.totals;
+    counts.visitors=(rw.counts.pending||0)+((pw.totals.claimed||{}).count||0)||'';
+    if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
+    if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
+    const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
+    if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
+    render();
+  }catch(e){ if(token||DEMO) app.innerHTML=`<h1>Recipe review</h1><p class="err">Couldn't load the queue: ${esc(e.message)}</p>`; }
+}
+DEMO||token?load():render();
+</script>
+</body>
+</html>

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Age &amp; Metrics — Poshan Score</title>
+<style>
+  :root{
+    --bg:#FDFBF6;
+    --bg-alt:#F6F0E4;
+    --card:#FFFFFF;
+    --line:#E7DFCE;
+    --ink:#221A12;
+    --ink-dim:#6B5D4B;
+    --gold:#B5790A;
+    --gold-soft:#F6E4BC;
+    --green:#3F6B3C;
+    --green-soft:#E3EEDF;
+    --red:#A6402A;
+    --red-soft:#F5E1DB;
+    --brown:#4A3423;
+    --brown-soft:#EFE6DC;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --font-display:'Iowan Old Style','Palatino Linotype','Book Antiqua', Georgia, serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  img,svg{ max-width:100%; }
+
+  nav{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(253,251,246,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand-mark{ position:relative; width:20px; height:24px; flex-shrink:0; }
+  .brand-mark .tier{ position:absolute; left:0; right:0; height:6px; border-radius:3px; border:1px solid rgba(34,26,18,0.15); }
+  .brand-mark .tier:nth-child(1){ top:0; background:var(--green); }
+  .brand-mark .tier:nth-child(2){ top:6px; background:var(--gold); }
+  .brand-mark .tier:nth-child(3){ top:12px; background:var(--red); }
+  .brand-mark .tier:nth-child(4){ top:18px; background:var(--brown); }
+  .brand-name{ font-family:var(--font-display); font-size:18px; line-height:1.05; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-name b{ display:block; color:var(--gold); font-size:11px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px; }
+  .nav-links{ display:none; gap:26px; font-size:14px; color:var(--ink-dim); }
+  .nav-links a{ text-decoration:none; transition:color .2s ease; position:relative; padding-bottom:2px; }
+  .nav-links a::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
+  .nav-links a:hover{ color:var(--gold); }
+  .nav-links a:hover::after{ transform:scaleX(1); }
+  @media(min-width:780px){ .nav-links{ display:flex; } }
+  .hamburger{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+  .hamburger svg{ width:18px; height:18px; color:var(--ink); }
+  @media(min-width:780px){ .hamburger{ display:none; } }
+
+  .mobile-menu{ display:none; flex-direction:column; padding:4px 20px 14px; background:var(--card); border-bottom:1px solid var(--line); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:14px 6px; text-decoration:none; color:var(--ink); font-size:16px; border-bottom:1px solid var(--line); }
+  .mobile-menu a:last-child{ border-bottom:none; }
+  @media(min-width:780px){ .mobile-menu{ display:none !important; } }
+
+  .nav-cta{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:100px; text-decoration:none; white-space:nowrap; }
+
+  .hero{ max-width:820px; margin:0 auto; padding:52px 20px 10px; }
+  @media(min-width:900px){
+    .hero{ max-width:1080px; display:flex; align-items:center; gap:32px; padding:56px 40px 10px; }
+    .hero-text{ flex:1.15; }
+    .hero-visual{ flex:1; }
+  }
+
+  /* ---- package sorting scene ---- */
+  .hero-visual{ display:flex; flex-direction:column; gap:18px; margin-top:34px; }
+  @media(min-width:900px){ .hero-visual{ margin-top:0; } }
+  .sort-scene{ position:relative; height:150px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); overflow:hidden; padding:14px 10px 0; }
+  .sort-belt{ position:absolute; top:14px; left:10px; right:10px; height:2px; background:var(--line); }
+  .sort-belt::before, .sort-belt::after{ content:''; position:absolute; top:-2px; width:6px; height:6px; border-radius:50%; background:var(--line); }
+  .sort-belt::before{ left:0; }
+  .sort-belt::after{ right:0; }
+
+  .pkg{ position:absolute; top:8px; width:22px; height:26px; border-radius:5px 5px 3px 3px; opacity:0; }
+  .pkg::before{ content:''; position:absolute; top:3px; left:2px; right:2px; height:3px; background:rgba(255,255,255,0.55); border-radius:2px; }
+  .pkg.pkg-a{ left:14%; background:var(--green); animation:dropA 4.5s ease-in-out infinite; }
+  .pkg.pkg-b{ left:46%; background:var(--gold); animation:dropB 4.5s ease-in-out infinite; animation-delay:.5s; }
+  .pkg.pkg-c{ left:78%; background:var(--brown); animation:dropC 4.5s ease-in-out infinite; animation-delay:1s; }
+
+  @keyframes dropA{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(-22px,88px) rotate(-18deg); opacity:1; }
+    55%{ transform:translate(-22px,88px) rotate(-18deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropB{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(0,88px) rotate(10deg); opacity:1; }
+    55%{ transform:translate(0,88px) rotate(10deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropC{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(18px,88px) rotate(-8deg); opacity:1; }
+    55%{ transform:translate(18px,88px) rotate(-8deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+
+  .sort-bins{ position:absolute; left:10px; right:10px; bottom:0; display:flex; justify-content:space-between; }
+  .sort-bin{ width:30%; text-align:center; }
+  .sort-bin-shape{ height:34px; border-radius:6px 6px 3px 3px; margin-bottom:4px; opacity:0.18; }
+  .sort-bin.excellent .sort-bin-shape{ background:var(--green); }
+  .sort-bin.good .sort-bin-shape{ background:var(--gold); }
+  .sort-bin.avoid .sort-bin-shape{ background:var(--brown); }
+  .sort-bin-label{ font-family:var(--font-mono); font-size:9px; letter-spacing:0.03em; text-transform:uppercase; color:var(--ink-dim); }
+
+  @media (prefers-reduced-motion: reduce){ .pkg{ animation:none; opacity:0; } }
+
+  /* ---- kids playing sports scene ---- */
+  .sport-scene{ display:flex; justify-content:space-around; align-items:flex-end; height:110px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:8px 6px 0; }
+  .sport-figure{ width:70px; height:100px; }
+
+  /* football kid: kicking leg swings from the hip */
+  .kick-leg{ transform-box:view-box; transform-origin:28px 52px; animation:kickSwing 1.8s ease-in-out infinite; }
+  @keyframes kickSwing{ 0%,100%{ transform:rotate(0deg); } 35%{ transform:rotate(-38deg); } 55%{ transform:rotate(18deg); } 70%{ transform:rotate(0deg); } }
+  .football{ transform-box:view-box; transform-origin:52px 86px; animation:ballHop 1.8s ease-in-out infinite; }
+  @keyframes ballHop{ 0%,50%{ transform:translate(0,0) scale(1); } 58%{ transform:translate(10px,-6px) scale(1.05); } 70%{ transform:translate(18px,0) scale(1); } 100%{ transform:translate(0,0) scale(1); } }
+
+  /* cricket kid: bat arm swings from the shoulder */
+  .bat-arm{ transform-box:view-box; transform-origin:38px 28px; animation:batSwing 2.1s ease-in-out infinite; }
+  @keyframes batSwing{ 0%,100%{ transform:rotate(24deg); } 45%{ transform:rotate(-46deg); } 60%{ transform:rotate(-30deg); } }
+
+  /* muscle kid: bicep pulses, forearm curls */
+  .flex-arm{ transform-box:view-box; transform-origin:38px 28px; animation:flexCurl 1.6s ease-in-out infinite; }
+  @keyframes flexCurl{ 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(-22deg); } }
+  .bicep{ transform-box:view-box; transform-origin:40px 30px; animation:bicepPulse 1.6s ease-in-out infinite; }
+  @keyframes bicepPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.28); } }
+
+  .sport-bounce{ animation:idleBounce 2.4s ease-in-out infinite; }
+  .sport-figure:nth-child(1) .sport-bounce{ animation-delay:0s; }
+  .sport-figure:nth-child(2) .sport-bounce{ animation-delay:.3s; }
+  .sport-figure:nth-child(3) .sport-bounce{ animation-delay:.6s; }
+  @keyframes idleBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+
+  @media (prefers-reduced-motion: reduce){
+    .kick-leg, .football, .bat-arm, .flex-arm, .bicep, .sport-bounce{ animation:none !important; }
+  }
+
+  /* ---- flip card: front claims vs. back ingredient panel ---- */
+  .metrics-intro-row{ display:flex; flex-direction:column; gap:22px; margin-bottom:22px; }
+  @media(min-width:760px){ .metrics-intro-row{ flex-direction:row; align-items:center; gap:32px; } .metrics-intro-row .intro{ flex:1.3; margin-bottom:0 !important; } }
+
+  .flip-stage{ perspective:800px; width:132px; height:172px; flex-shrink:0; margin:0 auto; }
+  .flip-card{
+    position:relative; width:100%; height:100%; transform-style:preserve-3d;
+    animation:flipCard 5s ease-in-out infinite;
+  }
+  @keyframes flipCard{
+    0%, 40%{ transform:rotateY(0deg); }
+    50%, 90%{ transform:rotateY(180deg); }
+    100%{ transform:rotateY(360deg); }
+  }
+  .flip-face{
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:14px;
+    border:1.5px solid var(--line); box-shadow:0 10px 24px -14px rgba(74,52,35,0.3);
+    padding:14px 12px; display:flex; flex-direction:column;
+  }
+  .flip-front{ background:linear-gradient(160deg, var(--green-soft), var(--card)); align-items:center; justify-content:center; text-align:center; gap:8px; }
+  .flip-front .claim{ font-family:var(--font-display); font-size:14px; color:var(--green); line-height:1.3; }
+  .flip-front .badge-check{ width:30px; height:30px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .flip-back{ background:var(--card); transform:rotateY(180deg); justify-content:flex-start; gap:5px; }
+  .flip-back .panel-title{ font-family:var(--font-mono); font-size:8px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px; }
+  .flip-back .panel-line{ height:5px; border-radius:3px; background:var(--line); }
+  .flip-back .panel-line.hl{ background:var(--red-soft); }
+  .flip-back .panel-line.w40{ width:40%; } .flip-back .panel-line.w60{ width:60%; } .flip-back .panel-line.w80{ width:80%; }
+  .flip-back .panel-line.w50{ width:50%; } .flip-back .panel-line.w70{ width:70%; } .flip-back .panel-line.w90{ width:90%; }
+  @media (prefers-reduced-motion: reduce){ .flip-card{ animation:none; } }
+
+  /* ---- floating packages drifting behind the metrics list ---- */
+  #ten-metrics{ position:relative; overflow:hidden; }
+  .bg-pkg{ position:absolute; border-radius:6px 6px 3px 3px; opacity:0.10; animation:bgFloat 12s ease-in-out infinite; }
+  .bg-pkg::before{ content:''; position:absolute; top:14%; left:12%; right:12%; height:14%; background:rgba(255,255,255,0.6); border-radius:3px; }
+  .bg-pkg.bp1{ top:6%; left:4%; width:46px; height:58px; background:var(--green); animation-delay:0s; }
+  .bg-pkg.bp2{ top:32%; right:6%; width:38px; height:48px; background:var(--gold); animation-delay:2.5s; }
+  .bg-pkg.bp3{ bottom:14%; left:8%; width:34px; height:42px; background:var(--red); animation-delay:5s; }
+  .bg-pkg.bp4{ bottom:4%; right:10%; width:50px; height:62px; background:var(--brown); animation-delay:1.2s; }
+  @keyframes bgFloat{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-14px) rotate(6deg); } }
+  @media (prefers-reduced-motion: reduce){ .bg-pkg{ animation:none; } }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; margin-bottom:16px; position:relative; }
+  .eyebrow::before{ content:''; width:0; height:1px; background:var(--gold); display:inline-block; animation:drawLine .6s ease forwards .1s; }
+  @keyframes drawLine{ to{ width:16px; } }
+  h1{ font-family:var(--font-display); font-weight:400; letter-spacing:-0.01em; font-size:clamp(30px, 6.5vw, 44px); line-height:1.08; margin:0 0 16px; color:var(--ink); opacity:0; animation:fadeUp .6s ease forwards .15s; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+  .lede{ font-size:15.5px; line-height:1.68; color:var(--ink-dim); max-width:66ch; margin:0 0 8px; opacity:0; animation:fadeUp .6s ease forwards .3s; }
+  .lede b{ color:var(--ink); font-weight:600; }
+
+  .section{ max-width:820px; margin:0 auto; padding:34px 20px; }
+  .section-eyebrow{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:8px; }
+  .section h2{ font-family:var(--font-display); font-size:clamp(22px,4vw,28px); font-weight:400; margin:0 0 12px; color:var(--ink); }
+  .section p.intro{ font-size:14.5px; line-height:1.65; color:var(--ink-dim); max-width:68ch; margin:0 0 22px; }
+  .section p.intro b{ color:var(--ink); }
+
+  /* age tabs, popping off the white background */
+  .age-tabs{ position:relative; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; background:var(--bg-alt); border-radius:100px; padding:6px; width:fit-content; }
+  .age-tab{
+    position:relative; z-index:1; font-family:var(--font-mono); font-size:12.5px; letter-spacing:0.03em;
+    padding:9px 16px; border-radius:100px; border:none;
+    background:transparent; color:var(--ink-dim); cursor:pointer;
+    transition:color .2s ease, transform .15s ease;
+  }
+  .age-tab.active{ background:var(--card); color:var(--ink); font-weight:600; transform:scale(1.05); box-shadow:0 8px 18px -8px rgba(34,26,18,0.25); }
+  .age-tab:active{ transform:scale(0.96); }
+
+  .age-panel{ display:none; }
+  .age-panel.active{ display:block; animation:panelPop .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes panelPop{ from{ opacity:0; transform:translateY(10px) scale(0.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @media (prefers-reduced-motion: reduce){
+    .age-panel.active{ animation:none; }
+    .refcard{ opacity:1; transform:none; animation:none !important; }
+    .metric-row:hover .metric-badge{ transform:none; }
+  }
+
+  .refcard-grid{ display:grid; gap:12px; grid-template-columns:1fr 1fr; margin-bottom:8px; }
+  @media(min-width:600px){ .refcard-grid{ grid-template-columns:repeat(3,1fr); } }
+  .refcard{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px; transition:transform .2s ease, box-shadow .2s ease; opacity:0; transform:translateY(10px) scale(0.97); }
+  .age-panel.active .refcard{ animation:refcardPop .45s cubic-bezier(.2,.8,.2,1) forwards; }
+  .age-panel.active .refcard:nth-child(1){ animation-delay:.03s; }
+  .age-panel.active .refcard:nth-child(2){ animation-delay:.08s; }
+  .age-panel.active .refcard:nth-child(3){ animation-delay:.13s; }
+  .age-panel.active .refcard:nth-child(4){ animation-delay:.18s; }
+  .age-panel.active .refcard:nth-child(5){ animation-delay:.23s; }
+  .age-panel.active .refcard:nth-child(6){ animation-delay:.28s; }
+  @keyframes refcardPop{ to{ opacity:1; transform:translateY(0) scale(1); } }
+  .refcard:hover{ transform:translateY(-3px); box-shadow:0 14px 24px -14px rgba(74,52,35,0.25); }
+  .refcard .label{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+  .refcard .value{ font-family:var(--font-display); font-size:22px; color:var(--ink); }
+  .refcard .value small{ font-family:var(--font-body); font-size:12px; color:var(--ink-dim); }
+  .refcard .src{ font-size:10px; color:var(--ink-dim); margin-top:4px; }
+
+  /* metrics list */
+  .metric-row{
+    display:grid; grid-template-columns:auto 1fr; gap:16px;
+    padding:20px 0; border-bottom:1px solid var(--line);
+    opacity:0; transform:translateY(10px);
+  }
+  .metric-row.in-view{ animation:rowRise .5s ease forwards; }
+  .metric-row:last-child{ border-bottom:none; }
+  @keyframes rowRise{ to{ opacity:1; transform:translateY(0); } }
+  .metric-badge{
+    width:38px; height:38px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:16px; color:#fff;
+    transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .metric-row:hover .metric-badge{ transform:rotate(-6deg) scale(1.1); }
+  .metric-row h3{ font-family:var(--font-display); font-size:18px; font-weight:400; margin:0 0 4px; }
+  .metric-row .scaling{
+    display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.05em;
+    text-transform:uppercase; padding:3px 9px; border-radius:100px; margin-bottom:8px; margin-right:6px;
+  }
+  .scaling.byage{ background:var(--green-soft); color:var(--green); }
+  .scaling.fixed{ background:var(--brown-soft); color:var(--brown); }
+  .scaling.credit{ background:var(--gold-soft); color:var(--gold); }
+  .scaling.composite{ background:var(--red-soft); color:var(--red); }
+  .metric-row p{ font-size:13.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 8px; }
+  .metric-row .threshold{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink); background:var(--bg-alt); border:1px solid var(--line); padding:8px 12px; border-radius:8px; display:inline-block; }
+  .metric-row .cite{ font-size:11px; color:var(--ink-dim); margin-top:6px; }
+  .metric-row .cite a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  /* worked example */
+  .example{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-lg); padding:24px; margin-top:6px; }
+  .example h3{ font-family:var(--font-display); font-size:19px; font-weight:400; margin:0 0 4px; }
+  .example .sub{ font-size:13px; color:var(--ink-dim); margin:0 0 18px; }
+  .example-grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media(min-width:600px){ .example-grid{ grid-template-columns:1fr 1fr 1fr 1fr; } }
+  .example-cell{ background:var(--bg-alt); border-radius:var(--radius-md); padding:14px; text-align:center; transition:transform .2s ease; }
+  .example-cell:hover{ transform:translateY(-3px); }
+  .example-cell .age{ font-family:var(--font-mono); font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
+  .example-cell .pct{ font-family:var(--font-display); font-size:26px; color:var(--ink); }
+  .example-cell.flag-high .pct{ color:var(--red); }
+  .example-cell.flag-mid .pct{ color:var(--gold); }
+  .example-cell .caption{ font-size:11px; color:var(--ink-dim); margin-top:4px; }
+
+  /* sources */
+  .sources-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; }
+  .sources-list li{ font-size:13px; line-height:1.6; color:var(--ink-dim); padding-left:22px; position:relative; }
+  .sources-list li::before{ content:'\2014'; position:absolute; left:0; color:var(--gold); }
+  .sources-list b{ color:var(--ink); }
+  .sources-list a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  .note{ max-width:820px; margin:20px auto 0; padding:16px 20px; font-size:12px; line-height:1.65; color:var(--ink-dim); border-top:1px solid var(--line); }
+  .note b{ color:var(--ink); }
+
+  footer{ text-align:center; padding:40px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
+  footer b{ color:var(--ink); }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">
+    <div class="brand-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="brand-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
+    <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
+    <a href="browse.html">Browse</a>
+    <a href="cereals.html">Cereal Aisle</a>
+    <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="why-we-do-this.html">Why We Do This</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+    <a class="nav-cta" href="browse.html">See ratings</a>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">Home</a>
+    <a href="index.html#metrics">Methodology</a>
+    <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
+    <a href="browse.html">Browse</a>
+    <a href="cereals.html">Cereal Aisle</a>
+    <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="why-we-do-this.html">Why We Do This</a>
+  </div>
+
+<header class="hero">
+  <div class="hero-text">
+    <div class="eyebrow">Age-banded rubric &nbsp;·&nbsp; How to read it</div>
+    <h1>Ten metrics, equal weight, scored per age band.</h1>
+    <p class="lede">
+      Six metrics are real numbers off the label measured as a share of an age band's daily reference —
+      <b>added sugar, sodium, saturated fat, trans fat, fiber and protein</b>. Fiber and protein are
+      <b>credit</b> metrics (more is better); the rest are <b>risk</b> metrics (less is better). Three more
+      are declared/not-declared checks that don't change with age — <b>preservatives, artificial additives,
+      and base-ingredient integrity</b>. The tenth is a composite: whether the product would trip
+      <b>FSSAI's own proposed HFSS warning</b>. A product that fails any single risk metric outright is
+      capped at Caution overall — low fiber or protein cost points but can't trigger that cap on their own.
+      Every number below is cited — sources are listed in full at the bottom of this page.
+    </p>
+  </div>
+
+  <div class="hero-visual">
+    <!-- packages sorting into Excellent / Good / Avoid -->
+    <div class="sort-scene" aria-hidden="true">
+      <div class="sort-belt"></div>
+      <div class="pkg pkg-a"></div>
+      <div class="pkg pkg-b"></div>
+      <div class="pkg pkg-c"></div>
+      <div class="sort-bins">
+        <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">Excellent</div></div>
+        <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">Good</div></div>
+        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Avoid</div></div>
+      </div>
+    </div>
+
+    <!-- what good nutrition is for: kids playing -->
+    <div class="sport-scene" aria-hidden="true">
+      <!-- football kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#B5790A"/>
+          <g class="kick-leg">
+            <rect x="24" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          </g>
+          <rect x="32" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          <rect x="14" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+          <rect x="38" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+        </g>
+        <circle class="football" cx="52" cy="86" r="6" fill="#3F6B3C"/>
+      </svg>
+
+      <!-- cricket kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#3F6B3C"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#3F6B3C"/>
+          <g class="bat-arm">
+            <rect x="34" y="28" width="8" height="18" rx="4" fill="#3F6B3C"/>
+            <rect x="40" y="8" width="7" height="34" rx="3" fill="#B5790A"/>
+          </g>
+        </g>
+      </svg>
+
+      <!-- muscle kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#A6402A"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#A6402A"/>
+          <g class="flex-arm">
+            <rect x="34" y="28" width="9" height="16" rx="4" fill="#A6402A"/>
+            <circle class="bicep" cx="40" cy="30" r="7" fill="#F6E4BC"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- AGE REFERENCE -->
+<section class="section" id="age-reference">
+  <div class="section-eyebrow">Step 1</div>
+  <h2>Pick an age band</h2>
+  <p class="intro">
+    Four bands, matched to how Indian pediatric nutrition data is actually published. Tap a band —
+    every reference number on this page and on the Browse page recalculates around it.
+  </p>
+
+  <div class="age-tabs" id="ageTabs">
+    <button class="age-tab active" data-age="1-3">1–3 years</button>
+    <button class="age-tab" data-age="4-6">4–6 years</button>
+    <button class="age-tab" data-age="7-9">7–9 years</button>
+    <button class="age-tab" data-age="10-12">10–12 years</button>
+  </div>
+
+  <div class="age-panel active" data-age="1-3">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,060 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">13 / 26 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,200 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Saturated fat</div><div class="value">~12 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">19 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="4-6">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,350 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">17 / 34 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,500 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Saturated fat</div><div class="value">~15 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">25 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">16 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="7-9">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,690 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">21 / 42 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,800 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Saturated fat</div><div class="value">~19 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">26 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">23 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="10-12">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">2,150 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">27 / 54 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~2,000 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Saturated fat</div><div class="value">~24 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">31 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">32.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEN METRICS -->
+<section class="section" id="ten-metrics" style="background:var(--bg-alt); border-radius:var(--radius-lg);">
+  <div class="bg-pkg bp1" aria-hidden="true"></div>
+  <div class="bg-pkg bp2" aria-hidden="true"></div>
+  <div class="bg-pkg bp3" aria-hidden="true"></div>
+  <div class="bg-pkg bp4" aria-hidden="true"></div>
+
+  <div class="section-eyebrow">Step 2</div>
+  <h2>The ten metrics, and how each is measured</h2>
+
+  <div class="metrics-intro-row">
+    <p class="intro">
+      Six move with the age band you picked above. Three are the same pass/fail check regardless of age.
+      The tenth is a composite of the other nine, modelled on a real, currently-pending Indian regulation.
+      This is exactly why we don't trust the front of the pack — watch what's printed there against
+      what's actually on the back.
+    </p>
+    <div class="flip-stage" aria-hidden="true">
+      <div class="flip-card">
+        <div class="flip-face flip-front">
+          <div class="badge-check">✓</div>
+          <div class="claim">"No Added<br>Preservatives"</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="panel-title">Ingredients</div>
+          <div class="panel-line w90"></div>
+          <div class="panel-line w70"></div>
+          <div class="panel-line hl w50"></div>
+          <div class="panel-line w80"></div>
+          <div class="panel-line w60"></div>
+          <div class="panel-line hl w40"></div>
+          <div class="panel-line w70"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--red);">1</div>
+    <div>
+      <h3>Added Sugar</h3>
+      <span class="scaling byage">Scales by age</span>
+      <p>Read off the "Added Sugars" line, compared against the age band's daily gram limit.</p>
+      <div class="threshold">Pass: &lt;10% of daily ideal limit per serving · Partial: &lt;30% · Fail: 30%+</div>
+      <div class="cite">Source: WHO free-sugar guideline [2]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--gold);">2</div>
+    <div>
+      <h3>Sodium</h3>
+      <span class="scaling byage">Scales by age</span>
+      <p>Read off the "Sodium" line, compared against the age band's daily reference.</p>
+      <div class="threshold">Pass: &lt;10% of daily reference per serving · Partial: &lt;30% · Fail: 30%+</div>
+      <div class="cite">Source: NASEM/IOM DRI, used as proxy — ICMR has no pediatric table [4]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--red);">3</div>
+    <div>
+      <h3>Saturated Fat</h3>
+      <span class="scaling byage">Scales by age</span>
+      <p>Regulated separately from trans fat — a product can pass the trans-fat check and still be loaded
+      with saturated fat from palm oil, coconut oil, or ghee-heavy formulations.</p>
+      <div class="threshold">Daily limit derived as 10% of age-band energy ÷ 9 kcal/g</div>
+      <div class="cite">Source: WHO saturated-fat guidance, &lt;10% of energy [3]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--brown);">4</div>
+    <div>
+      <h3>Trans Fat / Hydrogenated Oils</h3>
+      <span class="scaling fixed">Fixed, all ages</span>
+      <p>The one metric with a real regulatory number that applies uniformly — not age-based, but universal.</p>
+      <div class="threshold">FSSAI ceiling: ≤2% of total fat is trans fat, for every packaged food</div>
+      <div class="cite">Source: FSSAI trans-fat regulation [5]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--green);">5</div>
+    <div>
+      <h3>Fiber</h3>
+      <span class="scaling credit">Credit metric</span>
+      <p>The first metric that rewards a product for being good, not just penalizes it for being bad.</p>
+      <div class="threshold">Pass: serving covers 15%+ of daily fiber need · Partial: 5–15% · Fail: &lt;5%</div>
+      <div class="cite">Source: NASEM/IOM adequate intake, used as proxy [4]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--green);">6</div>
+    <div>
+      <h3>Protein</h3>
+      <span class="scaling credit">Credit metric</span>
+      <p>ICMR-NIN 2020 publishes real age-wise protein RDAs — this is the one credit metric with a genuine
+      Indian pediatric reference behind it, not a proxy.</p>
+      <div class="threshold">Pass: serving covers 15%+ of daily protein RDA · Partial: 5–15% · Fail: &lt;5%</div>
+      <div class="cite">Source: ICMR-NIN 2020 protein RDA by age [1]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--brown);">7</div>
+    <div>
+      <h3>Preservatives</h3>
+      <span class="scaling fixed">Fixed, all ages</span>
+      <p>Presence/absence of FSSAI Class II preservatives (e.g. INS 200–203, 211, 220–228) by name.</p>
+      <div class="threshold">0 preservatives = pass · 1 = partial · 2+ = fail</div>
+      <div class="cite">Source: FSSAI Food Products Standards and Food Additives Regulations, 2011 [6]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--brown);">8</div>
+    <div>
+      <h3>Artificial Additives</h3>
+      <span class="scaling fixed">Fixed, all ages</span>
+      <p>Flavour enhancers and synthetic colours by INS number (e.g. 627, 631, 635, 150d, 319/320).</p>
+      <div class="threshold">0 codes = pass · 1–2 = partial · 3+ = fail</div>
+      <div class="cite">Source: FSSAI Food Products Standards and Food Additives Regulations, 2011 [6]</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--green);">9</div>
+    <div>
+      <h3>Base-Ingredient Integrity</h3>
+      <span class="scaling fixed">Fixed, all ages</span>
+      <p>Whether the first ingredient on the pack is actually the food it's named after.</p>
+      <div class="threshold">Named ingredient is #1 by weight = pass</div>
+      <div class="cite">Judgment-based read of ingredient order — no single regulation covers this directly</div>
+    </div>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric-badge" style="background:var(--red);">10</div>
+    <div>
+      <h3>HFSS Status</h3>
+      <span class="scaling composite">Composite flag</span>
+      <p>Not a new nutrient — a derived flag modelled on FSSAI's own proposed rule. On 29 August 2026,
+      FSSAI told the Supreme Court of India it plans a front-of-pack red warning for products high in
+      fat, sugar, or salt (HFSS), with thresholds from the <i>Dietary Guidelines for Indians, 2024</i>.
+      Their Phase I proposal flags products high in 2+ of the three; a later Phase II would flag any one.
+      We apply the stricter Phase II standard now.</p>
+      <div class="threshold">Fail (0 pts) if sugar, sodium, or saturated fat scores a fail on its own — any one is enough</div>
+      <div class="cite">Source: FSSAI compliance affidavit, Supreme Court of India, W.P.(C) No. 437/2024, 29 Aug 2026 [7]</div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKED EXAMPLE -->
+<section class="section" id="worked-example">
+  <div class="section-eyebrow">Step 3</div>
+  <h2>Why age changes the answer — a real example</h2>
+  <p class="intro">
+    Saffola Masala Oats Classic Masala carries 793.8mg of sodium in one 38g serving pouch. Here's what
+    that single serving costs against each age band's daily sodium reference:
+  </p>
+
+  <div class="example">
+    <h3>Saffola Masala Oats, Classic Masala — one 38g serving</h3>
+    <p class="sub">793.8mg sodium per serving, held constant — only the age-band reference changes</p>
+    <div class="example-grid">
+      <div class="example-cell flag-high"><div class="age">1–3 yrs</div><div class="pct" data-target="66">0%</div><div class="caption">of daily sodium reference</div></div>
+      <div class="example-cell flag-high"><div class="age">4–6 yrs</div><div class="pct" data-target="53">0%</div><div class="caption">of daily sodium reference</div></div>
+      <div class="example-cell flag-mid"><div class="age">7–9 yrs</div><div class="pct" data-target="44">0%</div><div class="caption">of daily sodium reference</div></div>
+      <div class="example-cell flag-mid"><div class="age">10–12 yrs</div><div class="pct" data-target="40">0%</div><div class="caption">of daily sodium reference</div></div>
+    </div>
+  </div>
+
+  <p class="intro" style="margin-top:18px;">
+    Under the ten-metric rubric this same reading also trips the HFSS flag (metric 10) at every age band,
+    which caps Saffola's tier at Caution regardless of how its other metrics score — see the full
+    breakdown on the <a href="browse.html">Browse page</a>.
+  </p>
+</section>
+
+<!-- SOURCES -->
+<section class="section" id="sources">
+  <div class="section-eyebrow">References</div>
+  <h2>Every number on this page, sourced</h2>
+  <ol class="sources-list">
+    <li><b>[1] ICMR-NIN, "Nutrient Requirements for Indians — Recommended Dietary Allowances and Estimated Average Requirements," 2020.</b> Source for protein RDA by age and the pediatric energy reference figures used throughout.</li>
+    <li><b>[2] WHO, "Guideline: Sugars intake for adults and children," 2015.</b> Free sugars should be under 10% of total energy, with additional benefit below 5% — converted to grams here at 4 kcal/g.</li>
+    <li><b>[3] WHO saturated fat guidance</b> (WHO/FAO expert consultations on fats and fatty acids). Saturated fat under 10% of total energy — converted to grams here at 9 kcal/g.</li>
+    <li><b>[4] NASEM (National Academies of Sciences, Engineering, and Medicine) / Institute of Medicine, Dietary Reference Intakes.</b> Used as a proxy for pediatric sodium and fiber references, since ICMR-NIN 2020 does not publish an Indian-specific age-wise breakdown for either.</li>
+    <li><b>[5] FSSAI, Food Safety and Standards (Prohibition and Restrictions on Sales) Regulations.</b> Trans fat capped at ≤2% of total oils and fats in any food product, all ages, all categories.</li>
+    <li><b>[6] FSSAI, Food Safety and Standards (Food Products Standards and Food Additives) Regulations, 2011.</b> Governs permitted preservatives (Class II) and additives (colours, flavour enhancers) by INS number.</li>
+    <li><b>[7] FSSAI compliance affidavit, Supreme Court of India, W.P.(C) No. 437/2024 — 3S and Our Health Society vs Union of India, filed 29 August 2026.</b> Proposes a front-of-pack red hexagon warning for foods high in added saturated fat, added sugar, and/or salt (HFSS), with thresholds to be drawn from the <i>Dietary Guidelines for Indians, 2024</i> (ICMR-NIN). This is a live, pending proceeding — not yet a notified regulation.</li>
+  </ol>
+</section>
+
+<p class="note">
+  <b>What's a real citation vs. a judgment call:</b> metrics 1, 2, 3, 5, 6 and 10 are numbers compared
+  against a published daily reference. Metrics 4, 7 and 8 are declared/not-declared checks against a
+  named regulation. Metric 9 (Base-Ingredient Integrity) is the one metric on this page without a single
+  governing regulation — it's our own read of ingredient order, applied consistently.
+</p>
+
+<footer>
+  Benchmarked against <b>ICMR-NIN 2020</b>, <b>WHO</b> guidance, <b>NASEM/IOM DRIs</b> and <b>FSSAI</b>
+  regulation · Poshan Score is an independent rating, not a certification
+</footer>
+
+<script>
+  const tabs = document.querySelectorAll('.age-tab');
+  const panels = document.querySelectorAll('.age-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const age = tab.getAttribute('data-age');
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.getAttribute('data-age') === age));
+    });
+  });
+
+  // staggered reveal for the metric rows as they scroll into view
+  const rowObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('in-view'), i * 60);
+        rowObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.metric-row').forEach(row => rowObserver.observe(row));
+
+  // count-up animation for the worked example percentages
+  function animateCount(el){
+    const target = parseInt(el.getAttribute('data-target'), 10);
+    let current = 0;
+    const step = Math.max(1, Math.round(target / 30));
+    const tick = () => {
+      current = Math.min(target, current + step);
+      el.textContent = current + '%';
+      if (current < target) requestAnimationFrame(tick);
+    };
+    tick();
+  }
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.querySelectorAll('.example-cell .pct').forEach(animateCount);
+        countObserver.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+  const exampleEl = document.querySelector('.example');
+  if (exampleEl) countObserver.observe(exampleEl);
+</script>
+
+<script>
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  const isOpen = menu.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+  menu.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
+});
+</script>
+<script src="/kp-visits.js" defer></script>
+</body>
+</html>

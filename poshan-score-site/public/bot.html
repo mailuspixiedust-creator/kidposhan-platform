@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KidPoshanBot</title>
+<style>
+:root{--bg:#EEF2EF;--ink:#15302B;--muted:#5F716C;--leaf:#23664A;--paper:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1D1A;--ink:#E7EFEC;--muted:#9FB3AD;--leaf:#7FCBA2;--paper:#172925}}
+:root[data-theme="dark"]{--bg:#0F1D1A;--ink:#E7EFEC;--muted:#9FB3AD;--leaf:#7FCBA2;--paper:#172925}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:680px;margin:0 auto;padding:32px 20px 60px}h1{font-size:32px;margin:0 0 8px}h2{font-size:20px;margin:28px 0 6px}
+p,li{color:var(--ink)}a{color:var(--leaf)}pre{background:var(--paper);padding:12px 14px;border-radius:10px;overflow-x:auto}
+</style></head>
+<body><main>
+<h1>KidPoshanBot</h1>
+<p>KidPoshanBot is the reader used by <a href="https://kidposhan.in">KidPoshan</a>, a site that helps Indian parents decide what to cook for their children by age, meal and season.</p>
+<h2>What it does</h2>
+<ul>
+<li>Reads public recipe pages, mainly the recipe card (title, ingredients, steps), so we can review them privately.</li>
+<li>Follows your robots.txt and waits at least 10 seconds between requests to your site, longer if you set a Crawl-delay.</li>
+<li>Never copies your method text onto KidPoshan without your permission. Without it, we list the ingredients, write our own steps in our own words (a person reviews them after they go live, and corrects or removes them on request), credit you by name and link parents to your original page.</li>
+<li>Shows a small photo of your dish, loaded from your own page, with your name and a link to your recipe on it. Email us and we will remove your photos or your recipes straight away.</li>
+</ul>
+<h2>Stop KidPoshanBot</h2>
+<p>Add this to your robots.txt. We re-read it every day.</p>
+<pre>User-agent: KidPoshanBot
+Disallow: /</pre>
+<h2>Contact</h2>
+<p>For questions, permission, or removal: <a href="mailto:mailus.pixiedust@gmail.com">mailus.pixiedust@gmail.com</a></p>
+</main><script src="/kp-visits.js" defer></script></body></html>

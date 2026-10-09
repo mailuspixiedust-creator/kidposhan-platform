@@ -1,0 +1,6 @@
+# Same Worker that serves www.kidposhan.in: static pages only (no script, no bindings).
+name = "poshan-score"
+compatibility_date = "2026-09-03"
+
+[assets]
+directory = "./public"

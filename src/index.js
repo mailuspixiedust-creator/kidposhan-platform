@@ -2,6 +2,8 @@ import { researchProducts } from './product-intelligence.js';
 import { researchIngredientOffers } from './ingredient-intelligence.js';
 import { searchWeb } from './web-search.js';
 import { runWebDiscovery } from './discovery.js';
+import { buildRecipeCatalogue, rankCatalogue } from './recipe-catalogue-v2.js';
+import { routeRecipes, scheduledRecipes } from './recipes/routes.js';
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8', ...headers}});
 const bad = (msg, status=400) => json({error:msg}, status);
 const now = () => Math.floor(Date.now()/1000);
@@ -17,6 +19,156 @@ const esc = (v)=>v ?? '';
 function parseJSON(v, fallback){ try{return v?JSON.parse(v):fallback}catch{return fallback} }
 function recipeOut(r){return {...r,imageUrl:r.image_url,ingredients:parseJSON(r.ingredients_json,[]),method:parseJSON(r.method_json,[]),nutrition:parseJSON(r.nutrition_json,{}),benefits:parseJSON(r.benefits_json,[]),serveWith:parseJSON(r.serve_with_json,[]),tags:parseJSON(r.tags_json,[]),image_media_id:r.image_media_id};}
 
+
+async function persistDiscoveredRecipe(env, candidate, filters = {}) {
+  const ts = now();
+  const sourceRecipeUrl = candidate.source_recipe_url || candidate.source_url || '';
+  if (!candidate.name || !sourceRecipeUrl) return null;
+
+  const slug = String(candidate.name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120) || `recipe-${crypto.randomUUID()}`;
+
+  const id = uid('recipe');
+  const ingredients = candidate.ingredients || [];
+  const method = Array.isArray(candidate.raw_recipe?.recipeInstructions)
+    ? candidate.raw_recipe.recipeInstructions.map(x =>
+        typeof x === 'string' ? x : String(x?.text || '')
+      ).filter(Boolean)
+    : [];
+
+  const diet = candidate.raw_recipe?.suitableForDiet
+    ? (String(candidate.raw_recipe.suitableForDiet).toLowerCase().includes('vegetarian') ? 'Veg' : 'Non-Veg')
+    : 'Veg';
+
+  const score = Number.isFinite(Number(candidate.poshan_score))
+    ? Number(candidate.poshan_score)
+    : 0;
+
+  const requestedAge = String(filters.age || '').match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+  const ageMin = Number.isFinite(Number(candidate.age_min)) ? Number(candidate.age_min) : (requestedAge ? Number(requestedAge[1]) : null);
+  const ageMax = Number.isFinite(Number(candidate.age_max)) ? Number(candidate.age_max) : (requestedAge ? Number(requestedAge[2]) : null);
+  const mealMoment = candidate.meal_moment || candidate.meal_type || filters.meal || null;
+  const seasonValue = candidate.season || filters.season || 'All Seasons';
+  const dietValue = candidate.raw_recipe?.suitableForDiet
+    ? (String(candidate.raw_recipe.suitableForDiet).toLowerCase().includes('vegetarian') ? 'Veg' : 'Non-Veg')
+    : (candidate.diet || (filters.diet && filters.diet !== 'All' ? filters.diet : 'Veg'));
+
+  // Avoid duplicate source recipes.
+  const existing = await env.DB.prepare(`
+    SELECT id FROM recipes
+    WHERE source_url=? OR source_recipe_id=?
+    LIMIT 1
+  `).bind(sourceRecipeUrl, sourceRecipeUrl).first();
+
+  if (existing?.id) {
+    await env.DB.prepare(`
+      UPDATE recipes
+      SET age_min=?, age_max=?, meal_moment=?, season=?, diet=?, updated_at=?
+      WHERE id=?
+    `).bind(
+      ageMin, ageMax, mealMoment, seasonValue, dietValue, ts, existing.id
+    ).run();
+    return existing.id;
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO recipes (
+      id, slug, name, description, image_media_id, score,
+      age_min, age_max, meal_moment, season, diet, prep_minutes,
+      difficulty, ingredients_json, method_json, nutrition_json,
+      benefits_json, serve_with_json, tags_json, status,
+      created_at, updated_at, source_id, source_recipe_id,
+      creator_name, creator_type, region, state_or_area, cuisine,
+      source_url, attribution_text, rights_status
+    )
+    VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published',
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    slug,
+    candidate.name,
+    candidate.description || '',
+    score,
+    ageMin,
+    ageMax,
+    mealMoment,
+    seasonValue,
+    dietValue,
+    candidate.prep_minutes || null,
+    'Easy',
+    JSON.stringify(ingredients),
+    JSON.stringify(method),
+    JSON.stringify(candidate.nutrition || {}),
+    JSON.stringify([]),
+    JSON.stringify([]),
+    JSON.stringify([]),
+    ts,
+    ts,
+    candidate.source_id || null,
+    sourceRecipeUrl,
+    candidate.raw_recipe?.author?.name || candidate.raw_recipe?.author || null,
+    candidate.creator_type || null,
+    candidate.region || 'Pan-India',
+    candidate.state_or_area || null,
+    candidate.raw_recipe?.recipeCuisine || null,
+    sourceRecipeUrl,
+    candidate.raw_recipe?.author?.name
+      ? `Recipe by ${candidate.raw_recipe.author.name}`
+      : null,
+    'source_page'
+  ).run();
+
+  return id;
+}
+
+async function searchRecipesOnline(env, filters) {
+  if (!env.TAVILY_API_KEY) {
+    return {
+      web_search_performed: false,
+      reason: 'TAVILY_API_KEY is not configured.',
+      recipes: []
+    };
+  }
+
+  const catalogue = await buildRecipeCatalogue(env, {
+    query: filters.q,
+    age: filters.age,
+    meal: filters.meal,
+    season: filters.season,
+    diet: filters.diet,
+    region: filters.region,
+    useSearchFallback: true,
+    limitPerSource: 5
+  });
+
+  const ranked = rankCatalogue(
+    catalogue.candidates || [],
+    Math.min(Math.max(Number(filters.limit || 10), 1), 10)
+  );
+
+  const persisted = [];
+  for (const candidate of ranked) {
+    try {
+      const id = await persistDiscoveredRecipe(env, candidate, filters);
+      if (id) persisted.push(id);
+    } catch {
+      // One bad candidate must not break the entire search.
+    }
+  }
+
+  return {
+    web_search_performed: true,
+    source_count: catalogue.source_count,
+    sources_considered: catalogue.sources_considered,
+    discovery_errors: catalogue.errors || [],
+    recipes: ranked,
+    persisted_recipe_ids: persisted
+  };
+}
+
 async function seedIfNeeded(env){
   // Intentionally no automatic schema mutation in production. Run schema.sql/seed.sql once in D1.
 }
@@ -26,6 +178,88 @@ async function api(request, env){
   const p=url.pathname;
   if(!env.DB) return bad('Database binding is not configured.',500);
   if(p==='/api/health') return json({ok:true,db:true});
+
+  // Recipe Extraction Companion test endpoint.
+  // Accepts source text and uses Workers AI for structured extraction.
+  // This endpoint does not write anything to D1.
+  if(p==='/api/ai-test' && request.method==='POST'){
+    const body=await request.json();
+
+    const result=await env.AI.run('@cf/openai/gpt-oss-20b', {
+      messages:[
+        {
+          role:'system',
+          content:`Extract the recipe information from the supplied text.
+
+Rules:
+- Extract only information explicitly present in the source.
+- Never invent quantities, nutrition, ages, ingredients or instructions.
+- Preserve "to taste", "as needed", etc. exactly.
+- Return only the requested JSON structure.`
+        },
+        {
+          role:'user',
+          content:String(body.text||'')
+        }
+      ],
+      response_format:{
+        type:'json_schema',
+        json_schema:{
+          name:'recipe_extraction',
+          schema:{
+            type:'object',
+            additionalProperties:false,
+            properties:{
+              name:{type:'string'},
+              ingredients:{
+                type:'array',
+                items:{
+                  type:'object',
+                  additionalProperties:false,
+                  properties:{
+                    name:{type:'string'},
+                    quantity:{type:['string','null']},
+                    unit:{type:['string','null']},
+                    quantitative:{type:'boolean'}
+                  },
+                  required:['name','quantity','unit','quantitative']
+                }
+              },
+              instructions:{
+                type:'array',
+                items:{type:'string'}
+              },
+              age_min:{type:['number','null']},
+              age_max:{type:['number','null']},
+              age_confidence:{type:'string'},
+              nutrition:{type:'object'},
+              missing_fields:{
+                type:'array',
+                items:{type:'string'}
+              }
+            },
+            required:[
+              'name',
+              'ingredients',
+              'instructions',
+              'age_min',
+              'age_max',
+              'age_confidence',
+              'nutrition',
+              'missing_fields'
+            ]
+          }
+        }
+      },
+      max_tokens:1000,
+      temperature:0
+    });
+
+    return json({
+      ok:true,
+      result
+    });
+  }
 
   if(p==='/api/auth/login' && request.method==='POST'){
     const body=await request.json();
@@ -46,19 +280,101 @@ async function api(request, env){
   if(p==='/api/auth/me'){
     const u=await getSessionUser(request,env); return json({user:u?{id:u.id,email:u.email,mobile:u.mobile,name:u.name,role:u.role}:null});
   }
-  if(p==='/api/auth/logout' && request.method==='POST') return json({ok:true},{'Set-Cookie':'kp_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax'});
+  if(p==='/api/auth/logout' && request.method==='POST') return json({ok:true},200,{'Set-Cookie':'kp_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax'});
 
   if(p==='/api/recipes' && request.method==='GET'){
-    const q=(url.searchParams.get('q')||'').trim(); const diet=url.searchParams.get('diet')||''; const season=url.searchParams.get('season')||''; const meal=url.searchParams.get('meal')||''; const age=url.searchParams.get('age')||'';
-    let sql=`SELECT r.*,m.url AS image_url FROM recipes r LEFT JOIN media_assets m ON m.id=r.image_media_id WHERE r.status='published'`; const args=[];
-    if(q){sql+=` AND (lower(r.name) LIKE ? OR lower(r.description) LIKE ?)`; args.push('%'+q.toLowerCase()+'%','%'+q.toLowerCase()+'%');}
+    const q=(url.searchParams.get('q')||'').trim();
+    const diet=url.searchParams.get('diet')||'';
+    const season=url.searchParams.get('season')||'';
+    const meal=url.searchParams.get('meal') || url.searchParams.get('meal_type') || '';
+    const age=url.searchParams.get('age') || (url.searchParams.get('min_age') && url.searchParams.get('max_age') ? `${url.searchParams.get('min_age')}-${url.searchParams.get('max_age')}` : '');
+    const region=url.searchParams.get('region')||'';
+    const limit=Math.min(Math.max(Number(url.searchParams.get('limit')||10),1),10);
+
+    let sql=`SELECT r.*,m.url AS image_url
+      FROM recipes r
+      LEFT JOIN media_assets m ON m.id=r.image_media_id
+      WHERE r.status='published'`;
+    const args=[];
+
+    if(q){
+      sql+=` AND (lower(r.name) LIKE ? OR lower(r.description) LIKE ? OR lower(COALESCE(r.ingredients_json,'')) LIKE ?)`;
+      const needle='%'+q.toLowerCase()+'%';
+      args.push(needle,needle,needle);
+    }
     if(diet && diet!=='All') {sql+=` AND r.diet=?`; args.push(diet);}
-    if(season && season!=='All Seasons') {sql+=` AND (r.season=? OR r.season='All Seasons')`; args.push(season);}
-    if(meal) {sql+=` AND r.meal_moment=?`; args.push(meal);}
-    if(age){const a=parseFloat(age); if(Number.isFinite(a)){sql+=` AND r.age_min<=? AND r.age_max>=?`; args.push(a,a)}}
-    sql+=` ORDER BY r.score DESC, r.name LIMIT 200`;
-    const {results}=await env.DB.prepare(sql).bind(...args).all(); return json({recipes:results.map(recipeOut)});
+    if(season && season!=='All Seasons') {
+      sql+=` AND (r.season=? OR r.season='All Seasons' OR r.season IS NULL)`;
+      args.push(season);
+    }
+    if(meal) {sql+=` AND (r.meal_moment=? OR r.meal_moment IS NULL)`; args.push(meal);}
+    if(age){
+      const a=parseFloat(age);
+      if(Number.isFinite(a)){
+        sql+=` AND (r.age_min IS NULL OR r.age_min<=?) AND (r.age_max IS NULL OR r.age_max>=?)`;
+        args.push(a,a);
+      }
+    }
+    if(region){
+      sql+=` AND (r.region=? OR r.region='Pan-India' OR r.region IS NULL)`;
+      args.push(region);
+    }
+
+    sql+=` ORDER BY CASE WHEN r.score IS NULL THEN 1 ELSE 0 END, r.score DESC, r.name LIMIT ?`;
+    args.push(limit);
+
+    let {results}=await env.DB.prepare(sql).bind(...args).all();
+
+    // If the D1 catalogue cannot satisfy the query, discover online across
+    // all active registered recipe sources, then persist the discovered recipes.
+    let webSearchPerformed=false;
+    let discovery=null;
+
+    const hasSearchFilters=Boolean(
+      q ||
+      (diet && diet!=='All') ||
+      (season && season!=='All Seasons') ||
+      meal ||
+      age ||
+      region
+    );
+
+    if(hasSearchFilters && results.length < limit && env.TAVILY_API_KEY){
+      try{
+        const onlineQuery = q || [
+          'Indian kids recipes',
+          diet && diet!=='All' ? diet : '',
+          meal ? meal : '',
+          season && season!=='All Seasons' ? season : '',
+          age ? `for children age ${age}` : '',
+          region ? region : '',
+          'ingredients quantities'
+        ].filter(Boolean).join(' ');
+
+        discovery=await searchRecipesOnline(env,{
+          q:onlineQuery,diet,season,meal,age,region,limit
+        });
+        webSearchPerformed=Boolean(discovery.web_search_performed);
+
+        // Re-run D1 search so the response uses the same canonical recipe shape.
+        ({results}=await env.DB.prepare(sql).bind(...args).all());
+      }catch(e){
+        discovery={web_search_performed:false,error:String(e?.message||e)};
+      }
+    }
+
+    return json({
+      recipes:results.slice(0,limit).map(recipeOut),
+      search:{
+        query:q||null,
+        web_search_performed:webSearchPerformed,
+        source_count:discovery?.source_count || null,
+        sources_considered:discovery?.sources_considered || null,
+        discovery_error:discovery?.error || null
+      }
+    });
   }
+
   const rm=p.match(/^\/api\/recipes\/([^/]+)$/);
   if(rm && request.method==='GET'){
     const r=await env.DB.prepare(`SELECT r.*,m.url AS image_url FROM recipes r LEFT JOIN media_assets m ON m.id=r.image_media_id WHERE r.id=? OR r.slug=? LIMIT 1`).bind(rm[1],rm[1]).first();
@@ -648,4 +964,4 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   return null;
 }
 
-export default {async fetch(request,env,ctx){const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};
+export default {async scheduled(event,env,ctx){ctx.waitUntil(scheduledRecipes(env,event.cron));}, async fetch(request,env,ctx){const recipeRes=await routeRecipes(request,env,ctx); if(recipeRes)return recipeRes; const u=new URL(request.url); if(u.pathname.startsWith('/api/')){const r=await api(request,env); if(r)return r; return bad('API route not found.',404)} return env.ASSETS.fetch(request)}};

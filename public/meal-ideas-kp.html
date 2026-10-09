@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDFBF6">
+<title>KidPoshan | Meal ideas</title>
+<style>
+:root{
+  --bg:#FDFBF6; --paper:#FFFFFF; --ink:#221A12; --muted:#6B5D4B; --line:#E7DFCE;
+  --leaf:#3F6B3C; --leaf-2:#E3EEDF; --turmeric:#E3A008; --turmeric-2:#F6E4BC; --chilli:#A6402A; --sky:#DCEAF0;
+  --gold:#B5790A; --clay:#8C7A64;
+  --display:'Iowan Old Style','Palatino Linotype','Book Antiqua',Georgia,serif;
+  --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --r-lg:22px; --r-md:14px;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--body)}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0}
+p{margin:0}
+button,input{font:inherit;color:inherit}
+a{color:var(--leaf)}
+:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px;border-radius:6px}
+.wrap{max-width:760px;margin:0 auto;padding:0 0 150px}
+.pad{padding-left:18px;padding-right:18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- menu page ---------- */
+.masthead{padding-top:22px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{font-family:var(--display);font-weight:800;font-size:20px;color:var(--leaf);letter-spacing:-.01em}
+.demo-tag{font-size:13px;color:var(--muted)}
+.ask.small{font-size:clamp(26px,7vw,34px);margin-top:8px}
+.ask{font-size:clamp(34px,9.5vw,52px);font-weight:800;letter-spacing:-.02em;margin-top:14px;max-width:12ch}
+.filters{margin-top:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.frow{min-width:0}
+.frow>span{display:block;font-weight:600;font-size:14px;color:var(--muted);padding:0 18px;margin-bottom:6px}
+.scroller{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.scroller::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 15px;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.go{margin:4px 18px 0;justify-self:stretch;background:var(--turmeric);color:#2B1D00;border:0;border-radius:16px;padding:14px;font-family:var(--display);font-weight:700;font-size:20px;cursor:pointer}
+.go:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+.summary{margin:18px 18px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:10px 12px 10px 16px}
+.summary p{font-weight:600;font-size:15px}
+.summary button{background:none;border:1.5px solid var(--line);border-radius:10px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:14px}
+.shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:26px 18px 10px}
+.shelf-head h2{font-size:23px;font-weight:700}
+.shelf-head span{font-size:14px;color:var(--muted)}
+.carousel{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 18px 10px;scroll-padding:0 18px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.carousel::-webkit-scrollbar{display:none}
+.dish{flex:0 0 min(62vw,236px);scroll-snap-align:start;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;border:0;padding:0;text-align:left;display:flex;flex-direction:column;box-shadow:0 1px 0 var(--line)}
+.dish .art{position:relative;aspect-ratio:1/1}
+.dish .art svg,.dish .art img{display:block;width:100%;height:100%;object-fit:cover}
+.badge{position:absolute;right:10px;top:10px;min-width:44px;height:44px;padding:0 6px;border-radius:999px;background:var(--paper);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:17px;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.badge small{display:block;font:600 9px/1 var(--body);color:var(--muted);margin-top:-3px}
+.dish .txt{padding:12px 14px 14px;display:grid;gap:2px}
+.dish h3{font-size:19px;font-weight:700}
+.dish .meta{font-size:14px;color:var(--muted)}
+.dtag{justify-self:start;margin-top:6px;font-size:12px;font-weight:600;padding:1px 8px;border-radius:6px}
+.dtag.veg,.dtag.jain{background:var(--leaf-2);color:var(--leaf)}
+.dtag.mayo{background:#FBEFC9;color:#6b4a00}
+.dtag.egg,.dtag.nonveg{background:color-mix(in srgb,var(--chilli) 14%,var(--paper));color:var(--chilli)}
+.note{margin:14px 18px 0;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
+.hint{margin:30px 18px 0;color:var(--muted)}
+
+/* ---------- recipe page ---------- */
+.hero{position:relative;aspect-ratio:5/4;max-height:58vh;width:100%;overflow:hidden}
+.hero svg,.hero img{width:100%;height:100%;display:block;object-fit:cover}
+.back{position:absolute;left:14px;top:calc(14px + env(safe-area-inset-top,0px));width:44px;height:44px;border-radius:50%;border:0;background:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.sheet{position:relative;margin-top:-26px;background:var(--bg);border-radius:26px 26px 0 0;padding-top:22px}
+.title-row{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
+.title-row h1{font-size:clamp(30px,8vw,42px);font-weight:800;letter-spacing:-.015em}
+.score{display:grid;justify-items:center;gap:0}
+.score b{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--turmeric-2);border:3px solid var(--turmeric);font-family:var(--display);font-weight:800;font-size:22px}
+.score span{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.facts span{background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:3px 12px;font-size:14px;font-weight:500}
+.credit{margin-top:12px;font-size:14px;color:var(--muted)}
+.section{margin-top:30px}
+.section>h2{font-size:25px;font-weight:700}
+.section>.lead{font-size:15px;color:var(--muted);margin-top:2px}
+.ing{margin-top:12px;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;border:1.5px solid var(--line)}
+.ing-head,.ing-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;align-items:center}
+.ing-head{font-size:13px;font-weight:600;color:var(--muted);padding:10px 14px 8px;border-bottom:1.5px solid var(--line)}
+.ing-head span:not(:first-child){text-align:center}
+.ing-item+.ing-item{border-top:1px solid var(--line)}
+.ing-row{padding:11px 14px}
+.ing-row b{font-weight:600}
+.ing-row .q{display:block;font-size:14px;color:var(--muted)}
+.tick{justify-self:center;width:30px;height:30px;border-radius:9px;border:2px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer}
+.tick[aria-pressed="true"].home{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.tick[aria-pressed="true"].buy{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.tick svg{width:16px;height:16px;opacity:0}
+.tick[aria-pressed="true"] svg{opacity:1}
+.ing-item.buying{background:var(--turmeric-2)}
+.stores{display:flex;gap:10px;overflow-x:auto;padding:0 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.stores::-webkit-scrollbar{display:none}
+.store{flex:0 0 132px;scroll-snap-align:start;background:var(--paper);border-radius:12px;padding:10px 12px;text-decoration:none;color:var(--ink);display:grid;gap:2px;border:1.5px solid var(--line)}
+.store b{font-family:var(--display);font-size:17px;font-weight:700}
+.store small{font-size:12px;color:var(--muted)}
+.store em{font-style:normal;font-weight:600;font-size:13px;color:var(--leaf);margin-top:4px}
+.steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px;counter-reset:s}
+.step{counter-increment:s;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-md);padding:14px 14px 14px 62px;position:relative;cursor:pointer;min-height:58px}
+.step::before{content:counter(s);position:absolute;left:14px;top:12px;width:34px;height:34px;border-radius:50%;background:var(--leaf-2);color:var(--leaf);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px}
+.step .sec{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px}
+.step[aria-pressed="true"]{opacity:.55}
+.step[aria-pressed="true"]::before{content:"✓";background:var(--leaf);color:var(--paper)}
+.step[aria-pressed="true"] .t{text-decoration:line-through}
+.method-out{margin-top:12px;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-md);padding:16px;display:grid;gap:10px}
+.method-out a{justify-self:start;background:var(--leaf);color:var(--paper);text-decoration:none;font-weight:600;border-radius:10px;padding:9px 16px}
+.packs{margin-top:12px;margin-left:-18px;margin-right:-18px}
+.pack{flex:0 0 min(58vw,210px);scroll-snap-align:start;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;border:1.5px solid var(--line);display:flex;flex-direction:column}
+.pack .art{aspect-ratio:5/4;position:relative}
+.pack .art svg,.pack .art img{width:100%;height:100%;display:block;object-fit:contain}
+.pack .txt{padding:10px 12px 12px;display:grid;gap:1px}
+.pack .brandname{font-size:12px;font-weight:600;color:var(--muted)}
+.pack h3{font-size:17px;font-weight:700}
+.pack .size{font-size:13px;color:var(--muted)}
+.pack .buys{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pack .buys a{font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;padding:4px 9px;background:var(--leaf-2);color:var(--leaf)}
+.pack .price{font-weight:700;font-size:15px;margin-top:4px}
+.pack .for{font-size:12px;color:var(--leaf);font-weight:600;margin-top:4px}
+.buy-card{flex-basis:min(74vw,290px)}
+.buy-head{background:var(--leaf-2);padding:12px 12px 10px;display:grid;gap:2px}
+.buy-card .buys{padding:10px 12px 12px;margin-top:0}
+.buy-card h3{font-size:18px}
+.empty-packs{margin-top:10px;color:var(--muted);font-size:15px}
+.plain-buy{margin:6px 0 0;padding-left:20px}.plain-buy li{margin:4px 0}.plain-buy small{color:var(--muted)}
+.buy-list{display:grid;padding:4px 10px 10px}
+.buy-list a{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 6px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14.5px;border-radius:8px}
+.buy-list a:last-child{border-bottom:0}.buy-list a:hover,.buy-list a:focus-visible{background:var(--leaf-2)}
+.buy-list a small{color:var(--muted);font-size:12px;white-space:nowrap;margin-left:auto}.buy-list a em{font-style:normal;font-weight:700;font-size:13px}
+
+/* ---------- shopping tray ---------- */
+.tray{position:fixed;left:0;right:0;bottom:0;z-index:5;transform:translateY(120%);transition:transform .28s ease}
+.tray.show{transform:none}
+.tray-in{max-width:760px;margin:0 auto 0;background:#15302B;color:#F4F7F5;border-radius:22px 22px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 24px rgba(0,0,0,.18)}
+.tray-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
+.tray-bar strong{font-family:var(--display);font-size:20px;font-weight:700}
+.tray-bar button{background:#E7A41C;color:#2B1D00;border:0;border-radius:12px;padding:8px 16px;font-weight:700;cursor:pointer}
+.tray-body{display:none;max-height:55vh;overflow:auto;padding:0 18px 16px}
+.tray.open .tray-body{display:block}
+.titem{padding:10px 0;border-top:1px solid rgba(255,255,255,.14)}
+.titem small{opacity:.7}
+.titem .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.titem a{color:#F4F7F5;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 11px;font-size:14px;text-decoration:none}
+.ttools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:14px}
+.ttools input{width:110px;padding:6px 10px;border-radius:8px;border:0;color:#15302B}
+.ttools button{background:transparent;color:#F4F7F5;border:1px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 12px;cursor:pointer}
+.tnote{opacity:.72;font-size:13px;margin-top:8px}
+
+@media (min-width:760px){.dish{flex-basis:236px}.pack{flex-basis:210px}.packs{margin-left:0;margin-right:0}.carousel.packs{padding-left:0}}
+@media (prefers-reduced-motion: reduce){.tray{transition:none}}
+
+/* ---------- visual polish ---------- */
+body{background:radial-gradient(1100px 420px at 50% -140px,var(--leaf-2),transparent 72%),var(--bg);background-repeat:no-repeat}
+.masthead .brand{display:inline-flex;align-items:center;gap:9px;font-size:22px}
+.masthead .brand::before{content:"";width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--leaf),var(--turmeric));box-shadow:0 3px 10px -3px rgba(20,48,43,.45)}
+.ask{letter-spacing:-.025em}
+.shelf-head{margin:30px 18px 12px}
+.shelf-head h2{position:relative;padding-left:14px}
+.shelf-head h2::before{content:"";position:absolute;left:0;top:.16em;bottom:.1em;width:5px;border-radius:4px;background:linear-gradient(var(--turmeric),var(--leaf))}
+.summary{box-shadow:0 6px 18px -12px rgba(20,48,43,.35)}
+
+/* photo + illustration layering (cards, packs, hero) */
+.art{position:relative;overflow:hidden}
+.art>svg,.art>img,.hero>svg,.hero>img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.art>img,.hero>img{object-fit:cover}
+.credit-chip{position:absolute;left:8px;bottom:8px;max-width:calc(100% - 16px);font-size:11px;font-weight:600;line-height:1.5;color:#fff;background:rgba(10,24,20,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);padding:1px 9px;border-radius:999px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+
+/* menu cards */
+.dish{flex-basis:min(72vw,270px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 14px 26px -16px rgba(20,48,43,.45);transition:transform .18s ease,box-shadow .18s ease}
+.dish:hover{transform:translateY(-3px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 18px 30px -16px rgba(20,48,43,.55)}
+.dish .art{aspect-ratio:4/3;background:var(--leaf-2)}
+.dish .art::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(transparent,rgba(8,20,16,.38));pointer-events:none}
+.dish .credit-chip{z-index:1}
+.dish .txt{padding:13px 15px 15px}
+.dish h3{font-size:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Poshan Score badge, coloured by band */
+.badge{z-index:2;flex-direction:column;gap:0;min-width:48px;height:48px;line-height:1;box-shadow:0 4px 12px -3px rgba(0,0,0,.35);border:2.5px solid var(--paper)}
+.badge small{margin:1px 0 0;font:700 8px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:inherit;opacity:.85}
+.badge[data-band="Excellent"]{background:var(--leaf);color:var(--paper)}
+.badge[data-band="Good"]{background:#4C9A74;color:#fff}
+.badge[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
+.badge[data-band="Occasional"]{background:var(--chilli);color:#fff}
+.score[data-band="Excellent"] b{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.score[data-band="Good"] b{background:#4C9A74;border-color:#4C9A74;color:#fff}
+.score[data-band="Fair"] b{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.score[data-band="Occasional"] b{background:var(--chilli);border-color:var(--chilli);color:#fff}
+.score b{box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
+
+/* recipe hero */
+.hero{aspect-ratio:4/3;max-height:56vh;background:var(--leaf-2)}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(transparent,rgba(8,20,16,.5));pointer-events:none}
+.hero .credit-chip{left:16px;bottom:42px;font-size:12px;z-index:2;padding:2px 11px}
+.hero .back{z-index:3}
+.hero .back svg{position:static;width:20px;height:20px}
+.sheet{box-shadow:0 -14px 30px -18px rgba(0,0,0,.4);padding-top:24px}
+.title-row h1{text-wrap:balance}
+.facts span{box-shadow:0 1px 0 rgba(20,48,43,.05)}
+
+/* pack cards */
+.pack{box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5);border-radius:20px}
+.pack .art{aspect-ratio:1/1;background:#fff}
+.pack .art>img{object-fit:contain;padding:10px}
+.pack .art>svg{background:var(--leaf-2)}
+.pack .txt{padding:12px 14px 14px;gap:2px;flex:1}
+.pack h3{font-size:16px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pack .buys{margin-top:auto;padding-top:10px}
+.pack .buys a{padding:6px 12px;font-size:13px}
+.pack .buys a:first-child{background:var(--leaf);color:var(--paper)}
+.buy-card .buys{padding:12px 12px 14px}
+.buy-card .buys a:first-child{background:var(--leaf-2);color:var(--leaf)}
+
+/* ---------- same look and structure as www.kidposhan.in ---------- */
+body{font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{font-family:var(--display)}
+.ask,.title-row h1,.shelf-head h2,.section>h2,.dish h3,.pack h3,.buy-card h3,.step .t{font-weight:500}
+.ask{font-weight:500;letter-spacing:-.015em;max-width:15ch}
+.title-row h1{font-weight:500}
+.shelf-head h2{font-size:24px}
+.section>h2{font-size:26px}
+.badge,.score b,.go,.tray-bar strong{font-family:var(--display);font-weight:700}
+
+/* nav, as on kidposhan.in */
+.site-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 20px;background:rgba(253,251,246,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nb-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.nb-mark{position:relative;width:22px;height:26px;flex-shrink:0}
+.nb-mark .tier{position:absolute;left:0;right:0;height:7px;border-radius:3px;border:1px solid rgba(34,26,18,.2)}
+.nb-mark .tier:nth-child(1){top:0;background:#5E8E5A}
+.nb-mark .tier:nth-child(2){top:6.5px;background:#E3A008}
+.nb-mark .tier:nth-child(3){top:13px;background:#BE4430}
+.nb-mark .tier:nth-child(4){top:19.5px;background:#3A2416}
+.nb-name{font-family:var(--display);font-size:19px;line-height:1.05;letter-spacing:-.01em;color:var(--ink)}
+.nb-name b{display:block;color:var(--gold);font-size:11.5px;font-family:var(--mono);font-weight:400;font-style:normal;letter-spacing:.14em;text-transform:uppercase;margin-top:1px}
+.nb-links{display:none;gap:24px;font-size:14.5px;color:var(--muted);flex:1;justify-content:center}
+.nb-links a{text-decoration:none;color:inherit;transition:color .2s ease;white-space:nowrap}
+.nb-links a:hover,.nb-links a.on{color:var(--gold)}
+.nb-links a.on{font-weight:600}
+@media(min-width:1180px){.nb-links{display:flex}}
+.nb-burger{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin-left:auto;border-radius:10px;border:1px solid var(--line);background:var(--paper);cursor:pointer;flex-shrink:0}
+.nb-burger svg{width:18px;height:18px;color:var(--ink)}
+@media(min-width:1180px){.nb-burger{display:none}}
+.nb-cta{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:100px;text-decoration:none;white-space:nowrap}
+@media(max-width:520px){.nb-cta{display:none}.nb-burger{margin-left:auto}}
+.nb-mobile{display:none;flex-direction:column;padding:4px 20px 14px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:39}
+.nb-mobile.open{display:flex}
+.nb-mobile a{padding:13px 6px;text-decoration:none;color:var(--ink);font-size:16px;border-bottom:1px solid var(--line)}
+.nb-mobile a:last-child{border-bottom:0}
+
+/* hero, as on kidposhan.in */
+.menu-hero{padding-top:34px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--gold);display:inline-block}
+.menu-hero .ask{margin-top:0}
+.lede{font-size:16.5px;line-height:1.65;color:var(--muted);max-width:46ch;margin:14px 0 4px}
+.go{background:var(--gold);color:#2b1c05;border-radius:100px;box-shadow:0 8px 24px -10px rgba(181,121,10,.55);font-size:18px}
+.go:disabled{background:var(--line);box-shadow:none}
+.chip{border-color:var(--line)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.lg{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 11px;border-radius:100px;color:#fff}
+.lg[data-band="Excellent"]{background:var(--leaf)}
+.lg[data-band="Good"]{background:#4C9A74}
+.lg[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
+.lg[data-band="Occasional"]{background:var(--chilli)}
+.banner{margin:14px 18px;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
+
+/* ingredients: smaller type */
+.ing{margin-top:10px;border-radius:var(--r-md);border-color:var(--line)}
+.ing-head{font-size:11.5px;padding:8px 12px 6px;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono);font-weight:400}
+.ing-head,.ing-row{grid-template-columns:minmax(0,1fr) 52px 52px}
+.ing-row{padding:7px 12px}
+.ing-row b{font-weight:500;font-size:14px;line-height:1.3}
+.ing-row .q{font-size:12px;line-height:1.3}
+.tick{width:24px;height:24px;border-radius:7px}
+.tick svg{width:13px;height:13px}
+.section>.lead{font-size:13.5px}
+
+/* cards, as on kidposhan.in */
+.dish,.pack,.ing,.step,.facts span,.summary{border:1px solid var(--line)}
+.dish{border-radius:var(--r-lg)}
+.sheet{background:var(--bg)}
+.site-footer{text-align:center;padding:30px 20px 110px;font-family:var(--mono);font-size:11px;line-height:1.8;letter-spacing:.05em;color:var(--clay)}
+.site-footer b{color:var(--muted);font-weight:600}
+
+/* ---------- screen sizes: small phones to wide desktops ---------- */
+html{-webkit-text-size-adjust:100%}
+img,svg{max-width:100%}
+@media (max-width:360px){
+  .pad,.shelf-head,.summary,.note,.hint,.go{margin-left:14px;margin-right:14px}
+  .pad{padding-left:14px;padding-right:14px}
+  .carousel{padding-left:14px;padding-right:14px}
+  .dish{flex-basis:78vw}.pack{flex-basis:70vw}
+  .nb-name{font-size:17px}.title-row h1{font-size:28px}
+}
+@media (min-width:600px){
+  .dish{flex-basis:250px}.pack{flex-basis:220px}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .go{grid-column:1 / -1;justify-self:start;padding-left:36px;padding-right:36px}
+}
+@media (min-width:900px){
+  .wrap{max-width:960px}
+  .menu-hero{padding-top:48px}
+  .ask{font-size:clamp(44px,5vw,56px);max-width:18ch}
+  .lede{font-size:18px;max-width:56ch}
+  .hero{aspect-ratio:21/9;max-height:440px}
+  .sheet{border-radius:30px 30px 0 0;padding-top:30px}
+  .title-row h1{font-size:clamp(36px,4vw,48px)}
+}
+@media (min-width:1000px){
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:0 44px;align-items:start}
+  .step{padding-top:16px;padding-bottom:16px}
+}
+@media (min-width:1200px){
+  .wrap{max-width:1160px}
+  .dish{flex-basis:276px}.pack{flex-basis:236px}
+}
+@media (min-width:1600px){.wrap{max-width:1320px}}
+@media (hover:none){.dish:hover{transform:none}}
+
+/* ---------- decoration and motion ---------- */
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-12px) rotate(5deg)}}
+@keyframes tierIn{from{opacity:0;transform:translateY(-38px)}to{opacity:1;transform:none}}
+@keyframes steam{0%{opacity:0;transform:translateY(10px)}35%{opacity:.7}100%{opacity:0;transform:translateY(-16px)}}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1)}}
+@keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes kb{from{transform:scale(1.08)}to{transform:scale(1)}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* hero with the tiffin illustration */
+.wrap{overflow-x:clip}
+.menu-hero{position:relative;isolation:isolate}
+.menu-hero::before{content:"";position:absolute;z-index:-1;right:-70px;top:-40px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(227,160,8,.2),transparent 66%);pointer-events:none}
+.menu-hero::after{content:"";position:absolute;z-index:-1;left:-90px;bottom:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 60% 40%,rgba(63,107,60,.12),transparent 66%);pointer-events:none}
+.hero-art{display:block;width:min(78%,300px);height:auto;margin:14px auto 0;overflow:visible}
+.hero-art .tier,.hero-art .fl,.hero-art .steam,.hero-art .spark{transform-box:fill-box;transform-origin:center}
+.hero-art .tier{animation:tierIn .9s cubic-bezier(.2,.8,.2,1) both}
+.hero-art .t1{animation-delay:.55s}.hero-art .t2{animation-delay:.4s}.hero-art .t3{animation-delay:.25s}.hero-art .t4{animation-delay:.1s}
+.hero-art .steam{animation:steam 3.4s ease-in-out infinite}
+.hero-art .s2{animation-delay:1.1s}.hero-art .s3{animation-delay:2.2s}
+.hero-art .fl{animation:floaty 6s ease-in-out infinite}
+.hero-art .fl2{animation-duration:7.5s;animation-delay:-2s}.hero-art .fl3{animation-duration:6.5s;animation-delay:-4s}
+.hero-art .fl4{animation-duration:8s;animation-delay:-1s}.hero-art .fl5{animation-duration:9s;animation-delay:-3s}
+.hero-art .spark{animation:twinkle 2.8s ease-in-out infinite}
+.hero-art .sp2{animation-delay:.7s}.hero-art .sp3{animation-delay:1.4s}.hero-art .sp4{animation-delay:2.1s}
+@media (min-width:900px){
+  .menu-hero:not(.compact){display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;column-gap:32px}
+  .menu-hero:not(.compact) .hero-art{width:100%;max-width:440px;margin:0 0 0 auto}
+}
+.menu-hero.compact .hero-art{display:none}
+.eyebrow::before{transform-origin:left;animation:grow .8s .2s both;transform:scaleY(1)}
+
+/* filters: every option visible (the chips wrap instead of scrolling inside a narrow column) */
+.scroller{flex-wrap:wrap;overflow:visible;row-gap:8px}
+.frow>span{margin-bottom:8px}
+.chip{transition:transform .15s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}
+.chip:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 6px 14px -8px rgba(181,121,10,.6)}
+.chip[aria-pressed="true"]{animation:pop .32s ease}
+.go:not(:disabled){background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);background-size:220% 100%;animation:sheen 3.2s linear infinite;transition:transform .15s ease}
+.go:not(:disabled):hover{transform:translateY(-2px) scale(1.02)}
+
+/* cards and sections rise into view */
+.dish,.pack{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+.carousel>*:nth-child(2){animation-delay:.07s}.carousel>*:nth-child(3){animation-delay:.14s}.carousel>*:nth-child(4){animation-delay:.21s}
+.carousel>*:nth-child(5){animation-delay:.28s}.carousel>*:nth-child(6){animation-delay:.35s}.carousel>*:nth-child(7){animation-delay:.42s}.carousel>*:nth-child(n+8){animation-delay:.5s}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.shelf-head h2::before{transform-origin:top;animation:grow .7s .15s both}
+.hero>img{animation:kb 12s ease-out both}
+.badge{transition:transform .2s ease}.dish:hover .badge{transform:scale(1.1) rotate(-4deg)}
+.score b{animation:pop .7s .4s both}
+.legend .lg{animation:rise .5s both}.legend .lg:nth-child(2){animation-delay:.08s}.legend .lg:nth-child(3){animation-delay:.16s}.legend .lg:nth-child(4){animation-delay:.24s}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .reveal{opacity:1;transform:none}
+}
+.mayo-note{margin-top:6px;padding:8px 12px;border-radius:10px;background:var(--turmeric-2);color:var(--ink);font-size:14px}
+
+/* ---------- photo gallery, sharp hero, viewer ---------- */
+.gallery .count{font-family:var(--body);font-size:14px;font-weight:500;color:var(--muted);margin-left:6px}
+.gal{margin:8px -18px 0;padding:4px 18px 10px;gap:12px}
+.gal-item{flex:0 0 auto;width:min(46vw,210px);aspect-ratio:4/3;border:0;padding:0;border-radius:16px;overflow:hidden;background:var(--leaf-2);cursor:zoom-in;scroll-snap-align:start;box-shadow:0 1px 2px rgba(20,48,43,.1),0 12px 22px -16px rgba(20,48,43,.5)}
+.gal-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.gal-item:hover img{transform:scale(1.06)}
+@media (min-width:900px){.gal{margin-left:0;margin-right:0;padding-left:0;padding-right:0}.gal-item{width:230px}}
+/* a photo smaller than the hero is shown at its own size over a soft blurred copy of itself (never stretched, so it stays crisp) */
+.hero.lowres{background:#1d1a15}
+.hero.lowres::before{content:"";position:absolute;inset:-40px;background:var(--hero-bg) center/cover no-repeat;filter:blur(28px) saturate(1.15) brightness(.88);transform:scale(1.1)}
+.hero.lowres>svg{display:none}
+.hero.lowres>img{object-fit:contain;z-index:1}
+.hero.lowres::after{z-index:2}
+.hero.lowres .credit-chip,.hero.lowres .back{z-index:3}
+.lb{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:56px 12px 64px;background:rgba(12,9,5,.93)}
+.lb[hidden]{display:none}
+.lb-img{max-width:min(96vw,1280px);max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.lb button{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;width:46px;height:46px;border-radius:50%;font-size:28px;line-height:1;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(4px)}
+.lb button:hover{background:rgba(255,255,255,.28)}
+.lb-x{top:max(12px,env(safe-area-inset-top));right:14px}
+.lb-p{left:12px;top:50%;transform:translateY(-50%)}.lb-n{right:12px;top:50%;transform:translateY(-50%)}
+.lb-cap{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));text-align:center;color:#f1ece2;font-size:14px}
+.lb-cap a{color:#f6e4bc}
+body.lb-open{overflow:hidden}
+@media (max-width:600px){.lb-p,.lb-n{top:auto;bottom:56px;transform:none}.lb-p{left:calc(50% - 56px)}.lb-n{right:calc(50% - 56px)}.lb{padding-bottom:116px}}
+
+/* ===== ratings, remarks, support ===== */
+.stars{display:inline-block;letter-spacing:2px;background:linear-gradient(90deg,var(--gold) var(--p,0%),#DCD2BC var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;line-height:1}
+.dish .rate{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.dish .rate .stars{font-size:13px;letter-spacing:1px;margin-right:4px}
+.ratebox{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:4px 0 14px}
+.ratebox .avg{display:flex;align-items:center;gap:8px}.ratebox .big{font-family:var(--display);font-size:30px;line-height:1}
+.ratebox .stars{font-size:20px}.ratebox .cnt{color:var(--muted);font-size:14px}
+.rate-me{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.rate-me .st{background:none;border:0;padding:2px 3px;font-size:26px;line-height:1;cursor:pointer;color:#CFC4AB;transition:transform .15s}
+.rate-me .st.on,.rate-me .st:hover,.rate-me .st:focus-visible{color:var(--gold)}.rate-me .st:hover{transform:scale(1.15)}
+.rmk{border-top:1px solid var(--line);padding:12px 0}.rmk b{display:block}.rmk time{color:var(--muted);font-size:12.5px}.rmk p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rmk-form textarea,.rmk-form input,.kpmodal input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
+.rmk-form textarea{min-height:84px;resize:vertical;margin-bottom:8px}.rmk-form input{margin-bottom:8px}
+.kbtn{display:inline-block;border:0;border-radius:99px;padding:11px 20px;background:var(--ink);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.kbtn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.kbtn[disabled]{opacity:.55;cursor:default}
+.support{background:linear-gradient(135deg,#FFF6DF,#FDFBF6);border:1px solid #EADBB0;border-radius:18px;padding:18px 20px}
+.support .upi{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.support code{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;overflow-wrap:anywhere}
+.support details{margin-top:8px}.support summary{cursor:pointer;color:var(--muted)}
+.kpmsg{margin:8px 0 0;font-size:14px;color:var(--muted)}.kpmsg.err{color:#A12A1D}.kpmsg.ok{color:#1c6a3a}
+.kpjoin{display:grid;gap:10px}.kpjoin label{display:grid;gap:4px;font-size:13.5px;color:var(--muted);font-weight:600}
+.kpjoin input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.85);font:inherit;font-weight:400;color:var(--ink)}
+.kpjoin .kbtn{justify-self:start}.kpfine{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.kpfloat{position:fixed;right:16px;bottom:34px;width:min(360px,calc(100vw - 32px));z-index:150;box-sizing:border-box;padding:16px 16px 18px;border-radius:18px;overflow:hidden;
+  background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(14px) saturate(1.25);backdrop-filter:blur(14px) saturate(1.25);border:1px solid rgba(231,223,206,.95);
+  box-shadow:0 12px 40px rgba(34,26,18,.22);animation:kpUp .45s ease both;transition:opacity .4s ease,transform .4s ease}
+.kpfloat.out{opacity:0;transform:translateY(14px);pointer-events:none}
+.kpfloat h2{margin:0 0 2px;font-size:19px}.kpfloat>p{margin:0 0 10px;font-size:14px;color:var(--muted)}
+.kpfloat .x{position:absolute;top:6px;right:10px;background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--muted)}
+.kpfloat .bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--gold);transform-origin:left;animation:kpBar 10s linear forwards}
+.kpfloat.hold .bar{display:none}
+@keyframes kpUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes kpBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (max-width:520px){.kpfloat{left:12px;right:12px;bottom:34px;width:auto}}
+@media (prefers-reduced-motion:reduce){.kpfloat{animation:none;transition:none}}
+.kpmodal-bg{position:fixed;inset:0;background:rgba(20,15,8,.55);display:grid;place-items:center;z-index:200;padding:16px}
+.kpmodal{background:var(--bg);border-radius:18px;padding:22px;width:min(420px,100%);box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}
+.kpmodal h2{margin:0 0 6px;font-size:22px}.kpmodal p{margin:0 0 12px;color:var(--muted);font-size:14.5px}.kpmodal .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kpmodal .x{position:absolute;top:8px;right:12px;background:none;border:0;font-size:26px;cursor:pointer;color:var(--muted)}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="nb-brand" href="https://www.kidposhan.in/">
+    <div class="nb-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="nb-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nb-links">
+    <a href="https://www.kidposhan.in/">Home</a>
+    <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+    <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+    <a href="https://www.kidposhan.in/browse.html">Browse</a>
+    <a href="https://www.kidposhan.in/cereals.html">Cereal Aisle</a>
+    <a href="#/" class="on">Meal Ideas</a>
+    <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+  </div>
+  <button class="nb-burger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <a class="nb-cta" href="https://www.kidposhan.in/browse.html">Rate a product</a>
+</nav>
+<div class="nb-mobile" id="mobileMenu">
+  <a href="https://www.kidposhan.in/">Home</a>
+  <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+  <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+  <a href="https://www.kidposhan.in/browse.html">Browse</a>
+  <a href="https://www.kidposhan.in/cereals.html">Cereal Aisle</a>
+  <a href="#/">Meal Ideas</a>
+  <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+</div>
+<main class="wrap" id="app"></main>
+<footer class="site-footer">
+  Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification<br>
+  Dish photos belong to their creators and link back to the original recipe. Pack photos are the sellers'.
+</footer>
+<div class="tray" id="tray" aria-live="polite"><div class="tray-in">
+  <div class="tray-bar"><strong id="tcount"></strong><button id="ttoggle" aria-expanded="false">See list</button></div>
+  <div class="tray-body" id="tbody"></div>
+</div></div>
+
+<script>
+/* ===== mode: live API on kidposhan.in / workers.dev, demo data elsewhere ===== */
+const QS=new URLSearchParams(location.search);
+const LIVE=!QS.has('demo')&&/kidposhan|workers\.dev|localhost|127\.0\.0\.1/.test(location.hostname);
+const API=QS.get('api')||'';
+
+/* ===== demo catalogue (invented placeholders, not from any source) ===== */
+const PANTRY = new Set(['salt','oil','ghee','turmeric','cumin','mustard_seeds','water','hing','sugar','curry_leaves_dry']);
+const R = (id,name,occ,sea,diet,min,max,score,mins,ings)=>({id,name,occ,sea,diet,min,max,score,mins,
+  ings:ings.map(s=>{const [q,n,k]=s.split(':');return {q,n,k,pantry:PANTRY.has(k)}})});
+const RECIPES = [
+ R(1,'Moong dal khichdi',['lunch','dinner'],['all'],'jain',6,36,86,30,['¼ cup:Rice:rice','2 tbsp:Yellow moong dal:moong_dal','1 tsp:Ghee:ghee','pinch:Turmeric:turmeric','1½ cups:Water:water']),
+ R(2,'Ragi apple porridge',['breakfast','snack_4pm'],['all'],'jain',6,36,84,15,['2 tbsp:Ragi flour:ragi','½:Apple, grated:apple','1 cup:Water:water','½ tsp:Ghee:ghee']),
+ R(3,'Carrot and pumpkin mash',['lunch','dinner'],['winter'],'veg',6,24,80,20,['1 small:Carrot:carrot','1 slice:Pumpkin:pumpkin','½ tsp:Ghee:ghee','as needed:Water:water']),
+ R(4,'Banana oats porridge',['breakfast'],['all'],'jain',8,60,82,10,['3 tbsp:Rolled oats:oats','½:Ripe banana:banana','¾ cup:Milk:milk']),
+ R(5,'Dalia vegetable khichdi',['breakfast','dinner'],['winter'],'veg',8,60,85,30,['¼ cup:Dalia (broken wheat):dalia','2 tbsp:Moong dal:moong_dal','¼ cup:Carrot, chopped:carrot','2 tbsp:Green peas:green_peas','1 tsp:Ghee:ghee','pinch:Turmeric:turmeric']),
+ R(6,'Egg yolk mash',['breakfast'],['all'],'egg',8,24,78,12,['1:Egg:egg','1 tsp:Ghee:ghee']),
+ R(7,'Vegetable poha',['breakfast','lunchbox'],['all'],'veg',36,144,74,20,['1 cup:Thick poha:poha','1 small:Onion:onion','¼ cup:Green peas:green_peas','¼ cup:Carrot:carrot','1 tbsp:Peanuts, crushed:peanuts','6:Curry leaves:curry_leaves','½:Lemon:lemon','1 tbsp:Oil:oil','½ tsp:Mustard seeds:mustard_seeds','pinch:Turmeric:turmeric','to taste:Salt:salt']),
+ R(8,'Moong dal cheela with paneer',['breakfast','lunchbox','snack_4pm'],['all'],'veg',24,144,88,25,['½ cup:Moong dal, soaked:moong_dal','50 g:Paneer:paneer','1 tsp:Ginger, grated:ginger','2 tbsp:Coriander leaves:coriander_leaves','1 tsp:Oil:oil','to taste:Salt:salt']),
+ R(9,'Ragi dosa',['breakfast','dinner'],['all'],'veg',18,144,81,20,['½ cup:Ragi flour:ragi','2 tbsp:Rice flour:rice_flour','2 tbsp:Curd:curd','1 small:Onion:onion','1 tsp:Oil:oil','to taste:Salt:salt']),
+ R(10,'Vegetable rava upma',['breakfast','lunchbox'],['all'],'veg',36,144,70,20,['½ cup:Rava (sooji):rava','¼ cup:Mixed vegetables:mixed_veg','1 small:Onion:onion','6:Curry leaves:curry_leaves','1 tbsp:Ghee:ghee','½ tsp:Mustard seeds:mustard_seeds','to taste:Salt:salt']),
+ R(11,'Methi thepla',['breakfast','lunchbox','snack_4pm'],['winter'],'jain',36,144,79,30,['1 cup:Whole wheat flour:wheat_flour','½ cup:Methi leaves:fenugreek_leaves','2 tbsp:Curd:curd','1 tsp:Sesame seeds:sesame','pinch:Turmeric:turmeric','1 tbsp:Oil:oil','to taste:Salt:salt']),
+ R(12,'Paneer paratha',['lunchbox','breakfast','dinner'],['all'],'jain',24,144,83,30,['1 cup:Whole wheat flour:wheat_flour','100 g:Paneer:paneer','2 tbsp:Coriander leaves:coriander_leaves','¼ tsp:Ajwain:ajwain','1 tsp:Ghee:ghee','to taste:Salt:salt']),
+ R(13,'Lemon rice',['lunchbox','lunch'],['summer'],'veg',60,144,66,15,['1 cup:Cooked rice:rice','1:Lemon:lemon','1 tbsp:Peanuts:peanuts','6:Curry leaves:curry_leaves','½ tsp:Mustard seeds:mustard_seeds','pinch:Turmeric:turmeric','1 tbsp:Oil:oil','to taste:Salt:salt']),
+ R(14,'Curd rice with cucumber',['lunch','lunchbox'],['summer'],'jain',12,144,77,10,['1 cup:Cooked rice:rice','½ cup:Curd:curd','¼:Cucumber, grated:cucumber','6:Curry leaves:curry_leaves','½ tsp:Mustard seeds:mustard_seeds','to taste:Salt:salt']),
+ R(15,'Vegetable pulao',['lunchbox','lunch','dinner'],['winter'],'veg',36,144,72,30,['1 cup:Basmati rice:rice','¼ cup:Green peas:green_peas','¼ cup:Carrot:carrot','¼ cup:French beans:beans','1 small:Onion:onion','1 tbsp:Ghee:ghee','½ tsp:Cumin:cumin','to taste:Salt:salt']),
+ R(16,'Rajma rice',['lunch','dinner'],['all'],'veg',24,144,80,45,['½ cup:Rajma, soaked:rajma','1:Tomato:tomato','1 small:Onion:onion','1 tsp:Ginger:ginger','1 cup:Rice:rice','1 tbsp:Oil:oil','to taste:Salt:salt']),
+ R(17,'Palak dal',['lunch','dinner'],['winter'],'veg',12,144,87,30,['½ cup:Toor dal:toor_dal','1 cup:Spinach:spinach','2 cloves:Garlic:garlic','1:Tomato:tomato','1 tsp:Ghee:ghee','½ tsp:Cumin:cumin','to taste:Salt:salt']),
+ R(18,'Lauki chana dal',['lunch','dinner'],['summer'],'jain',12,144,84,30,['¼ cup:Chana dal:chana_dal','1 cup:Lauki (bottle gourd):bottle_gourd','1:Tomato:tomato','pinch:Turmeric:turmeric','½ tsp:Cumin:cumin','1 tsp:Ghee:ghee','to taste:Salt:salt']),
+ R(19,'Sweet corn chaat',['snack_4pm'],['monsoon'],'jain',36,144,70,10,['1 cup:Sweet corn:corn','1 tsp:Butter:butter','½:Lemon:lemon','pinch:Chaat masala:chaat_masala','to taste:Salt:salt']),
+ R(20,'Roasted makhana',['snack_4pm','lunchbox'],['all'],'jain',36,144,76,10,['1 cup:Makhana:makhana','1 tsp:Ghee:ghee','pinch:Turmeric:turmeric','to taste:Salt:salt']),
+ R(21,'Moong sprouts chaat',['snack_4pm','lunchbox'],['monsoon'],'veg',36,144,85,10,['1 cup:Moong sprouts:sprouts','½:Tomato:tomato','¼:Cucumber:cucumber','1 small:Onion:onion','½:Lemon:lemon','to taste:Salt:salt']),
+ R(22,'Paneer veggie sandwich',['snack_4pm','lunchbox'],['all'],'veg',24,144,68,15,['4 slices:Whole wheat bread:bread','75 g:Paneer:paneer','¼:Capsicum:capsicum','¼:Carrot, grated:carrot','1 tsp:Butter:butter','to taste:Salt:salt']),
+ R(23,'Besan vegetable cheela',['breakfast','snack_4pm'],['monsoon'],'veg',24,144,75,20,['½ cup:Besan:besan','¼:Onion:onion','½:Tomato:tomato','2 tbsp:Coriander leaves:coriander_leaves','1 tsp:Oil:oil','to taste:Salt:salt']),
+ R(24,'Ragi dates ladoo',['snack_4pm'],['winter'],'jain',24,144,72,25,['½ cup:Ragi flour:ragi','8:Dates, seedless:dates','1 tbsp:Ghee:ghee','1 tbsp:Sesame seeds:sesame']),
+ R(25,'Egg bhurji roll',['lunchbox','breakfast','dinner'],['all'],'egg',36,144,79,15,['2:Eggs:egg','2:Whole wheat roti:wheat_flour','½:Tomato:tomato','1 small:Onion:onion','1 tsp:Butter:butter','to taste:Salt:salt']),
+ R(26,'Soft chicken rice',['lunch','dinner'],['all'],'nonveg',12,144,82,35,['100 g:Chicken, boneless:chicken','½ cup:Rice:rice','¼ cup:Carrot:carrot','1 tsp:Ghee:ghee','pinch:Turmeric:turmeric','to taste:Salt:salt']),
+ R(27,'Mild fish curry with rice',['lunch','dinner'],['monsoon'],'nonveg',24,144,80,35,['2 pieces:Rohu fish:fish','1:Tomato:tomato','1 small:Potato:potato','1 tbsp:Mustard oil:oil','pinch:Turmeric:turmeric','to taste:Salt:salt']),
+ R(28,'Chicken vegetable soup',['dinner','snack_4pm'],['monsoon','winter'],'nonveg',12,144,81,40,['100 g:Chicken, with bone:chicken','¼ cup:Carrot:carrot','¼ cup:French beans:beans','1 small:Onion:onion','pinch:Black pepper:black_pepper','to taste:Salt:salt']),
+ R(29,'Egg fried rice',['lunchbox','lunch','dinner'],['all'],'egg',36,144,71,20,['1 cup:Cooked rice:rice','2:Eggs:egg','¼ cup:Mixed vegetables:mixed_veg','1 tbsp:Oil:oil','to taste:Salt:salt']),
+ R(30,'Mango oats smoothie',['breakfast','snack_4pm'],['summer'],'jain',12,144,73,5,['½:Ripe mango:mango','2 tbsp:Rolled oats:oats','½ cup:Milk:milk','2 tbsp:Curd:curd']),
+ R(31,'Tomato rasam rice',['lunch','dinner'],['monsoon'],'veg',12,144,69,25,['2:Tomatoes:tomato','2 tbsp:Toor dal:toor_dal','2 cloves:Garlic:garlic','6:Curry leaves:curry_leaves','1 cup:Rice:rice','1 tsp:Ghee:ghee','to taste:Salt:salt']),
+ R(32,'Idli with vegetable sambar',['breakfast','lunchbox','dinner'],['all'],'veg',12,144,83,30,['6:Idlis (from batter):idli_batter','¼ cup:Toor dal:toor_dal','½ cup:Mixed vegetables:mixed_veg','1 small:Onion:onion','1 tsp:Sambar powder:sambar_powder','to taste:Salt:salt']),
+ R(33,'Vegetable uttapam',['breakfast','dinner','lunchbox'],['all'],'veg',18,144,78,20,['1 cup:Dosa batter:idli_batter','¼:Onion:onion','½:Tomato:tomato','¼:Capsicum:capsicum','1 tsp:Oil:oil']),
+ R(34,'Chicken paratha roll',['lunchbox'],['all'],'nonveg',36,144,77,30,['100 g:Chicken, boneless:chicken','2:Whole wheat paratha:wheat_flour','2 tbsp:Curd:curd','¼:Onion:onion','1 tsp:Oil:oil','to taste:Salt:salt']),
+ R(35,'Banana wheat muffins',['snack_4pm','lunchbox'],['all'],'jain',24,144,64,35,['1 cup:Whole wheat flour:wheat_flour','2:Ripe bananas:banana','¼ cup:Curd:curd','3 tbsp:Jaggery powder:jaggery','2 tbsp:Walnuts, finely chopped:walnuts','½ tsp:Baking soda:baking_soda']),
+ R(36,'Vegetable dalia upma',['breakfast','lunchbox'],['monsoon','winter'],'veg',24,144,80,25,['½ cup:Dalia:dalia','¼ cup:Carrot:carrot','2 tbsp:Green peas:green_peas','1 small:Onion:onion','1 tsp:Ghee:ghee','to taste:Salt:salt']),
+];
+
+
+
+const AGES=[[9,'6–11 months'],[18,'1–2 years'],[48,'3–5 years'],[84,'6–8 years'],[126,'9–12 years']];
+const OCC=[['breakfast','Breakfast'],['lunchbox','School lunchbox'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
+const SEA=[['summer','Summer'],['monsoon','Monsoon'],['winter','Winter'],['all','All seasons']];
+const PREF=[['veg','Veg'],['jain','Jain'],['nonveg','Non-veg']];
+const DIETS={veg:['veg','jain'],jain:['jain'],nonveg:['nonveg','egg','veg','jain']};
+const RELATED={breakfast:['snack_4pm','dinner'],lunchbox:['lunch','snack_4pm'],lunch:['lunchbox','dinner'],snack_4pm:['breakfast','lunchbox'],dinner:['lunch','breakfast']};
+const DIET_LABEL={veg:'Veg',jain:'Jain',egg:'Egg',nonveg:'Non-veg'};
+// A vegetable dish that uses mayonnaise also appears under Non-veg (mayonnaise can contain egg). There it is labelled "With mayonnaise", not "Veg".
+const mayoInNonveg=(diet,mayo)=>S.pref==='nonveg'&&!!mayo&&(diet==='veg'||diet==='jain');
+const dietLabel=(diet,mayo)=>mayoInNonveg(diet,mayo)?'With mayonnaise':(DIET_LABEL[diet]||'');
+const RETAILERS=[
+ {id:'blinkit',label:'Blinkit',kind:'Quick delivery',url:q=>`https://blinkit.com/s/?q=${q}`},
+ {id:'instamart',label:'Instamart',kind:'Quick delivery',url:q=>`https://www.swiggy.com/instamart/search?query=${q}`},
+ {id:'zepto',label:'Zepto',kind:'Quick delivery',url:q=>`https://www.zeptonow.com/search?query=${q}`},
+ {id:'amazon',label:'Amazon',kind:'Marketplace',url:q=>`https://www.amazon.in/s?k=${q}`},
+ {id:'bigbasket',label:'BigBasket',kind:'Grocery',url:q=>`https://www.bigbasket.com/ps/?q=${q}`},
+];
+const lab=(arr,v)=>(arr.find(a=>a[0]===v)||[])[1]||v;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ageTxt=m=>m<12?`${m} months+`:`${Math.floor(m/12)} years+`;
+const CHECK='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ===== illustrations: drawn per dish shape and main ingredient, used when there's no licensed photo ===== */
+const HUE={ragi:'#7B4B33',moong_dal:'#E8BE45',dalia:'#C99A5B',oats:'#D9BE8C',rice:'#F4EEDC',poha:'#F0D776',rava:'#EAD9A6',besan:'#E5B54A',
+ wheat_flour:'#D7A863',carrot:'#E8792E',pumpkin:'#E99A2C',spinach:'#3E7D3A',fenugreek_leaves:'#4F8A3B',paneer:'#F6F0E2',egg:'#F6C83C',
+ chicken:'#D99A5A',fish:'#D88A3A',rajma:'#8E2F2A',toor_dal:'#E9B33F',chana_dal:'#E7B23D',bottle_gourd:'#A8C77A',tomato:'#D9452E',
+ corn:'#F2C230',makhana:'#F4EBDD',sprouts:'#9CBF5A',bread:'#D9A35C',mango:'#F2A93B',banana:'#F1D36B',apple:'#D96B4E',idli_batter:'#F7F3E8',
+ dates:'#6B3A26',curd:'#F7F6F0',milk:'#FAF8F2',mixed_veg:'#9BBF52',masoor_dal:'#E08A3C'};
+function mainHue(r){for(const i of r.ings){if(HUE[i.k])return HUE[i.k]}return '#D8B46A'}
+function kindOf(name){const n=name.toLowerCase();
+ if(/smoothie|milkshake|lassi/.test(n))return'drink';
+ if(/idli/.test(n))return'idli';
+ if(/sandwich/.test(n))return'sandwich';
+ if(/roll|frankie|wrap/.test(n))return'roll';
+ if(/ladoo|makhana|muffin|cookie|bites|chaat/.test(n))return'bites';
+ if(/dosa|cheela|chilla|uttapam|pancake/.test(n))return'flat';
+ if(/paratha|thepla|roti/.test(n))return'stack';
+ if(/rice|pulao|biryani/.test(n))return'rice';
+ return'bowl';}
+function rng(seed){let s=seed*9301+49297;return()=>((s=(s*9301+49297)%233280)/233280)}
+function dishArt(r,uid){
+  const c=mainHue(r),k=kindOf(r.name),rand=rng(r.id*7+3),bg=`color-mix(in srgb, ${c} 26%, #FFF8EC)`;
+  const dots=(n,cx,cy,rad,cols,sz=[3,6])=>Array.from({length:n},()=>{const a=rand()*6.283,d=Math.sqrt(rand())*rad;return `<circle cx="${(cx+Math.cos(a)*d).toFixed(1)}" cy="${(cy+Math.sin(a)*d).toFixed(1)}" r="${(sz[0]+rand()*(sz[1]-sz[0])).toFixed(1)}" fill="${cols[Math.floor(rand()*cols.length)]}"/>`}).join('');
+  const garnish=['#3F8A3A','#5DA046','#E8792E','#D9452E','#F2C230'];
+  const plate=`<circle cx="100" cy="104" r="78" fill="#000" opacity=".08"/><circle cx="100" cy="100" r="78" fill="#FBFAF6"/><circle cx="100" cy="100" r="66" fill="none" stroke="#E9E4D8" stroke-width="2"/>`;
+  let food='';
+  if(k==='bowl') food=`<circle cx="100" cy="100" r="60" fill="#EDE7DA"/><circle cx="100" cy="100" r="52" fill="${c}"/><ellipse cx="86" cy="86" rx="20" ry="10" fill="#fff" opacity=".18"/>${dots(14,100,100,40,garnish,[2.5,5])}`;
+  else if(k==='flat') food=`<circle cx="100" cy="100" r="60" fill="#C98A3A"/><circle cx="100" cy="100" r="55" fill="color-mix(in srgb, ${c} 55%, #E9B860)"/>${dots(26,100,100,48,['#8A5A2266','#FFFFFF40'],[1.5,3.5])}<path d="M100 45a55 55 0 0 1 0 110" fill="#7A4B1E" opacity=".08"/>${dots(7,100,100,36,garnish,[2.5,4])}`;
+  else if(k==='stack') food=`<circle cx="92" cy="108" r="46" fill="${c}"/><circle cx="92" cy="108" r="46" fill="#000" opacity=".08"/><circle cx="108" cy="94" r="46" fill="${c}"/>${dots(16,108,94,36,['#6B3A1A55','#3F8A3A'],[2,4])}`;
+  else if(k==='rice') food=`<path d="M46 112c4-30 26-48 54-48s52 18 56 48c-14 10-34 14-56 14s-40-4-54-14z" fill="${c}"/>${dots(40,100,98,40,['#ffffff88'],[1.5,2.5])}${dots(14,100,100,40,garnish,[2.5,4.5])}`;
+  else if(k==='idli') food=`<ellipse cx="78" cy="88" rx="26" ry="20" fill="#F7F3E8" stroke="#E6DDC8" stroke-width="2"/><ellipse cx="116" cy="80" rx="26" ry="20" fill="#F7F3E8" stroke="#E6DDC8" stroke-width="2"/><ellipse cx="98" cy="112" rx="26" ry="20" fill="#F7F3E8" stroke="#E6DDC8" stroke-width="2"/><circle cx="132" cy="128" r="22" fill="#C9672E"/>${dots(6,132,128,14,garnish,[2,3.5])}`;
+  else if(k==='sandwich') food=`<path d="M52 128L100 54l48 74z" fill="#E7C08A"/><path d="M58 122L100 60l42 62z" fill="${c}"/><path d="M62 118L100 66l38 52z" fill="#E7C08A"/><path d="M84 132l40-60 30 52z" fill="#D9A35C" opacity=".9"/>${dots(5,100,108,18,garnish,[2.5,4])}`;
+  else if(k==='roll') food=`<rect x="44" y="82" width="112" height="40" rx="20" fill="#E3B979"/><ellipse cx="150" cy="102" rx="12" ry="20" fill="${c}"/>${dots(8,148,102,10,garnish,[2,3.5])}<path d="M70 84v36M96 84v36" stroke="#C9934F" stroke-width="2" opacity=".5"/>`;
+  else if(k==='bites') food=dots(9,100,100,36,[c],[13,17])+dots(10,100,100,40,['#ffffff55'],[2,3]);
+  else if(k==='drink') return `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(r.name)}"><rect width="200" height="200" fill="${bg}"/><path d="M128 30l-8 34" stroke="#2D6A46" stroke-width="5" stroke-linecap="round"/><path d="M66 60h68l-8 112H74z" fill="#FFFFFF" opacity=".7"/><path d="M70 84h60l-6 86H76z" fill="${c}"/><ellipse cx="100" cy="84" rx="30" ry="5" fill="#fff" opacity=".35"/></svg>`;
+  return `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(r.name)}"><rect width="200" height="200" fill="${bg}"/>${dots(6,100,100,120,['#ffffff55'],[8,18])}${plate}${food}</svg>`;
+}
+function packArt(p){
+  const c=p.hue||'#D8B46A';
+  return `<svg viewBox="0 0 250 200" role="img" aria-label="${esc(p.name)}"><rect width="250" height="200" fill="color-mix(in srgb, ${c} 18%, #FFF8EC)"/>
+   <ellipse cx="125" cy="176" rx="62" ry="8" fill="#000" opacity=".08"/>
+   <path d="M80 44h90l6 130H74z" fill="#FFFFFF"/><path d="M80 44h90l2 22H78z" fill="${c}"/><rect x="88" y="92" width="74" height="44" rx="8" fill="${c}" opacity=".85"/>
+   <circle cx="125" cy="114" r="12" fill="#fff" opacity=".7"/><path d="M80 44l6-12h78l6 12" fill="#EDE7DA"/></svg>`;
+}
+
+/* ===== tiered search (mirrors GET /api/kp/recipes) ===== */
+function demoSearch(q){
+  const base=RECIPES.filter(r=>DIETS[q.pref].includes(r.diet)&&r.min<=q.age&&r.max>=q.age);
+  const sOk=r=>q.season==='all'||r.sea.includes(q.season)||r.sea.includes('all');
+  const tiers=[['exact',r=>r.occ.includes(q.occ)&&sOk(r)],['any_season',r=>r.occ.includes(q.occ)],['related',r=>r.occ.some(o=>RELATED[q.occ].includes(o))&&sOk(r)],['related',r=>r.occ.some(o=>RELATED[q.occ].includes(o))]];
+  const out=[],seen=new Set();
+  for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
+  return out;
+}
+const toCard=r=>({mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+async function search(q){
+  if(!LIVE) return demoSearch(q).map(toCard);
+  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
+  if(!res.ok) throw new Error('Search failed. Try again.');
+  return (await res.json()).results.map(toCard);
+}
+
+// The "More Asian recipes" / "European recipes" shelves: same filters, same Poshan Score ordering, never blocks the main list.
+async function searchWorld(q,world){
+  try{
+    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}&world=${world}`);
+    if(!res.ok) return [];
+    return (await res.json()).results.map(toCard);
+  }catch(e){ return [] }
+}
+
+/* ready-to-buy packs: demo types per dish shape; live mode uses the existing GET /api/products */
+const PACKS={
+ bowl:[['Ragi porridge mix','200 g','#7B4B33'],['Instant khichdi mix','300 g','#E8BE45'],['Multigrain dalia','500 g','#C99A5B']],
+ flat:[['Instant moong chilla mix','200 g','#E8BE45'],['Ragi dosa mix','500 g','#7B4B33'],['Multigrain pancake mix','250 g','#D9A35C']],
+ stack:[['Multigrain atta','1 kg','#D7A863'],['Frozen methi thepla','6 pcs','#4F8A3B'],['Whole wheat parathas','5 pcs','#D9A35C']],
+ rice:[['Ready vegetable pulao mix','250 g','#9BBF52'],['Brown rice','1 kg','#C9A26B'],['Lemon rice paste','100 g','#F2C230']],
+ idli:[['Idli dosa batter','1 kg','#F7F3E8'],['Instant rava idli mix','500 g','#EAD9A6'],['Sambar powder','100 g','#C9672E']],
+ sandwich:[['Whole wheat bread','400 g','#D9A35C'],['Paneer','200 g','#F6F0E2'],['Multigrain bread','400 g','#C99A5B']],
+ roll:[['Whole wheat wraps','6 pcs','#E3B979'],['Frozen parathas','5 pcs','#D9A35C'],['Mint chutney','150 g','#3F8A3A']],
+ bites:[['Roasted makhana','80 g','#F4EBDD'],['Ragi cookies','150 g','#7B4B33'],['Dates & nut bites','200 g','#6B3A26']],
+ drink:[['Mango pulp, no added sugar','450 g','#F2A93B'],['Rolled oats','500 g','#D9BE8C'],['Fresh curd','400 g','#F7F6F0']],
+};
+async function packsFor(r){
+  if(!LIVE) return (PACKS[kindOf(r.name)]||PACKS.bowl).map(([name,size,hue],i)=>({brand:'Brand from catalogue',name,size,hue,score:[82,76,71][i],sample:true,
+      buys:RETAILERS.slice(0,4).map(s=>({label:s.label,url:s.url(encodeURIComponent(name))}))}));
+  try{
+    // Ready-to-buy = the dish itself in pack form (ragi dosa -> a ragi dosa mix), approved by the owner, scored from its label.
+    const res=await fetch(`${API}/api/kp/ready?recipe_id=${encodeURIComponent(r.id)}`);
+    if(!res.ok) return [];
+    const d=await res.json();
+    const out=(d.packs||[]).map(p=>({brand:p.brand,name:p.name,size:p.pack_size,score:p.score?p.score.value:null,image:p.image_url,
+      buys:[{label:(p.retailer||'Buy').replace(/^./,c=>c.toUpperCase()),url:p.url}]}));
+    out.hide=!d.kind; // this dish has no ready-made form (e.g. a poriyal): don't show the section at all
+    return out;
+  }catch(e){return []}
+}
+
+/* ===== presentation helpers ===== */
+const bandOf=v=>v>=80?'Excellent':v>=58?'Good':v>=40?'Fair':'Occasional';
+// "Vegetable Biryani Recipe (Pressure Cooker Veg Biryani)" -> "Vegetable Biryani"; source titles often repeat themselves with "|".
+const nice=n=>{const t=String(n||'').split('|')[0].replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();return t||String(n||'')};
+// A photo laid over the drawn illustration: if the photo fails to load (hot-link blocked, deleted), the illustration is simply what shows.
+const photoImg=(src,alt,credit,hero)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="${hero?'eager':'lazy'}" decoding="async" referrerpolicy="no-referrer" onload="${hero?'heroFit(this)':'tinyPhoto(this,200)'}" onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
+const badgeHTML=(v,kind)=>v==null||v===''?'':`<span class="badge" data-band="${bandOf(+v)}" title="${kind==='estimated'?'Poshan Score, estimated from ingredients':'Poshan Score'}">${esc(v)}<small>Poshan</small></span>`;
+
+function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
+document.addEventListener('click',e=>{if(e.target.closest('#mobileMenu a'))document.getElementById('mobileMenu').classList.remove('open')});
+/* ===== decorative hero: a tiffin box with steam and floating food (pure SVG, animated with CSS) ===== */
+const HERO_ART=`<svg class="hero-art" viewBox="0 0 420 360" role="img" aria-label="" aria-hidden="true" focusable="false">
+  <circle cx="210" cy="196" r="150" fill="#F6E4BC" opacity=".6"/>
+  <circle cx="300" cy="120" r="70" fill="#E3EEDF" opacity=".9"/>
+  <circle cx="110" cy="270" r="48" fill="#F5E1DB" opacity=".8"/>
+  <ellipse cx="210" cy="316" rx="92" ry="12" fill="#4A3423" opacity=".12"/>
+  <g class="steam-group" fill="none" stroke="#B5790A" stroke-width="4" stroke-linecap="round">
+    <path class="steam s1" d="M186 76c-10-12 8-20-2-34"/>
+    <path class="steam s2" d="M210 72c-10-14 8-24-2-40"/>
+    <path class="steam s3" d="M234 76c-10-12 8-20-2-34"/>
+  </g>
+  <g>
+    <path d="M158 112c0-52 104-52 104 0" fill="none" stroke="#3A2416" stroke-width="6" stroke-linecap="round"/>
+    <rect class="tier t1" x="146" y="96" width="128" height="34" rx="12" fill="#5E8E5A" stroke="#221A12" stroke-opacity=".25"/>
+    <rect class="tier t2" x="146" y="132" width="128" height="34" rx="12" fill="#E3A008" stroke="#221A12" stroke-opacity=".25"/>
+    <rect class="tier t3" x="146" y="168" width="128" height="34" rx="12" fill="#BE4430" stroke="#221A12" stroke-opacity=".25"/>
+    <rect class="tier t4" x="146" y="204" width="128" height="34" rx="12" fill="#3A2416" stroke="#221A12" stroke-opacity=".25"/>
+    <rect x="138" y="98" width="8" height="136" rx="4" fill="#3A2416"/>
+    <rect x="274" y="98" width="8" height="136" rx="4" fill="#3A2416"/>
+    <circle cx="210" cy="113" r="4" fill="#fff" opacity=".7"/><circle cx="210" cy="149" r="4" fill="#fff" opacity=".7"/>
+    <circle cx="210" cy="185" r="4" fill="#fff" opacity=".7"/><circle cx="210" cy="221" r="4" fill="#fff" opacity=".6"/>
+  </g>
+  <g class="fl fl1"><path d="M52 118c0-36 30-58 66-60 0 36-24 62-66 60z" fill="#5E8E5A"/><path d="M56 114c20-18 38-34 58-52" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/></g>
+  <g class="fl fl2"><circle cx="352" cy="170" r="26" fill="#E3A008"/><g fill="#5a4028"><circle cx="342" cy="162" r="3"/><circle cx="358" cy="158" r="2.5"/><circle cx="362" cy="176" r="3"/><circle cx="346" cy="180" r="2.5"/><circle cx="354" cy="170" r="2"/></g></g>
+  <g class="fl fl3"><path d="M330 300V252" stroke="#B5790A" stroke-width="4" stroke-linecap="round"/><ellipse cx="320" cy="262" rx="11" ry="6" fill="#F0C361" transform="rotate(-30 320 262)"/><ellipse cx="340" cy="272" rx="11" ry="6" fill="#F0C361" transform="rotate(30 340 272)"/><ellipse cx="320" cy="282" rx="11" ry="6" fill="#E3A008" transform="rotate(-30 320 282)"/><ellipse cx="330" cy="248" rx="7" ry="10" fill="#F0C361"/></g>
+  <g class="fl fl4"><circle cx="86" cy="262" r="24" fill="#BE4430"/><path d="M76 244l10 8 10-8-4 12h-12z" fill="#5E8E5A"/><circle cx="78" cy="268" r="3" fill="#fff" opacity=".5"/></g>
+  <g class="fl fl5"><ellipse cx="238" cy="326" rx="44" ry="11" fill="#E8C98A"/><ellipse cx="238" cy="323" rx="38" ry="8" fill="#F2D9A4"/><circle cx="226" cy="324" r="2.4" fill="#A9742A"/><circle cx="244" cy="321" r="2.2" fill="#A9742A"/><circle cx="254" cy="326" r="2" fill="#A9742A"/></g>
+  <circle class="spark sp1" cx="62" cy="190" r="4" fill="#E3A008"/><circle class="spark sp2" cx="388" cy="92" r="3.5" fill="#5E8E5A"/><circle class="spark sp3" cx="300" cy="46" r="4" fill="#BE4430"/><circle class="spark sp4" cx="150" cy="312" r="3" fill="#E3A008"/>
+</svg>`;
+
+// Sections, shelves and the recipe title fade up as they scroll into view (skipped when the visitor prefers reduced motion).
+const REDUCED=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const revealIO=!REDUCED&&'IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');revealIO.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -40px 0px'}):null;
+function reveal(){if(!revealIO)return;document.querySelectorAll('.shelf-head,.section,.sheet .title-row,.legend').forEach(el=>{if(el.classList.contains('reveal'))return;el.classList.add('reveal');revealIO.observe(el)})}
+/* ===== photo gallery viewer + sharp hero ===== */
+// A small photo is never stretched across a wide hero: it is shown at its own size over a soft blurred copy of itself.
+// Some sources only publish a thumbnail (e.g. 109px wide). Blown up it is only a smear, so below a minimum size the illustrated art is shown instead.
+function tinyPhoto(img,min){
+  if(!img.naturalWidth||img.naturalWidth>=min) return false;
+  img.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove()); img.remove(); return true;
+}
+function heroFit(img){
+  const h=img.closest('.hero'); if(!h) return;
+  if(tinyPhoto(img,320)){h.classList.remove('lowres');return}
+  if(img.naturalWidth&&img.naturalWidth<h.clientWidth*0.95){h.classList.add('lowres');h.style.setProperty('--hero-bg',`url("${img.src}")`)}
+  else h.classList.remove('lowres');
+}
+function openLightbox(i){
+  const g=window.__gal; if(!g||!g.list.length) return;
+  let lb=document.getElementById('lb');
+  if(!lb){
+    lb=document.createElement('div'); lb.id='lb'; lb.className='lb'; lb.setAttribute('role','dialog'); lb.setAttribute('aria-modal','true'); lb.setAttribute('aria-label','Photos');
+    lb.innerHTML='<button class="lb-x" aria-label="Close">×</button><button class="lb-p" aria-label="Previous photo">‹</button><img class="lb-img" alt="" referrerpolicy="no-referrer"><button class="lb-n" aria-label="Next photo">›</button><p class="lb-cap"></p>';
+    document.body.appendChild(lb);
+    lb.addEventListener('click',e=>{if(e.target===lb||e.target.classList.contains('lb-x')) closeLightbox()});
+    lb.querySelector('.lb-p').onclick=()=>stepLightbox(-1); lb.querySelector('.lb-n').onclick=()=>stepLightbox(1);
+    let sx=null;
+    lb.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});
+    lb.addEventListener('touchend',e=>{if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>50) stepLightbox(dx<0?1:-1); sx=null});
+  }
+  lb.dataset.i=i; showLightbox(); lb.hidden=false; document.body.classList.add('lb-open'); window.addEventListener('keydown',lbKeys);
+}
+function showLightbox(){
+  const lb=document.getElementById('lb'), g=window.__gal, i=+lb.dataset.i;
+  lb.querySelector('.lb-img').src=g.list[i];
+  lb.querySelector('.lb-cap').innerHTML=`${i+1} / ${g.list.length}${g.credit?` · Photo: <a href="${esc(g.credit.url)}" target="_blank" rel="noopener">${esc(g.credit.name)}</a>`:''}`;
+}
+function stepLightbox(d){const lb=document.getElementById('lb'), n=window.__gal.list.length; lb.dataset.i=(+lb.dataset.i+d+n)%n; showLightbox()}
+function closeLightbox(){const lb=document.getElementById('lb'); if(lb) lb.hidden=true; document.body.classList.remove('lb-open'); window.removeEventListener('keydown',lbKeys)}
+function lbKeys(e){if(e.key==='Escape') closeLightbox(); else if(e.key==='ArrowRight') stepLightbox(1); else if(e.key==='ArrowLeft') stepLightbox(-1)}
+
+/* ===== state & storage ===== */
+function save(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}catch(e){return null}}
+function savePin(v){try{localStorage.setItem('kp_pincode',v)}catch(e){}}
+let S=JSON.parse(load('kp_menu')||'{}'); S.items=S.items||{}; // filters + last results + shopping states
+const persist=()=>save('kp_menu',JSON.stringify(S));
+const app=document.getElementById('app');
+new MutationObserver(()=>reveal()).observe(app,{childList:true});
+
+/* ===== menu page ===== */
+function chipRow(name,label,arr,cur){
+  return `<div class="frow"><span id="l-${name}">${label}</span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${String(cur)===String(v)}">${l}</button>`).join('')}</div></div>`;
+}
+let menuPackKey='',menuPackHTML='';
+async function loadMenuPacks(){
+  const box=document.getElementById('menuPacks'); if(!box||!LIVE||!S.results||S.editing) return;
+  const ids=S.results.filter(x=>x.match==='exact'||x.match==='any_season').map(x=>x.id).slice(0,24); if(!ids.length) return;
+  const key=ids.join(','); if(key===menuPackKey){box.innerHTML=menuPackHTML;return}
+  try{
+    const res=await fetch(`${API}/api/kp/ready?recipe_ids=${key}`); if(!res.ok) return;
+    const items=(await res.json()).items||[];
+    menuPackKey=key;
+    menuPackHTML=items.length?`<div class="shelf-head"><h2>Ready-to-buy for these dishes</h2><span>${items.length} ${items.length===1?'pack':'packs'}</span></div>
+      <div class="carousel" role="list">${items.map(p=>`<div class="pack" role="listitem"><div class="art">${packArt({name:p.name})}${photoImg(p.image_url,'')}${badgeHTML(p.score?p.score.value:null)}</div>
+        <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.pack_size||'')}${p.score?'':`${p.pack_size?' · ':''}Score pending`}</span>
+        <span class="for">For ${esc(p.for.slice(0,2).map(f=>f.name).join(', '))}${p.for.length>2?` +${p.for.length-2}`:''}</span>
+        <div class="buys"><a href="${esc(p.url)}" target="_blank" rel="noopener">${p.retailer?'Buy on ':'Buy'}${esc((p.retailer||'').replace(/^./,c=>c.toUpperCase()))}</a></div></div></div>`).join('')}</div>`:'';
+    if(document.getElementById('menuPacks')===box) box.innerHTML=menuPackHTML;
+  }catch(e){}
+}
+function dishCard(x){ return `<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
+            <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>` }
+function renderMenu(){
+  const ready=S.age&&S.occ&&S.season&&S.pref, showFilters=!S.results||S.editing;
+  let html=`<section class="menu-hero pad ${S.results&&!S.editing?'compact':''}"><div class="hero-copy"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
+    <h1 class="ask ${S.results&&!S.editing?'small':''}">What's on the plate today?</h1>
+    ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
+  if(showFilters){
+    html+=`<section class="filters" aria-label="Filters">
+      ${chipRow('age',"Child's age",AGES,S.age)}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
+      <button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick all four to continue'}</button></section>`;
+  } else {
+    html+=`<div class="summary"><p>${lab(PREF,S.pref)}, ${lab(OCC,S.occ)}, ${lab(AGES,S.age)}, ${lab(SEA,S.season).toLowerCase()}</p><button id="edit">Change</button></div>`;
+  }
+  if(S.error) html+=`<p class="note">${esc(S.error)}</p>`;
+  if(S.results&&!S.editing){
+    const r=S.results;
+    const worldShelf=(w,t)=>{const g=((S.more||{})[w]||[]);if(!g.length)return '';return `<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div><div class="carousel" role="list">${g.map(dishCard).join('')}</div>`};
+    const moreHTML=worldShelf('asia','More Asian recipes')+worldShelf('europe','European recipes');
+    if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`+moreHTML;
+    else{
+      if(r.length<10) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
+      html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Excellent">80+ Excellent</span><span class="lg" data-band="Good">58–79 Good</span><span class="lg" data-band="Fair">40–57 Fair</span><span class="lg" data-band="Occasional">Below 40 Occasional</span></div>`;
+      for(const [m,t] of [['exact','Best for today'],['any_season','Good any season']]){
+        const g=r.filter(x=>x.match===m); if(!g.length) continue;
+        html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
+          <div class="carousel" role="list">${g.map(dishCard).join('')}</div>`;
+      }
+      html+=moreHTML;
+      html+=`<div id="menuPacks"></div>`;
+    }
+  }
+  app.innerHTML=html;
+  loadMenuPacks();
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S[b.dataset.f]=b.dataset.f==='age'?+b.dataset.v:b.dataset.v;persist();renderMenu();
+    const nb=app.querySelector(`.chip[data-f="${b.dataset.f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
+  const go=document.getElementById('go'); if(go) go.onclick=async()=>{go.disabled=true;go.textContent='Finding meals…';S.error=null;
+    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};S.results=await search(q);
+      if(LIVE){const [asia,europe]=await Promise.all([searchWorld(q,'asia'),searchWorld(q,'europe')]);S.more={asia,europe}} else S.more={};
+      S.editing=false}catch(e){S.error=e.message}
+    persist();renderMenu();window.scrollTo(0,0)};
+  const ed=document.getElementById('edit'); if(ed) ed.onclick=()=>{S.editing=true;persist();renderMenu()};
+  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash='#/r/'+b.dataset.open});
+}
+
+/* ===== visitors: login, rating, remarks, support ===== */
+const TOK_KEY='kp_visitor_token';
+const getTok=()=>{try{return localStorage.getItem(TOK_KEY)||''}catch(e){return ''}};
+const setTok=t=>{try{t?localStorage.setItem(TOK_KEY,t):localStorage.removeItem(TOK_KEY)}catch(e){}};
+async function vapi(path,{method='GET',body}={}){
+  const h={}; if(body) h['content-type']='application/json'; const t=getTok(); if(t) h.authorization='Bearer '+t;
+  const res=await fetch(API+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  const d=await res.json().catch(()=>({}));
+  if(!res.ok){ if(res.status===401&&t&&path!=='/api/kp/auth/me') setTok(''); const e=new Error(d.error||'Something went wrong. Please try again.'); e.status=res.status; throw e }
+  return d;
+}
+// The name + mobile + email form, used by the pop-up (when someone rates or remarks) and by the floating panel. Not verified.
+function joinForm(onDone){
+  const f=document.createElement('form'); f.className='kpjoin'; f.noValidate=true;
+  f.innerHTML=`<label>Your name<input name="name" type="text" autocomplete="name" maxlength="40" placeholder="Your name" required></label>
+    <label>Mobile number<input name="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit mobile number" required></label>
+    <label>Email<input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
+    <button class="kbtn" type="submit">Submit</button>
+    <p class="kpmsg" role="status"></p><p class="kpfine">We use these to know who rated or wrote a remark. Your mobile number and email are never shown on the site.</p>`;
+  const msg=(t,k)=>{const m=f.querySelector('.kpmsg');m.textContent=t||'';m.className='kpmsg '+(k||'')};
+  f.onsubmit=async e=>{ e.preventDefault(); const btn=f.querySelector('button'); btn.disabled=true; msg('One moment…');
+    try{ const d=await vapi('/api/kp/auth/join',{method:'POST',body:{name:f.name.value,mobile:f.mobile.value,email:f.email.value}}); setTok(d.token); msg('Thank you, '+d.name+'!','ok'); onDone&&onDone(d) }
+    catch(x){ msg(x.message,'err'); btn.disabled=false } };
+  return f;
+}
+// Pop-up for someone who taps a star or wants to send a remark. Resolves once they submit; rejects if they close it.
+function askLogin(why){
+  return new Promise((resolve,reject)=>{
+    const prev=document.activeElement, bg=document.createElement('div'); bg.className='kpmodal-bg';
+    bg.innerHTML=`<div class="kpmodal" role="dialog" aria-modal="true" aria-labelledby="kpm-h"><button class="x" aria-label="Close">×</button><h2 id="kpm-h">Tell us who you are</h2><p>${esc(why||'Add your details once and you can rate and write remarks.')}</p></div>`;
+    const box=bg.firstElementChild; document.body.appendChild(bg);
+    const close=()=>{bg.remove();document.removeEventListener('keydown',onKey);prev&&prev.focus&&prev.focus()};
+    const onKey=e=>{if(e.key==='Escape'){close();reject(new Error('closed'))}};
+    document.addEventListener('keydown',onKey);
+    box.querySelector('.x').onclick=()=>{close();reject(new Error('closed'))};
+    bg.onclick=e=>{if(e.target===bg){close();reject(new Error('closed'))}};
+    const f=joinForm(d=>{setTimeout(close,500);resolve(d)}); box.appendChild(f); f.name.focus();
+  });
+}
+// Floating, see-through panel on the recipe page. It leaves by itself after 10 seconds unless the visitor starts filling it in;
+// once they do, it stays until they submit (or close it). Shown at most once per browser session, and never to someone already joined.
+function floatingJoin(){
+  if(!LIVE||getTok()||document.querySelector('.kpfloat')) return;
+  try{ if(sessionStorage.getItem('kp_float_shown')) return; sessionStorage.setItem('kp_float_shown','1') }catch(e){}
+  const el=document.createElement('aside'); el.className='kpfloat'; el.setAttribute('role','region'); el.setAttribute('aria-label','Join KidPoshan');
+  el.innerHTML='<button class="x" type="button" aria-label="Close">×</button><h2>Join KidPoshan</h2><p>Add your details to rate recipes and share remarks.</p><span class="bar" aria-hidden="true"></span>';
+  const gone=()=>{el.classList.add('out');setTimeout(()=>el.remove(),450)};
+  let timer=setTimeout(gone,10000);
+  const hold=()=>{clearTimeout(timer);el.classList.add('hold')};            // filling it in: wait for Submit
+  el.addEventListener('input',hold); el.addEventListener('focusin',hold);
+  el.querySelector('.x').onclick=()=>{clearTimeout(timer);gone()};
+  const f=joinForm(()=>{ clearTimeout(timer); el.classList.add('hold'); setTimeout(gone,2200);
+    const m=location.hash.match(/#\/r\/(\d+)/); if(m) loadSocial(+m[1]) });
+  el.appendChild(f); document.body.appendChild(el);
+}
+const starsHTML=avg=>`<span class="stars" style="--p:${Math.round((avg||0)/5*100)}%" aria-hidden="true">★★★★★</span>`;
+async function loadSocial(id){
+  const rb=document.getElementById('rateBox'), mb=document.getElementById('remarksBox'); if(!rb&&!mb) return;
+  let d; try{ d=await vapi(`/api/kp/recipes/${id}/social`) }catch(e){ if(rb) rb.remove(); if(mb) mb.remove(); return }
+  const rt=d.rating, named=d.me&&d.me.name&&d.me.name!=='A parent';
+  if(rb){
+    rb.innerHTML=`<div class="avg">${rt.count?`<span class="big">${rt.average}</span>${starsHTML(rt.average)}<span class="cnt">${rt.count} ${rt.count===1?'rating':'ratings'} · ${rt.liked} liked it</span>`:'<span class="cnt">No ratings yet. Be the first to rate.</span>'}</div>
+      <div class="rate-me" role="group" aria-label="Rate this recipe"><span>${rt.mine?'Your rating':'Rate it'}</span>${[1,2,3,4,5].map(n=>`<button class="st ${rt.mine>=n?'on':''}" data-star="${n}" aria-label="${n} star${n>1?'s':''}" aria-pressed="${rt.mine===n}">★</button>`).join('')}</div><span class="kpmsg" id="rmsg" role="status"></span>`;
+    rb.querySelectorAll('[data-star]').forEach(b=>b.onclick=async()=>{
+      const stars=+b.dataset.star, say=(t,k)=>{const m=document.getElementById('rmsg');if(m){m.textContent=t;m.className='kpmsg '+(k||'')}};
+      try{
+        try{ await vapi(`/api/kp/recipes/${id}/rate`,{method:'POST',body:{stars}}) }
+        catch(e){ if(e.status!==401) throw e; await askLogin('Add your name and mobile number to rate this recipe. Your number is never shown.'); await vapi(`/api/kp/recipes/${id}/rate`,{method:'POST',body:{stars}}) }
+        await loadSocial(id); const m=document.getElementById('rmsg'); if(m){m.textContent='Thank you for rating!';m.className='kpmsg ok'}
+      }catch(e){ if(e.message!=='closed') say(e.message,'err') }
+    });
+  }
+  if(mb){
+    mb.innerHTML=`<h2>Remarks from parents</h2>${d.remarks.length?d.remarks.map(m=>`<div class="rmk"><b>${esc(m.name)}</b><time datetime="${new Date(m.created_at*1000).toISOString()}">${new Date(m.created_at*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</time><p>${esc(m.body)}</p></div>`).join(''):'<p class="lead">No remarks yet.</p>'}
+      <div class="rmk-form" id="rmkForm"><p class="lead">Tried it? Tell other parents. Remarks appear after our team approves them.</p>
+      <div id="rmkIn">${d.me?`${named?'':'<input id="rmkName" maxlength="40" placeholder="Your name (shown with your remark)" autocomplete="name">'}<textarea id="rmkText" maxlength="600" placeholder="Your remark" aria-label="Your remark"></textarea><button class="kbtn" id="rmkGo">Send remark</button>`:'<button class="kbtn alt" id="rmkLogin">Add your name and mobile to send a remark</button>'}</div><p class="kpmsg" id="rmkMsg" role="status"></p></div>`;
+    const msg=(t,k)=>{const m=document.getElementById('rmkMsg');if(m){m.textContent=t;m.className='kpmsg '+(k||'')}};
+    const lg=document.getElementById('rmkLogin'); if(lg) lg.onclick=async()=>{ try{ await askLogin('Add your name and mobile number to send a remark. Only your name is shown, never your number.'); loadSocial(id) }catch(e){} };
+    const go=document.getElementById('rmkGo'); if(go) go.onclick=async()=>{
+      go.disabled=true; msg('Sending…');
+      try{
+        const nm=document.getElementById('rmkName'); if(nm) await vapi('/api/kp/auth/name',{method:'POST',body:{name:nm.value}});
+        const r=await vapi(`/api/kp/recipes/${id}/remarks`,{method:'POST',body:{body:document.getElementById('rmkText').value}});
+        document.getElementById('rmkIn').innerHTML=''; msg(r.message,'ok');
+      }catch(e){ msg(e.message,'err'); go.disabled=false }
+    };
+  }
+}
+// ₹5 support by UPI: opens the visitor's UPI app; they then tell us, and we confirm it against our UPI account.
+async function loadSupport(id){
+  const box=document.getElementById('supportBox'); if(!box) return;
+  let c; try{ c=await vapi(`/api/kp/pay/config?recipe_id=${id}`) }catch(e){ return }
+  if(!c.ready) return;
+  box.hidden=false;
+  box.innerHTML=`<h2>Support the author · ₹${c.amount_rupees}</h2><p class="lead">KidPoshan is free for parents. If this recipe helped, ₹${c.amount_rupees} goes towards sharing with the recipe's author and keeping the site running.</p>
+    <div class="upi"><a class="kbtn" href="${esc(c.link)}" id="upiGo">Pay ₹${c.amount_rupees} with UPI</a><span>or pay to <code id="upiId">${esc(c.upi_id)}</code></span><button class="kbtn alt" id="upiCopy" type="button">Copy</button></div>
+    <details><summary>Already paid? Tell us</summary><div class="rmk-form" style="margin-top:8px"><input id="upiRef" maxlength="60" placeholder="UPI reference / transaction id (optional)" aria-label="UPI reference"><button class="kbtn" id="upiDone">I have paid ₹${c.amount_rupees}</button></div></details>
+    <p class="kpmsg" id="upiMsg" role="status">We confirm each payment against our UPI account before counting it. Payment is optional and does not unlock anything.</p>`;
+  const msg=(t,k)=>{const m=document.getElementById('upiMsg');m.textContent=t;m.className='kpmsg '+(k||'')};
+  document.getElementById('upiCopy').onclick=async e=>{try{await navigator.clipboard.writeText(c.upi_id);e.target.textContent='Copied'}catch(x){msg('Select the UPI id and copy it.','err')}};
+  document.getElementById('upiDone').onclick=async e=>{
+    e.target.disabled=true;
+    try{ const r=await vapi(`/api/kp/recipes/${id}/support`,{method:'POST',body:{note:document.getElementById('upiRef').value}}); msg(r.message,'ok') }
+    catch(x){ msg(x.message,'err'); e.target.disabled=false }
+  };
+}
+/* ===== recipe page ===== */
+async function getRecipe(id){
+  if(!LIVE){const r=RECIPES.find(x=>x.id===id); if(!r) return null;
+    return {...r,source:null,
+      ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(i.n.split(',')[0]))}))})),
+      steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
+  const res=await fetch(`${API}/api/kp/recipes/${id}${S.pref?`?pref=${S.pref}`:''}`); if(!res.ok) return null; const d=await res.json();
+  return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
+    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',
+    ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
+      buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
+    images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
+}
+// [{name, qty, buy:[{label,url,price}]}] -> [{label, lines:[{name, qty, url, price}]}]: the ingredients to buy, clubbed under each store
+function byPlatform(items){
+  const m=new Map();
+  for(const it of items) for(const b of (it.buy||[])){
+    if(!b.url) continue;
+    if(!m.has(b.label)) m.set(b.label,{label:b.label,lines:[]});
+    m.get(b.label).lines.push({name:it.name,qty:it.qty,url:b.url,price:b.price});
+  }
+  return [...m.values()];
+}
+async function renderRecipe(id){
+  app.innerHTML=`<p class="hint">Loading recipe…</p>`;
+  const r=await getRecipe(id);
+  if(!r){app.innerHTML=`<p class="hint pad">This recipe isn't available. <a href="#/">Back to meal ideas</a></p>`;return}
+  const art=dishArt({id:r.id,name:r.name,ings:r.ings_art||r.ings.map(i=>({k:i.key}))})+photoImg(r.image,nice(r.name),'',true)+(r.image&&r.source?`<a class="credit-chip" href="${esc(r.source.url)}" target="_blank" rel="noopener">Photo: ${esc(r.source.name)}</a>`:'');
+  r.ings.forEach((ing,i)=>{const k=`${r.id}:${i}`;if(!S.items[k])S.items[k]={state:ing.pantry?'home':null,name:ing.name,key:ing.key,recipe:r.name,buy:ing.buy}});
+  persist();
+  const doneKey=`kp_steps_${r.id}`, done=new Set(JSON.parse(load(doneKey)||'[]'));
+  const facts=[r.mins?`${r.mins} min`:'',r.min?ageTxt(r.min):'',dietLabel(r.diet,r.mayo),...(r.occ||[]).map(o=>lab(OCC,o))].filter(Boolean);
+  const ingHTML=r.ings.map((ing,i)=>{const k=`${r.id}:${i}`,st=S.items[k].state;
+    return `<div class="ing-item ${st==='buy'?'buying':''}"><div class="ing-row"><span><b>${esc(ing.name)}</b><span class="q">${esc(ing.qty||ing.raw||'')}</span></span>
+      <button class="tick home" data-k="${k}" data-s="home" aria-pressed="${st==='home'}" aria-label="${esc(ing.name)}: at home">${CHECK}</button>
+      <button class="tick buy" data-k="${k}" data-s="buy" aria-pressed="${st==='buy'}" aria-label="${esc(ing.name)}: to buy">${CHECK}</button></div>
+      </div>`}).join('');
+  const photos=(r.images||[]).length>1?r.images:[];
+  window.__gal={list:photos,credit:r.source?{name:r.source.name,url:r.source.url}:null};
+  const galleryHTML=photos.length?`<section class="section gallery"><h2>Photos <span class="count">${photos.length}</span></h2><div class="carousel gal" role="list">${photos.map((u,i)=>`<button class="gal-item" role="listitem" data-g="${i}" aria-label="Open photo ${i+1} of ${photos.length}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.gal-item').remove()"></button>`).join('')}</div><p class="credit">Photos: ${esc(r.source?r.source.name:'the creator')}. ${r.source?`<a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a>`:''}</p></section>`:'';
+  const buyList=r.ings.map((ing,i)=>({ing,k:`${r.id}:${i}`})).filter(x=>S.items[x.k].state==='buy');
+  const india=(r.world||'india')==='india';
+  const platforms=byPlatform(buyList.map(({ing})=>({name:ing.name,qty:ing.qty,buy:ing.buy})));
+  const noLink=buyList.filter(({ing})=>!(ing.buy||[]).length).map(({ing})=>ing.name);
+  const buyHTML=!india?(buyList.length?`<ul class="plain-buy">${buyList.map(({ing})=>`<li>${esc(ing.name)}${ing.qty?` <small>${esc(ing.qty)}</small>`:''}</li>`).join('')}</ul><p class="empty-packs">Store links are for India only, so this is your shopping list.</p>`:`<p class="empty-packs">Tick "To buy" on an ingredient to build a shopping list.</p>`):buyList.length?`<div class="carousel packs" role="list">${platforms.map(p=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(p.label)}</h3><span class="size">${p.lines.length} ${p.lines.length===1?'item':'items'} to buy</span></div><div class="buy-list">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.name)}</span>${l.qty?`<small>${esc(l.qty)}</small>`:''}${l.price?`<em>₹${esc(l.price)}</em>`:''}</a>`).join('')}</div></div>`).join('')}</div>${noLink.length?`<p class="empty-packs">No store link yet: ${esc(noLink.join(', '))}.</p>`:''}`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here, grouped under each store.</p>`;
+  let stepsHTML;
+  if(r.steps&&r.steps.length){
+    stepsHTML=`<p class="lead">Tap a step when it's done.${r.demo?' Sample layout: real steps come word for word from the creator.':''}</p><ol class="steps">${r.steps.map((s,i)=>`<li class="step" role="button" tabindex="0" data-step="${i}" aria-pressed="${done.has(i)}">${s.section?`<span class="sec">${esc(s.section)}</span>`:''}<span class="t">${esc(s.text)}</span></li>`).join('')}</ol>`;
+  } else {
+    stepsHTML=`<div class="method-out"><p>The full steps are on ${esc(r.source?.name||'the creator\'s site')}.</p>${r.method_url?`<a href="${esc(r.method_url)}" target="_blank" rel="noopener">Open the steps</a>`:''}</div>`;
+  }
+  app.innerHTML=`<div class="hero">${art}<button class="back" id="back" aria-label="Back to meal ideas"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+   <article class="sheet pad">
+    <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
+    ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
+    <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
+    ${LIVE?'<div id="rateBox" class="ratebox"></div>':''}
+    ${galleryHTML}
+    <div class="cols"><div class="col-a">
+    <section class="section"><h2>Ingredients</h2><p class="lead">Tick what you have. Tick "To buy" to add an ingredient to the To buy list below.</p>${r.mayo_note?`<p class="lead mayo-note">${esc(r.mayo_note)}</p>`:''}
+      <div class="ing"><div class="ing-head"><span>Ingredient</span><span>At home</span><span>To buy</span></div>${ingHTML}</div></section>
+    <section class="section"><h2>To buy</h2>${buyHTML}</section>
+    </div><div class="col-b">
+    <section class="section"><h2>Steps</h2>${stepsHTML}</section>
+    </div></div>
+    ${r.source?`<p class="credit">${r.method_by==='kidposhan'?'Steps written by KidPoshan. ':''}Recipe idea from ${esc(r.source.name)}. <a href="${esc(r.source.url)}" target="_blank" rel="noopener">See the original</a></p>`:''}
+    <section class="section"><h2>Ready-to-buy packs</h2><p class="lead">For busy days. Scored for kids.</p><div id="packs"><p class="empty-packs">Finding packs…</p></div></section>
+    ${LIVE?'<section class="section" id="remarksBox"></section><section class="section support" id="supportBox" hidden></section>':''}
+   </article>`;
+  app.querySelectorAll('.gal-item').forEach(b=>b.onclick=()=>openLightbox(+b.dataset.g));
+  app.querySelectorAll('.hero>img').forEach(i=>{if(i.complete&&i.naturalWidth) heroFit(i)});
+  document.getElementById('back').onclick=()=>{location.hash='#/'};
+  app.querySelectorAll('.tick').forEach(b=>b.onclick=()=>{const it=S.items[b.dataset.k];it.state=it.state===b.dataset.s?null:b.dataset.s;persist();
+    const y=window.scrollY;renderRecipe(id).then(()=>{window.scrollTo(0,y);app.querySelector(`.tick[data-k="${b.dataset.k}"][data-s="${b.dataset.s}"]`)?.focus()});renderTray();});
+  const toggleStep=el=>{const i=+el.dataset.step;done.has(i)?done.delete(i):done.add(i);save(doneKey,JSON.stringify([...done]));el.setAttribute('aria-pressed',done.has(i))};
+  app.querySelectorAll('.step').forEach(el=>{el.onclick=()=>toggleStep(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStep(el)}}});
+  renderTray();
+  if(LIVE){loadSocial(r.id);loadSupport(r.id);setTimeout(floatingJoin,1200)}
+  if(!india){document.getElementById('packs')?.closest('section')?.remove();return}
+  const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
+  if(packs.hide){box.closest('section')?.remove();return}
+  box.innerHTML=packs.length?`<div class="carousel packs" role="list">${packs.map(p=>`<div class="pack" role="listitem">
+    <div class="art">${packArt(p)}${photoImg(p.image,'')}${badgeHTML(p.score)}</div>
+    <div class="txt"><span class="brandname">${esc(p.brand||'')}</span><h3>${esc(p.name)}</h3><span class="size">${esc(p.size||'')}${p.sample?', sample':p.score==null?`${p.size?' · ':''}Score pending`:''}</span>
+    ${p.buys?.[0]?.price?`<span class="price">from ₹${esc(Math.min(...p.buys.filter(b=>b.price).map(b=>+b.price)))}</span>`:''}
+    <div class="buys">${(p.buys||[]).map(b=>`<a href="${esc(b.url)}" target="_blank" rel="noopener">Buy on ${esc(b.label)}</a>`).join('')}</div></div></div>`).join('')}</div>`
+   :`<p class="empty-packs">No ready-made pack for this dish yet.</p>`;
+}
+
+/* ===== shopping tray ===== */
+const tray=document.getElementById('tray'),tbody=document.getElementById('tbody'),ttoggle=document.getElementById('ttoggle');
+ttoggle.onclick=()=>{const o=tray.classList.toggle('open');ttoggle.setAttribute('aria-expanded',o);ttoggle.textContent=o?'Hide list':'See list'};
+function renderTray(){
+  const merged={};Object.values(S.items).filter(i=>i.state==='buy').forEach(i=>{const k=i.key||i.name;(merged[k]=merged[k]||{name:i.name,buy:i.buy,recipes:new Set()}).recipes.add(i.recipe)});
+  const list=Object.values(merged);
+  tray.classList.toggle('show',list.length>0);
+  document.getElementById('tcount').textContent=`${list.length} ${list.length===1?'item':'items'} to buy`;
+  const pin=load('kp_pincode')||'';
+  const trayNoLink=list.filter(i=>!(i.buy||[]).length).map(i=>i.name);
+  tbody.innerHTML=byPlatform(list).map(p=>`<div class="titem"><b>${esc(p.label)}</b> <small>${p.lines.length} ${p.lines.length===1?'item':'items'}</small>
+    <div class="links">${p.lines.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join('')}</div></div>`).join('')+(trayNoLink.length?`<p class="tnote">Also on your list (no store link): ${esc(trayNoLink.join(', '))}.</p>`:'')+
+   `<div class="ttools"><label>Pincode <input id="pin" inputmode="numeric" maxlength="6" value="${esc(pin)}" placeholder="700078"></label><button id="copy">Copy list</button><span id="copied" role="status"></span></div>
+    <p class="tnote">Live prices and delivery times for your pincode will appear once store data is connected.</p>`;
+  const p=document.getElementById('pin'); if(p) p.oninput=e=>savePin(e.target.value.replace(/\D/g,''));
+  const c=document.getElementById('copy'); if(c) c.onclick=async()=>{try{await navigator.clipboard.writeText('KidPoshan shopping list\n'+list.map(i=>'- '+i.name).join('\n'));document.getElementById('copied').textContent='Copied'}catch(e){document.getElementById('copied').textContent='Copy not allowed here'}};
+}
+
+function route(){const m=location.hash.match(/^#\/r\/(\d+)/); if(m) renderRecipe(+m[1]); else {renderMenu();renderTray();} }
+window.addEventListener('hashchange',()=>{route();if(!location.hash.startsWith('#/r/'))window.scrollTo(0,0)});
+route();
+</script>
+<script src="/kp-visits.js" defer></script>
+</body>
+</html>
