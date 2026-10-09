@@ -59,6 +59,7 @@ db.exec(fs.readFileSync('migrations/0020_visitors_without_otp.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0021_visitor_email.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0022_site_visitors.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0023_world_regions.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0024_seen_recipes.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -733,5 +734,73 @@ ok(key('250 g salmon fillet') === 'fish' && key('100 g cheddar cheese') === 'che
 ok(key('1 cup rice flour') === 'rice' && key('1/2 cup ragi flour') === 'ragi' && key('1 cup wheat flour') === 'wheat_flour' && key('1 cup milk') === 'milk', 'Indian foods still map as before (rice flour, ragi flour, wheat flour, milk)');
 ok(Math.round(gf(pil('8 oz pasta')).g) === 227 && Math.round(gf(pil('1 lb potatoes')).g) === 454, 'Ounces and pounds are converted to grams');
 ok(pil('2 tbsp chopped parsley').is_pantry === true && pil('1 tbsp fish sauce').is_pantry === false, 'Herbs count as pantry; fish sauce does not');
+
+// ---- at least 20 recipes per combination; a repeat search from the same device shows fresh recipes first ----
+import { pickFresh, MIN_RESULTS } from '../../src/recipes/api.js';
+import { coverageReport, fillOneGap, pruneSeen } from '../../src/recipes/coverage.js';
+ok(MIN_RESULTS === 20, 'The target is 20 recipes per filter combination');
+const pickA = pickFresh(Array.from({ length: 8 }, (_, i) => ({ id: i + 1 })), new Map([[1, 1], [2, 1], [3, 2]]), 5);
+ok(pickA.map((r) => r.id).join() === '4,5,6,7,8', 'pickFresh: unseen recipes first, in order');
+const pickB = pickFresh(Array.from({ length: 6 }, (_, i) => ({ id: i + 1 })), new Map([[1, 3], [2, 1], [3, 1], [4, 2]]), 6);
+ok(pickB.map((r) => r.id).join() === '5,6,2,3,4,1', 'pickFresh: when too few are unseen, the least-seen come back first: ' + pickB.map((r) => r.id));
+for (let i = 0; i < 30; i++) { const id = mkRecipe('https://fresh.example/' + i, { status: 'approved', name: 'Fresh Dish ' + i }); db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ? WHERE id = ?').run(30 + i, 'estimated', id); }
+const fq = (extra = '') => handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&season=all' + extra), env, ctx);
+const fresh0 = await (await fq()).json();
+ok(fresh0.count === 20, 'With no limit given, a combination that has enough recipes returns 20: ' + fresh0.count);
+const devId = 'device0123456789abcd';
+const r1j = await (await fq('&vid=' + devId)).json(), r2j = await (await fq('&vid=' + devId)).json();
+const ids1 = new Set(r1j.results.map((x) => x.id)), ids2 = r2j.results.map((x) => x.id);
+ok(r1j.count === 20 && r2j.count === 20, 'Both searches return 20');
+ok(ids2.filter((i) => !ids1.has(i)).length >= 10, 'The second search from the same device brings mostly recipes it has not seen: ' + ids2.filter((i) => !ids1.has(i)).length + ' new');
+const asc = (arr) => arr.every((x, i) => i === 0 || x.match !== arr[i - 1].match || (x.poshan_score ?? -1) <= (arr[i - 1].poshan_score ?? -1));
+ok(asc(r1j.results) && asc(r2j.results), 'Each shelf is still in descending Poshan Score order after the repeat');
+const otherDev = await (await fq('&vid=otherdevice0123456789')).json();
+ok(otherDev.results.map((x) => x.id).join() === r1j.results.map((x) => x.id).join(), 'A different device gets the same first list as the first search');
+const hitsRowF = db.prepare("SELECT sum(times) m FROM kp_seen WHERE vid = ?").get(devId);
+ok(hitsRowF.m >= 40, "Every recipe shown to a device is counted (two searches of 20 = 40 hits)");
+const rnRes = await fq('&vid=' + devId); await rnRes.json();
+ok(rnRes.headers.get('cache-control') === 'private, no-store' && (await fq()).headers.get('cache-control').startsWith('public'), 'Answers for a device are never cached for others; the plain search still is');
+ok((await (await fq('&vid=bad!')).json()).count === 20 && db.prepare("SELECT count(*) n FROM kp_seen WHERE vid = 'bad!'").get().n === 0, 'A malformed device id is ignored');
+
+const covRep = await coverageReport(env, { pref: 'veg' });
+ok(covRep.combinations === 100 && covRep.target === 20 && covRep.below_target >= 0 && Array.isArray(covRep.worst) && covRep.worst.every((r) => r.count < 20), 'The coverage report covers 100 combinations per preference and lists those under 20');
+const covJson = await (await routeRecipes(new Request('https://w/api/kp/admin/coverage?pref=nonveg', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx)).json();
+ok(covJson.pref === 'nonveg' && covJson.combinations === 100, 'The admin coverage endpoint answers');
+ok((await routeRecipes(new Request('https://w/api/kp/admin/coverage'), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 401, 'The coverage endpoint needs the admin token');
+const gapRes = await fillOneGap({ ...env, TAVILY_API_KEY: undefined }, { sample: 40, rnd: () => 0.01 });
+ok(gapRes && (gapRes.combo || gapRes.checked), 'The gapRes filler checks combinations and reports what it did');
+db.prepare("UPDATE kp_seen SET last_at = 1 WHERE vid = ?").run(devId);
+ok((await pruneSeen(env)).pruned > 0 && db.prepare("SELECT count(*) n FROM kp_seen WHERE vid = ?").get(devId).n === 0, 'Old "seen" rows are forgotten after 60 days');
+
+// ---- recipe-led web search: regional cuisines, Asian and European worlds, new sites suggested in the right world ----
+import { queryKey as lvKey, queryText as lvText, CUISINES as lvCuisines } from '../../src/recipes/live.js';
+import { tavilyLeft as lvLeft } from '../../src/recipes/tavily.js';
+const lvq = { age: 48, occasion: 'lunch', season: 'all', pref: 'veg' };
+ok(lvText(lvq) === 'indian vegetarian lunch recipe for kids' && lvKey(lvq) === 'veg|lunch|all|preschool', 'A parent\'s own Indian search keeps its wording and its old key');
+ok(lvText({ ...lvq, cuisine: 'assamese' }) === 'assamese vegetarian lunch recipe for kids' && !/indian/.test(lvText({ ...lvq, cuisine: 'assamese' })), 'A cuisine-led search names the cuisine and does not force "indian"');
+ok(lvText({ ...lvq, cuisine: 'north east indian' }).startsWith('north east indian vegetarian'), 'North East recipes are searched for by name');
+ok(lvText({ ...lvq, world: 'asia' }).startsWith('southeast asian') && lvText({ ...lvq, world: 'europe' }).startsWith('european'), 'The Asian and European searches are worded for those parts of the world');
+ok(lvKey({ ...lvq, world: 'asia', cuisine: 'thai' }) === 'veg|lunch|all|preschool|c:thai|w:asia' && lvKey({ ...lvq, world: 'asia', cuisine: 'thai' }) !== lvKey({ ...lvq, world: 'asia', cuisine: 'vietnamese' }), 'Each cuisine and world has its own once-a-day search slot');
+ok(lvCuisines.india.includes('assamese') && lvCuisines.india.includes('manipuri') && lvCuisines.india.includes('naga') && lvCuisines.asia.includes('thai') && lvCuisines.europe.includes('italian'), 'The rotation includes the North East states, Southeast Asian and European cuisines');
+
+db.prepare('DELETE FROM kp_tavily_calls').run();
+const lvOrig = globalThis.fetch, lvCalls = [];
+globalThis.fetch = async (u, init) => {
+  if (u === 'https://api.tavily.com/search') {
+    const body = JSON.parse(init.body); lvCalls.push(body);
+    return { ok: true, json: async () => ({ results: body.include_domains ? [] : [{ url: 'https://thaicooks.example/recipes/pad-thai-recipe/' }, { url: 'https://www.pinterest.com/pin/9/' }] }) };
+  }
+  return lvOrig(u, init);
+};
+env.TAVILY_API_KEY = 'test';
+const lvRes = await discoverForQuery(env, { ...lvq, world: 'asia', cuisine: 'thai' }, { publishedCount: 0 });
+globalThis.fetch = lvOrig;
+ok(lvCalls.length === 2 && lvCalls[0].query === 'thai vegetarian lunch recipe for kids' && JSON.stringify(lvCalls[0].include_domains) === JSON.stringify(['asia.example']), 'The Asian search first looks only at the registered Asian sites: ' + JSON.stringify(lvCalls[0].include_domains));
+const lvNew = db.prepare("SELECT status, active, world, notes FROM kp_recipe_sources WHERE url = 'https://thaicooks.example/'").get();
+ok(lvNew && lvNew.status === 'suggested' && lvNew.active === 0 && lvNew.world === 'asia' && /thai vegetarian/.test(lvNew.notes), 'A new website found by the Asian search is only suggested (not crawled), filed under Asian recipes, with the search that found it');
+ok(lvRes.found === 1 && !db.prepare("SELECT 1 FROM kp_recipe_sources WHERE url LIKE '%pinterest%'").get(), 'Pinterest is still ignored');
+ok((await lvLeft(env)) === 23, 'Both searches were counted against the daily Tavily cap');
+const lvGap = await fillOneGap({ ...env, TAVILY_DAILY_CAP: '8' }, { sample: 3, rnd: () => 0.3 });
+ok(/Tavily searches/.test(lvGap.skipped || ''), 'The gap filler keeps the last Tavily searches of the day for parents');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
