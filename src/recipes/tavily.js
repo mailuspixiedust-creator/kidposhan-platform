@@ -17,6 +17,12 @@ export async function spendTavily(env) {
   if (!row) throw new TavilyCapError(cap);
 }
 
+// Searches still allowed today. The background gap filler keeps some in reserve for parents' own searches.
+export async function tavilyLeft(env) {
+  const t = await env.DB.prepare('SELECT calls FROM kp_tavily_calls WHERE day = ?').bind(today()).first();
+  return Math.max(0, dailyCap(env) - (t ? t.calls : 0));
+}
+
 // POST https://api.tavily.com/search with the shared body defaults. Throws TavilyCapError over the cap and Error on an HTTP failure.
 export async function tavilySearchRaw(env, body, fetchFn = fetch) {
   await spendTavily(env);

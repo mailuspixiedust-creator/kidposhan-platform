@@ -493,6 +493,9 @@ body.lb-open{overflow:hidden}
 const QS=new URLSearchParams(location.search);
 const LIVE=!QS.has('demo')&&/kidposhan|workers\.dev|localhost|127\.0\.0\.1/.test(location.hostname);
 const API=QS.get('api')||'';
+// A random id this browser keeps (the same one the visitor count uses). It lets a repeat search show recipes you have not seen yet.
+function deviceId(){try{let v=localStorage.getItem('kp_vid');if(!v){v=[...crypto.getRandomValues(new Uint8Array(12))].map(b=>('0'+b.toString(16)).slice(-2)).join('');localStorage.setItem('kp_vid',v)}return v}catch(e){return ''}}
+const vidParam=()=>{const v=deviceId();return v?'&vid='+v:''};
 
 /* ===== demo catalogue (invented placeholders, not from any source) ===== */
 const PANTRY = new Set(['salt','oil','ghee','turmeric','cumin','mustard_seeds','water','hing','sugar','curry_leaves_dry']);
@@ -616,7 +619,7 @@ function demoSearch(q){
 const toCard=r=>({mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
 async function search(q){
   if(!LIVE) return demoSearch(q).map(toCard);
-  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}`);
+  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}${vidParam()}`);
   if(!res.ok) throw new Error('Search failed. Try again.');
   return (await res.json()).results.map(toCard);
 }
@@ -624,7 +627,7 @@ async function search(q){
 // The "More Asian recipes" / "European recipes" shelves: same filters, same Poshan Score ordering, never blocks the main list.
 async function searchWorld(q,world){
   try{
-    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}&world=${world}`);
+    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}&world=${world}${vidParam()}`);
     if(!res.ok) return [];
     return (await res.json()).results.map(toCard);
   }catch(e){ return [] }
@@ -790,9 +793,9 @@ function renderMenu(){
     const moreHTML=worldShelf('asia','More Asian recipes')+worldShelf('europe','European recipes');
     if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`+moreHTML;
     else{
-      if(r.length<10) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
+      if(r.length<20) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
       html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Excellent">80+ Excellent</span><span class="lg" data-band="Good">58–79 Good</span><span class="lg" data-band="Fair">40–57 Fair</span><span class="lg" data-band="Occasional">Below 40 Occasional</span></div>`;
-      for(const [m,t] of [['exact','Best for today'],['any_season','Good any season']]){
+      for(const [m,t] of [['exact','Best for today'],['any_season','Good any season'],['related','More ideas to try']]){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(dishCard).join('')}</div>`;

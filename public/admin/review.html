@@ -191,7 +191,7 @@ const demo={
 };
 
 let reviewedFilter='all', unreviewedCount=0;
-let tav=null, joined={total:0,visitors:[]};
+let tav=null, joined={total:0,visitors:[]}, cov=null, covBusy=false;
 let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:''};
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
 let tab='approved', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
@@ -214,6 +214,7 @@ async function demoApi(path,opts){
   if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
   if(u.pathname==='/api/kp/admin/tavily') return {configured:true,cap_per_day:25,used_today:3,used_last_7_days:12,account:{plan:'Researcher',used:88,limit:1000}};
   if(u.pathname==='/api/kp/admin/visitors') return {total:0,visitors:[]};
+  if(u.pathname==='/api/kp/admin/coverage') return {pref:u.searchParams.get('pref'),target:20,combinations:100,below_target:42,lowest:3,median:14,worst:[]};
   if(u.pathname==='/api/kp/admin/remarks') return {remarks:[],counts:{}};
   if(u.pathname==='/api/kp/admin/payments') return {payments:[],totals:{}};
   if(u.pathname==='/api/kp/admin/outreach') return {sources:[],tally:{}};
@@ -458,13 +459,27 @@ function tavilyStrip(){
   const a=tav.account, acct=a&&a.limit!=null?`Tavily account: <b>${a.used??'?'} of ${a.limit}</b> credits used${a.plan?' ('+esc(a.plan)+' plan)':''}. `:(tav.account_error?esc(tav.account_error)+'. ':'');
   return `<p class="banner">${acct}Searches made by recipe finding: <b>${tav.used_today} of ${tav.cap_per_day}</b> allowed today, ${tav.used_last_7_days} in the last 7 days. The daily limit stops the free quota running out; change it with the TAVILY_DAILY_CAP variable.</p>`;
 }
+const PREF_NAME={veg:'Veg',jain:'Jain',nonveg:'Non-veg'}, AGE_NAME={9:'6–11 months',18:'1–2 years',48:'3–5 years',84:'6–8 years',126:'9–12 years'}, OCC_NAME={breakfast:'Breakfast',lunchbox:'School lunchbox',lunch:'Lunch',snack_4pm:'4 PM snack',dinner:'Dinner'}, SEA_NAME={summer:'Summer',monsoon:'Monsoon',winter:'Winter',all:'All seasons'};
+function covStrip(){
+  const head='<div class="vcard"><p class="sub" style="margin:0 0 8px">Every combination of child age, meal, season and preference should offer at least 20 recipes.</p>';
+  if(covBusy) return head+'<p class="saved">Counting 300 combinations…</p></div>';
+  if(!cov) return head+'<button class="btn undo" id="covgo">Check coverage</button></div>';
+  const rows=cov.flatMap(c=>c.worst.map(w=>({...w,pref:c.pref})));
+  return head+'<p class="stat">'+cov.map(c=>`<b>${PREF_NAME[c.pref]}</b>: ${c.below_target} of ${c.combinations} combinations below 20 (lowest ${c.lowest}, middle ${c.median})`).join('<br>')+'</p>'+
+    (rows.length?'<details><summary>Lowest combinations</summary><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px"><thead><tr style="text-align:left;color:var(--muted)"><th>Preference</th><th>Age</th><th>Meal</th><th>Season</th><th>Recipes</th></tr></thead><tbody>'+
+      rows.sort((a,b)=>a.count-b.count).slice(0,30).map(r=>`<tr style="border-top:1px solid var(--line)"><td>${PREF_NAME[r.pref]}</td><td>${AGE_NAME[r.age_months]||r.age_months}</td><td>${OCC_NAME[r.occasion]}</td><td>${SEA_NAME[r.season]}</td><td>${r.count}</td></tr>`).join('')+'</tbody></table></details>':'<p class="saved">Every combination has at least 20.</p>')+
+    '<button class="btn undo" id="covgo" style="margin-top:8px">Check again</button></div>';
+}
 function renderSites(list){
-  list.innerHTML=`${tavilyStrip()}<div class="site-tools">
+  list.innerHTML=`${tavilyStrip()}${covStrip()}<div class="site-tools">
     <div class="filters" role="group" aria-label="Show sites">${STATES.map(([k,l])=>`<button class="fchip" data-state-filter="${k}" aria-pressed="${siteState===k}">${l}<span class="n">${siteCounts[k]??''}</span></button>`).join('')}</div>
     <input class="sitesearch" id="sq" type="search" placeholder="Search by name, website or area" value="${esc(siteQ)}" aria-label="Search sites"></div>
     <div id="sitelist">${sites.length?sites.map(siteHTML).join(''):`<p class="empty">${siteState==='new'?'No new sites. Sites found by parent searches appear here for your go-ahead.':'No sites match.'}</p>`}</div>`;
   list.querySelectorAll('[data-state-filter]').forEach(b=>b.onclick=()=>{siteState=b.dataset.stateFilter;load()});
   let t; const sq=document.getElementById('sq'); sq.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{siteQ=sq.value;load().then(()=>{const n=document.getElementById('sq');n.focus();n.setSelectionRange(n.value.length,n.value.length)})},300)};
+  const cg=document.getElementById('covgo'); if(cg) cg.onclick=async()=>{covBusy=true;renderSites(list);
+    try{cov=await Promise.all(['veg','jain','nonveg'].map(pf=>api('/api/kp/admin/coverage?pref='+pf)))}catch(e){alert(e.message)}
+    covBusy=false;renderSites(list)};
   bindSites();
 }
 function siteHTML(s){

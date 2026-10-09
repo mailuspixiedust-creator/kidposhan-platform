@@ -19,15 +19,26 @@ const RECIPE_PATH = /recipe|how-to-make|\/\d{4}\/\d{2}\/[a-z0-9-]{8,}|-[a-z]+-[a
 export function ageBand(m) {
   return m < 12 ? 'infant' : m < 36 ? 'toddler' : m < 72 ? 'preschool' : m < 108 ? 'school' : 'preteen';
 }
+// Regional cuisines the background search rotates through. A recipe-led search ("assamese vegetarian lunch recipe for kids")
+// finds the sites that publish that cuisine, so the sites a recipe is cited from are captured too (suggested for your go-ahead).
+export const CUISINES = {
+  india: ['north east indian', 'assamese', 'manipuri', 'naga', 'mizo', 'khasi meghalaya', 'sikkimese', 'tripura', 'arunachal', 'bengali', 'odia', 'bihari',
+    'kashmiri', 'himachali', 'punjabi', 'rajasthani', 'gujarati', 'maharashtrian', 'goan', 'karnataka', 'kerala', 'tamil', 'andhra', 'telangana', 'hyderabadi', 'uttar pradesh'],
+  asia: ['thai', 'vietnamese', 'filipino', 'malaysian', 'indonesian', 'singaporean', 'japanese', 'korean', 'chinese home style', 'sri lankan', 'burmese', 'cambodian'],
+  europe: ['italian', 'mediterranean', 'french', 'spanish', 'greek', 'german', 'british', 'irish', 'scandinavian', 'polish', 'portuguese', 'dutch'],
+};
+// The key of one search: the filters, plus the cuisine and world when the search is for those. (Plain Indian searches keep their old key.)
 export function queryKey(q) {
-  return [q.pref, q.occasion, q.season, ageBand(q.age)].join('|');
+  return [q.pref, q.occasion, q.season, ageBand(q.age)].join('|') + (q.cuisine ? `|c:${q.cuisine}` : '') + ((q.world || 'india') !== 'india' ? `|w:${q.world}` : '');
 }
 export function queryText(q) {
   const pref = { veg: 'vegetarian', jain: 'jain no onion no garlic', nonveg: 'egg chicken fish mutton prawn' }[q.pref];
   const occ = { breakfast: 'breakfast', lunchbox: 'lunch box tiffin', lunch: 'lunch', snack_4pm: 'evening snack', dinner: 'dinner' }[q.occasion];
   const age = { infant: 'baby food 6 to 12 months', toddler: 'toddler', preschool: 'kids', school: 'kids', preteen: 'kids' }[ageBand(q.age)];
   const season = q.season === 'all' ? '' : q.season;
-  return `indian ${pref} ${occ} recipe for ${age} ${season}`.replace(/\s+/g, ' ').trim();
+  // a parent's own search keeps the plain "indian"; the background search names the cuisine instead
+  const lead = q.cuisine || { india: 'indian', asia: 'southeast asian', europe: 'european' }[q.world || 'india'];
+  return `${lead} ${pref} ${occ} recipe for ${age} ${season}`.replace(/\s+/g, ' ').trim();
 }
 
 const tavily = (env, body) => tavilySearchRaw(env, body);   // counted against the daily cap
@@ -50,23 +61,25 @@ export async function discoverForQuery(env, q, { publishedCount = 0 } = {}) {
   ).bind(key, publishedCount).run();
 
   const text = queryText(q);
+  const world = q.world || 'india';
   const { results: sources } = await env.DB.prepare(
-    "SELECT id, url, status FROM kp_recipe_sources WHERE crawl_mode = 'auto' AND (status = 'suggested' OR (status = 'registered' AND active = 1))"
+    "SELECT id, url, status, world FROM kp_recipe_sources WHERE crawl_mode = 'auto' AND (status = 'suggested' OR (status = 'registered' AND active = 1))"
   ).all();
   const byHost = new Map(sources.map((s) => [host(s.url), s]).filter(([h]) => h));
+  const sameWorld = [...byHost.entries()].filter(([, s]) => (s.world || 'india') === world).map(([h]) => h);
   // blocked AND paused sites are excluded from the open-web pass too, so they aren't re-suggested
   const blocked = new Set((await env.DB.prepare("SELECT url FROM kp_recipe_sources WHERE status = 'blocked' OR (status = 'registered' AND active = 0)").all()).results.map((s) => host(s.url)));
 
   const found = []; // {sourceId, url}
-  // 1. Registered (and previously suggested) sites first.
+  // 1. Registered (and previously suggested) sites of this part of the world first.
   try {
-    for (const r of await tavily(env, { query: text, include_domains: [...byHost.keys()].slice(0, 300) })) {
+    if (sameWorld.length) for (const r of await tavily(env, { query: text, include_domains: sameWorld.slice(0, 300) })) {
       const s = byHost.get(host(r.url));
       if (s) found.push({ sourceId: s.id, url: r.url });
     }
   } catch (e) { /* fall through to open web */ }
 
-  // 2. Open web: well-known creators not yet in the registry become 'suggested' sites.
+  // 2. Open web: well-known creators not yet in the registry become 'suggested' sites (in this search's part of the world).
   try {
     const open = await tavily(env, { query: text, exclude_domains: [...byHost.keys(), ...blocked].slice(0, 300) });
     let added = 0;
@@ -78,9 +91,9 @@ export async function discoverForQuery(env, q, { publishedCount = 0 } = {}) {
       if (!s) {
         const origin = new URL(r.url).origin + '/';
         s = await env.DB.prepare(
-          `INSERT INTO kp_recipe_sources (name, platform, region, area, url, notes, active, crawl_mode, status)
-           VALUES (?, 'Website', 'Unknown', 'Unknown', ?, ?, 0, 'auto', 'suggested') RETURNING id, url, status`
-        ).bind(h, origin, `Found by parent search: ${text}`).first();
+          `INSERT INTO kp_recipe_sources (name, platform, region, area, url, notes, active, crawl_mode, status, world)
+           VALUES (?, 'Website', 'Unknown', 'Unknown', ?, ?, 0, 'auto', 'suggested', ?) RETURNING id, url, status, world`
+        ).bind(h, origin, `Found by search: ${text}`, world).first();
         byHost.set(h, s);
       }
       found.push({ sourceId: s.id, url: r.url });

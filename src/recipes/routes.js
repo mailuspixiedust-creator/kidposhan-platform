@@ -23,6 +23,7 @@ import { listForReview, reviewRecipe, listSources, updateSource } from './review
 import { UserError, joinVisitor, listVisitors, userFromRequest, logout, setName, rateRecipe, ratingFor, addRemark, approvedRemarks, claimPayment, payConfig, listRemarks, reviewRemark, listPayments, reviewPayment } from './social.js';
 import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
+import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
 import { setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
@@ -138,6 +139,7 @@ export async function routeRecipes(request, env, ctx) {
     m = path.match(/^\/api\/kp\/admin\/sources\/(\d+)$/);
     if (m && request.method === 'POST') return json(await updateSource(env, +m[1], await request.json()));
     if (path === '/api/kp/admin/tavily' && request.method === 'GET') return json(await tavilyUsage(env));
+    if (path === '/api/kp/admin/coverage' && request.method === 'GET') return json(await coverageReport(env, { pref: url.searchParams.get('pref') || 'veg', world: url.searchParams.get('world') || 'india' }));
     if (path === '/api/kp/admin/visitors' && request.method === 'GET') return json(await listVisitors(env));
     // ---- visitors: remarks to approve, support payments to confirm ----
     if (path === '/api/kp/admin/remarks' && request.method === 'GET') return json(await listRemarks(env, { status: url.searchParams.get('status') || 'pending' }));
@@ -256,6 +258,8 @@ export async function scheduledRecipes(env, cron) {
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
   try { console.log('gallery', JSON.stringify(await galleryPending(env, { limit: 4 }))); } catch (e) { console.error('gallery', e); }
   if (env.GMAIL_REFRESH_TOKEN) { try { console.log('replies', JSON.stringify(await checkReplies(env))); } catch (e) { console.error('replies', e); } }
+  try { console.log('gap', JSON.stringify(await fillOneGap(env))); } catch (e) { console.error('gap', e); }          // look for recipes where a combination has fewer than 20
+  try { console.log('seen', JSON.stringify(await pruneSeen(env))); } catch (e) { console.error('seen', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(
