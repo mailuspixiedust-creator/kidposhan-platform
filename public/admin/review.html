@@ -554,7 +554,7 @@ async function load(append=false){
     if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
     if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;auth.settings=await api('/api/kp/admin/outreach/settings').catch(()=>auth.settings);const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
-    if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
+    if(['approved','pending','rejected'].includes(tab)){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
     render();
   }catch(e){ if(token||DEMO) app.innerHTML=`<h1>Recipe review</h1><p class="err">Couldn't load the queue: ${esc(e.message)}</p>`; }
 }
