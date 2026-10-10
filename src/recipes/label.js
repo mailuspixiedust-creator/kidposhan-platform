@@ -121,6 +121,7 @@ export async function readPackLabel(env, id) {
     page = await r.text();
   } catch (e) { await done().bind('product page not readable; enter the label by hand', p.id).run(); return { id, note: 'page fetch failed' }; }
   const images = packImages(page);
+  if (images.length) await env.DB.prepare('UPDATE kp_ready_products SET gallery_json = ? WHERE id = ?').bind(JSON.stringify(images), p.id).run();
   if (!images.length) { await done().bind('no pack images found on the page; enter the label by hand', p.id).run(); return { id, note: 'no images' }; }
 
   const [modelA, modelB] = [env.LABEL_MODEL_A || LABEL_MODELS[0], env.LABEL_MODEL_B || LABEL_MODELS[1]];
@@ -147,7 +148,7 @@ export async function readPackLabel(env, id) {
     if (!SWEET.test(ingredients.join(', '))) { label.added_sugars_g = 0; notes.push('added sugars set to 0: the ingredient list names no sugar, jaggery, syrup or honey'); }
     else notes.push('added sugars not printed and the ingredients include a sweetener: enter added sugars by hand');
   } else if (label.added_sugars_g == null) notes.push('added sugars not printed and no ingredient list: enter it by hand');
-  const sc = scorePack(label, ingredients);
+  const sc = scorePack(label, ingredients, p.name);
   await env.DB.prepare(
     `UPDATE kp_ready_products SET nutrition_json = ?, ingredients_json = ?, kidposhan_score = ?, score_status = ?, score_breakdown_json = ?,
        label_image_url = ?, label_source = 'pack_image', label_tried_at = datetime('now'), label_note = ? WHERE id = ?`

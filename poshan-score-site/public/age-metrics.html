@@ -298,6 +298,26 @@
 
   footer{ text-align:center; padding:40px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
   footer b{ color:var(--ink); }
+
+  .tiers{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:18px 0 8px; }
+  .tier-card{ border-radius:12px; padding:12px 12px 10px; border:1px solid var(--line); background:var(--card); }
+  .tier-card b{ display:block; font-family:var(--font-display); font-size:18px; }
+  .tier-card span{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); }
+  .tier-card.t-Excellent{ border-top:5px solid var(--green); } .tier-card.t-Good{ border-top:5px solid #7BA05B; }
+  .tier-card.t-Fair{ border-top:5px solid #B5790A; } .tier-card.t-Occasional{ border-top:5px solid var(--red); }
+  @media(max-width:560px){ .tiers{ grid-template-columns:repeat(2,1fr); } }
+  .m2{ display:grid; grid-template-columns:44px 1fr; gap:14px; padding:18px 0; border-top:1px solid var(--line); }
+  .m2 .metric-badge{ width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--green); }
+  .m2 h3{ margin:0 0 2px; font-family:var(--font-display); font-weight:400; font-size:21px; }
+  .m2 .scaling{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); }
+  .m2 p{ margin:6px 0; font-size:14.5px; line-height:1.55; color:var(--ink-dim); }
+  .ruler10{ display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:3px; margin:10px 0 2px; }
+  .ruler10 .rc{ border-radius:6px; background:#EFEAD9; padding:6px 0 4px; text-align:center; font:700 13px/1 var(--font-body); color:#6B5D4B; }
+  .ruler10 .rc small{ display:block; margin-top:4px; font:500 9.5px/1.2 var(--font-body); color:#8C7A64; min-height:24px; }
+  .ruler10 .rc.lo{ background:#F2D6CD; } .ruler10 .rc.mid{ background:#F4E3B5; } .ruler10 .rc.hi{ background:#D3E6CC; }
+  .rsc{ display:flex; justify-content:space-between; font-size:11px; color:var(--ink-dim); }
+  .m2 .src{ font-size:12.5px; color:var(--ink-dim); margin-top:6px; }
+  @media(max-width:560px){ .m2{ grid-template-columns:1fr; } .ruler10 .rc small{ font-size:8.5px; } }
 @media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
   @media(min-width:1180px){.nav-links{gap:22px}}
   .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
@@ -315,39 +335,38 @@
     <a href="index.html">Home</a>
     <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
-    <a href="browse.html">Browse</a>
-    <a href="cereals.html">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="products.html">Products</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
   <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
   </button>
-    <a class="nav-cta" href="browse.html">See ratings</a>
+    <a class="nav-cta" href="products.html">See products</a>
 </nav>
 <div class="mobile-menu" id="mobileMenu">
     <a href="index.html">Home</a>
     <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
-    <a href="browse.html">Browse</a>
-    <a href="cereals.html">Cereal Aisle</a>
     <a href="meal-ideas.html">Meal Ideas</a>
+    <a href="products.html">Products</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
 
 <header class="hero">
   <div class="hero-text">
     <div class="eyebrow">Age-banded rubric &nbsp;·&nbsp; How to read it</div>
-    <h1>Ten metrics, equal weight, scored per age band.</h1>
+    <h1>Ten metrics, each marked 1 to 10, adding up to 100.</h1>
     <p class="lede">
-      Six metrics are real numbers off the label measured as a share of an age band's daily reference —
-      <b>added sugar, sodium, saturated fat, trans fat, fiber and protein</b>. Fiber and protein are
-      <b>credit</b> metrics (more is better); the rest are <b>risk</b> metrics (less is better). Three more
-      are declared/not-declared checks that don't change with age — <b>preservatives, artificial additives,
-      and base-ingredient integrity</b>. The tenth is a composite: whether the product would trip
-      <b>FSSAI's own proposed HFSS warning</b>. A product that fails any single risk metric outright is
-      capped at Caution overall — low fiber or protein cost points but can't trigger that cap on their own.
-      Every number below is cited — sources are listed in full at the bottom of this page.
+      Every product and every recipe gets <b>one score out of 100</b>. It is the sum of ten metrics, and each
+      metric is marked from <b>1 (worst) to 10 (best)</b> on a ruler you can see below. Six of them are numbers off
+      the label, measured as a share of the child's daily reference for their age band:
+      <b>added sugar, sodium, saturated fat, trans fat, fibre and protein</b>. Fibre and protein are
+      <b>credit</b> metrics (more is better); the others are <b>risk</b> metrics (less is better). Three more are
+      checks that do not change with age: <b>preservatives, artificial additives and base-ingredient integrity</b>.
+      The tenth is <b>HFSS</b>, the worst of the sugar, sodium and saturated-fat marks. A product that scores 3 or less on
+      any one risk metric cannot score above 57. The same method is used on the Products and Meal Ideas pages.
+      Every number below is cited, and the sources are listed at the bottom of this page.
     </p>
   </div>
 
@@ -421,7 +440,7 @@
   <h2>Pick an age band</h2>
   <p class="intro">
     Four bands, matched to how Indian pediatric nutrition data is actually published. Tap a band —
-    every reference number on this page and on the Browse page recalculates around it.
+    every reference number on this page recalculates around it.
   </p>
 
   <div class="age-tabs" id="ageTabs">
@@ -481,14 +500,13 @@
   <div class="bg-pkg bp4" aria-hidden="true"></div>
 
   <div class="section-eyebrow">Step 2</div>
-  <h2>The ten metrics, and how each is measured</h2>
+  <h2>The ten metrics, each on a scale of 1 to 10</h2>
 
   <div class="metrics-intro-row">
     <p class="intro">
-      Six move with the age band you picked above. Three are the same pass/fail check regardless of age.
-      The tenth is a composite of the other nine, modelled on a real, currently-pending Indian regulation.
-      This is exactly why we don't trust the front of the pack — watch what's printed there against
-      what's actually on the back.
+      Each metric below shows its 1 to 10 ruler and exactly what earns each mark. Add the ten marks and you have the
+      score out of 100. This is why we do not trust the front of the pack: watch what is printed there against what is
+      actually on the back.
     </p>
     <div class="flip-stage" aria-hidden="true">
       <div class="flip-card">
@@ -510,147 +528,23 @@
     </div>
   </div>
 
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--red);">1</div>
-    <div>
-      <h3>Added Sugar</h3>
-      <span class="scaling byage">Scales by age</span>
-      <p>Read off the "Added Sugars" line, compared against the age band's daily gram limit.</p>
-      <div class="threshold">Pass: &lt;10% of daily ideal limit per serving · Partial: &lt;30% · Fail: 30%+</div>
-      <div class="cite">Source: WHO free-sugar guideline [2]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--gold);">2</div>
-    <div>
-      <h3>Sodium</h3>
-      <span class="scaling byage">Scales by age</span>
-      <p>Read off the "Sodium" line, compared against the age band's daily reference.</p>
-      <div class="threshold">Pass: &lt;10% of daily reference per serving · Partial: &lt;30% · Fail: 30%+</div>
-      <div class="cite">Source: NASEM/IOM DRI, used as proxy — ICMR has no pediatric table [4]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--red);">3</div>
-    <div>
-      <h3>Saturated Fat</h3>
-      <span class="scaling byage">Scales by age</span>
-      <p>Regulated separately from trans fat — a product can pass the trans-fat check and still be loaded
-      with saturated fat from palm oil, coconut oil, or ghee-heavy formulations.</p>
-      <div class="threshold">Daily limit derived as 10% of age-band energy ÷ 9 kcal/g</div>
-      <div class="cite">Source: WHO saturated-fat guidance, &lt;10% of energy [3]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--brown);">4</div>
-    <div>
-      <h3>Trans Fat / Hydrogenated Oils</h3>
-      <span class="scaling fixed">Fixed, all ages</span>
-      <p>The one metric with a real regulatory number that applies uniformly — not age-based, but universal.</p>
-      <div class="threshold">FSSAI ceiling: ≤2% of total fat is trans fat, for every packaged food</div>
-      <div class="cite">Source: FSSAI trans-fat regulation [5]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--green);">5</div>
-    <div>
-      <h3>Fiber</h3>
-      <span class="scaling credit">Credit metric</span>
-      <p>The first metric that rewards a product for being good, not just penalizes it for being bad.</p>
-      <div class="threshold">Pass: serving covers 15%+ of daily fiber need · Partial: 5–15% · Fail: &lt;5%</div>
-      <div class="cite">Source: NASEM/IOM adequate intake, used as proxy [4]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--green);">6</div>
-    <div>
-      <h3>Protein</h3>
-      <span class="scaling credit">Credit metric</span>
-      <p>ICMR-NIN 2020 publishes real age-wise protein RDAs — this is the one credit metric with a genuine
-      Indian pediatric reference behind it, not a proxy.</p>
-      <div class="threshold">Pass: serving covers 15%+ of daily protein RDA · Partial: 5–15% · Fail: &lt;5%</div>
-      <div class="cite">Source: ICMR-NIN 2020 protein RDA by age [1]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--brown);">7</div>
-    <div>
-      <h3>Preservatives</h3>
-      <span class="scaling fixed">Fixed, all ages</span>
-      <p>Presence/absence of FSSAI Class II preservatives (e.g. INS 200–203, 211, 220–228) by name.</p>
-      <div class="threshold">0 preservatives = pass · 1 = partial · 2+ = fail</div>
-      <div class="cite">Source: FSSAI Food Products Standards and Food Additives Regulations, 2011 [6]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--brown);">8</div>
-    <div>
-      <h3>Artificial Additives</h3>
-      <span class="scaling fixed">Fixed, all ages</span>
-      <p>Flavour enhancers and synthetic colours by INS number (e.g. 627, 631, 635, 150d, 319/320).</p>
-      <div class="threshold">0 codes = pass · 1–2 = partial · 3+ = fail</div>
-      <div class="cite">Source: FSSAI Food Products Standards and Food Additives Regulations, 2011 [6]</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--green);">9</div>
-    <div>
-      <h3>Base-Ingredient Integrity</h3>
-      <span class="scaling fixed">Fixed, all ages</span>
-      <p>Whether the first ingredient on the pack is actually the food it's named after.</p>
-      <div class="threshold">Named ingredient is #1 by weight = pass</div>
-      <div class="cite">Judgment-based read of ingredient order — no single regulation covers this directly</div>
-    </div>
-  </div>
-
-  <div class="metric-row">
-    <div class="metric-badge" style="background:var(--red);">10</div>
-    <div>
-      <h3>HFSS Status</h3>
-      <span class="scaling composite">Composite flag</span>
-      <p>Not a new nutrient — a derived flag modelled on FSSAI's own proposed rule. On 29 August 2026,
-      FSSAI told the Supreme Court of India it plans a front-of-pack red warning for products high in
-      fat, sugar, or salt (HFSS), with thresholds from the <i>Dietary Guidelines for Indians, 2024</i>.
-      Their Phase I proposal flags products high in 2+ of the three; a later Phase II would flag any one.
-      We apply the stricter Phase II standard now.</p>
-      <div class="threshold">Fail (0 pts) if sugar, sodium, or saturated fat scores a fail on its own — any one is enough</div>
-      <div class="cite">Source: FSSAI compliance affidavit, Supreme Court of India, W.P.(C) No. 437/2024, 29 Aug 2026 [7]</div>
-    </div>
-  </div>
+  <div id="tiers" class="tiers" aria-live="polite"></div>
+  <div id="metricList" aria-live="polite"><p class="intro">Loading the method…</p></div>
 </section>
 
 <!-- WORKED EXAMPLE -->
 <section class="section" id="worked-example">
   <div class="section-eyebrow">Step 3</div>
-  <h2>Why age changes the answer — a real example</h2>
-  <p class="intro">
-    Saffola Masala Oats Classic Masala carries 793.8mg of sodium in one 38g serving pouch. Here's what
-    that single serving costs against each age band's daily sodium reference:
-  </p>
-
+  <h2>Why age changes the answer: a real example</h2>
+  <p class="intro" id="exIntro">Loading the example…</p>
   <div class="example">
-    <h3>Saffola Masala Oats, Classic Masala — one 38g serving</h3>
-    <p class="sub">793.8mg sodium per serving, held constant — only the age-band reference changes</p>
-    <div class="example-grid">
-      <div class="example-cell flag-high"><div class="age">1–3 yrs</div><div class="pct" data-target="66">0%</div><div class="caption">of daily sodium reference</div></div>
-      <div class="example-cell flag-high"><div class="age">4–6 yrs</div><div class="pct" data-target="53">0%</div><div class="caption">of daily sodium reference</div></div>
-      <div class="example-cell flag-mid"><div class="age">7–9 yrs</div><div class="pct" data-target="44">0%</div><div class="caption">of daily sodium reference</div></div>
-      <div class="example-cell flag-mid"><div class="age">10–12 yrs</div><div class="pct" data-target="40">0%</div><div class="caption">of daily sodium reference</div></div>
-    </div>
+    <h3 id="exTitle">Sodium in one serving</h3>
+    <p class="sub">The amount of sodium is held constant. Only the age band's daily reference changes.</p>
+    <div class="example-grid" id="exGrid"></div>
   </div>
-
   <p class="intro" style="margin-top:18px;">
-    Under the ten-metric rubric this same reading also trips the HFSS flag (metric 10) at every age band,
-    which caps Saffola's tier at Caution regardless of how its other metrics score — see the full
-    breakdown on the <a href="browse.html">Browse page</a>.
+    The same label gets a different mark at each age, so the total out of 100 changes too. Pick your child's age on the
+    <a href="products.html">Products page</a> and the whole catalogue is re-scored for that age.
   </p>
 </section>
 
@@ -670,16 +564,38 @@
 </section>
 
 <p class="note">
-  <b>What's a real citation vs. a judgment call:</b> metrics 1, 2, 3, 5, 6 and 10 are numbers compared
-  against a published daily reference. Metrics 4, 7 and 8 are declared/not-declared checks against a
-  named regulation. Metric 9 (Base-Ingredient Integrity) is the one metric on this page without a single
-  governing regulation — it's our own read of ingredient order, applied consistently.
+  <b>What is a citation and what is a judgment call:</b> metrics 1, 2, 3, 5, 6 and 10 are numbers compared
+  against a published daily reference. Metrics 4, 7 and 8 are declared or not-declared checks against a
+  named regulation. Metric 9 (base-ingredient integrity) is the one metric without a single governing
+  regulation. It is our own read of ingredient order, applied the same way every time. Under 12 months there is
+  no published reference band, so the 1 to 3 year reference is used and the page says so.
 </p>
 
 <footer>
   Benchmarked against <b>ICMR-NIN 2020</b>, <b>WHO</b> guidance, <b>NASEM/IOM DRIs</b> and <b>FSSAI</b>
   regulation · Poshan Score is an independent rating, not a certification
 </footer>
+
+<script>
+(async function(){
+  const API='https://kidposhan-platform.mailus-pixiedust.workers.dev';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let d; try{ const r=await fetch(API+'/api/kp/score-method'); if(!r.ok) throw 0; d=await r.json() }
+  catch(e){ document.getElementById('metricList').innerHTML='<p class="intro">The method could not be loaded just now. Please refresh the page.</p>'; return }
+  document.getElementById('tiers').innerHTML=d.tiers.map(t=>'<div class="tier-card t-'+esc(t.name)+'"><b>'+esc(t.name)+'</b><span>'+t.min+' to '+t.max+' out of 100</span></div>').join('');
+  const kind={risk:'Risk metric: less is better',credit:'Credit metric: more is better',check:'Check: the same at every age',composite:'Composite: worst of metrics 1, 2 and 3'};
+  document.getElementById('metricList').innerHTML=d.metrics.map(m=>{
+    const by={}; m.steps.forEach(s=>{ if(typeof s.score==='number') by[s.score]=s.rule });
+    let cells=''; for(let i=1;i<=10;i++){ const cls=i>=8?'hi':i>=4?'mid':'lo'; cells+='<div class="rc '+cls+'">'+i+'<small>'+(by[i]?esc(by[i]):'')+'</small></div>' }
+    const note=m.steps.length&&typeof m.steps[0].score!=='number'?'<p><b>'+esc(m.steps[0].score)+':</b> '+esc(m.steps[0].rule)+'</p>':'';
+    return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" role="img" aria-label="Scale from 1 to 10 for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>1 = worst</span><span>10 = best</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
+  }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' caps the total at '+d.cap.score+'.</b> '+esc(d.bases.pack)+' '+esc(d.bases.meal)+'</p>';
+  const ex=d.sodium_example;
+  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that costs against each age band\'s daily sodium reference, and the 1 to 10 mark it earns:';
+  document.getElementById('exTitle').textContent=ex.mg+' mg sodium, '+ex.what;
+  document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score<=3?'flag-high':a.score<=6?'flag-mid':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium mark: '+a.score+' / 10</b></div></div>').join('');
+})();
+</script>
 
 <script>
   const tabs = document.querySelectorAll('.age-tab');
@@ -703,28 +619,7 @@
   }, { threshold: 0.15 });
   document.querySelectorAll('.metric-row').forEach(row => rowObserver.observe(row));
 
-  // count-up animation for the worked example percentages
-  function animateCount(el){
-    const target = parseInt(el.getAttribute('data-target'), 10);
-    let current = 0;
-    const step = Math.max(1, Math.round(target / 30));
-    const tick = () => {
-      current = Math.min(target, current + step);
-      el.textContent = current + '%';
-      if (current < target) requestAnimationFrame(tick);
-    };
-    tick();
-  }
-  const countObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        document.querySelectorAll('.example-cell .pct').forEach(animateCount);
-        countObserver.disconnect();
-      }
-    });
-  }, { threshold: 0.3 });
-  const exampleEl = document.querySelector('.example');
-  if (exampleEl) countObserver.observe(exampleEl);
+  // (the worked example is drawn by the loader above)
 </script>
 
 <script>

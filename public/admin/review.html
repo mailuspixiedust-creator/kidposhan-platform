@@ -281,11 +281,15 @@ function packCard(p){
 }
 function renderPacks(list){
   const c=packCounts;
-  list.innerHTML=`<p class="sub">Ready-made versions of dishes (ragi dosa → a ragi dosa mix). Parents see only packs you approve. Type the label values from the pack photo to get an exact Poshan Score.</p>
+  list.innerHTML=`<p class="sub">Packaged foods: ready-made versions of dishes (ragi dosa → a ragi dosa mix) and everyday products for the Products page. Parents see only what you approve, and a product is listed on the Products page once its label has been read and scored. The site searches for new ones every 3 hours.</p>
+    ${packStatus==='candidate'?'<p><button class="btn publish" id="approvescored">Approve every waiting product that has a score</button> <span class="why" id="approvemsg"></span></p>':''}
     <div class="tabs" role="tablist">${[['candidate','Waiting'],['approved','Approved'],['rejected','Rejected']].map(([k,l])=>`<button class="tab" aria-selected="${packStatus===k}" data-ps="${k}">${l}<span class="n">${c[k]??0}</span></button>`).join('')}</div>
     <p><button class="btn undo" id="findpacks">Find packs for my published recipes</button> <span class="why" id="packmsg">${esc(packMsg)}</span></p>
     ${packs.length?packs.map(packCard).join(''):'<p class="empty">Nothing here. The site looks for packs automatically, one dish type every 3 hours, or press "Find more packs now".</p>'}`;
   list.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{packStatus=b.dataset.ps;load()});
+  const as=document.getElementById('approvescored'); if(as) as.onclick=async()=>{
+    if(!confirm('Approve every waiting product that has a score? They will appear on the Products page (and on matching recipe pages) straight away. You can reject any of them afterwards.'))return;
+    as.disabled=true;try{const r=await api('/api/kp/admin/products/approve-scored',{method:'POST',body:'{}'});packMsg=`Approved ${r.approved} product${r.approved===1?'':'s'}.`;load()}catch(x){document.getElementById('approvemsg').textContent=x.message;as.disabled=false}};
   document.getElementById('findpacks').onclick=async e=>{e.target.disabled=true;document.getElementById('packmsg').textContent='Searching, about 90 seconds…';
     try{
       let r=await api('/api/kp/admin/products/research?scope=published',{method:'POST'});

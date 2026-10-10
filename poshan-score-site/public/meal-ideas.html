@@ -411,6 +411,22 @@ img,svg{max-width:100%}
 body.lb-open{overflow:hidden}
 @media (max-width:600px){.lb-p,.lb-n{top:auto;bottom:56px;transform:none}.lb-p{left:calc(50% - 56px)}.lb-n{right:calc(50% - 56px)}.lb{padding-bottom:116px}}
 
+/* ===== the ten metrics, each on a numbered 1-10 ruler ===== */
+.scoredet{margin:10px 0 4px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:4px 16px 12px}
+.scoredet>summary{cursor:pointer;font-weight:700;padding:10px 0;list-style:none}
+.scoredet>summary::-webkit-details-marker{display:none}
+.scoredet>summary::after{content:"＋";float:right;color:var(--gold)}.scoredet[open]>summary::after{content:"－"}
+.mlist{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.mhead b{font-size:15px}.mscore{font:800 20px/1 var(--display)}.mscore small{font:600 12px/1 var(--body);color:var(--muted)}
+.mread{font-size:13px;color:var(--muted);margin-top:2px}
+.ruler{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;margin-top:6px}
+.rc{height:22px;border-radius:5px;background:#EFEAD9;color:#8C7A64;font:600 11px/22px var(--body);text-align:center}
+.rc.on.hi{background:var(--leaf);color:#fff}.rc.on.mid{background:var(--turmeric);color:#2B1D00}.rc.on.lo{background:var(--chilli);color:#fff}
+.rc.cur{outline:2px solid var(--ink);outline-offset:1px;font-weight:800}
+.rscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px}
+.mtotal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
+.mtotal b{font:800 24px/1 var(--display)}
 /* ===== ratings, remarks, support ===== */
 .stars{display:inline-block;letter-spacing:2px;background:linear-gradient(90deg,var(--gold) var(--p,0%),#DCD2BC var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;line-height:1}
 .dish .rate{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
@@ -461,22 +477,20 @@ body.lb-open{overflow:hidden}
     <a href="index.html">Home</a>
     <a href="index.html#metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
-    <a href="browse.html">Browse</a>
-    <a href="cereals.html">Cereal Aisle</a>
     <a href="meal-ideas.html" class="on">Meal Ideas</a>
+    <a href="products.html">Products</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
   <button class="nb-burger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-  <a class="nb-cta" href="browse.html">Rate a product</a>
+  <a class="nb-cta" href="products.html">See products</a>
 </nav>
 <div class="nb-mobile" id="mobileMenu">
   <a href="index.html">Home</a>
   <a href="index.html#metrics">Methodology</a>
   <a href="age-metrics.html">Age &amp; Metrics</a>
-  <a href="browse.html">Browse</a>
-  <a href="cereals.html">Cereal Aisle</a>
   <a href="meal-ideas.html">Meal Ideas</a>
-  <a href="why-we-do-this.html">Why We Do This</a>
+  <a href="products.html">Products</a>
+    <a href="why-we-do-this.html">Why We Do This</a>
 </div>
 <main class="wrap" id="app"></main>
 <footer class="site-footer">
@@ -542,7 +556,7 @@ const RECIPES = [
 
 
 
-const AGES=[[9,'6–11 months'],[18,'1–2 years'],[48,'3–5 years'],[84,'6–8 years'],[126,'9–12 years']];
+const AGES=[[9,'6–12 months'],[24,'1–3 years'],[60,'4–6 years'],[96,'7–9 years'],[132,'10–12 years']];
 const OCC=[['breakfast','Breakfast'],['lunchbox','School lunchbox'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
 const SEA=[['summer','Summer'],['monsoon','Monsoon'],['winter','Winter'],['all','All seasons']];
 const PREF=[['veg','Veg'],['jain','Jain'],['nonveg','Non-veg']];
@@ -746,6 +760,7 @@ function save(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}catch(e){return null}}
 function savePin(v){try{localStorage.setItem('kp_pincode',v)}catch(e){}}
 let S=JSON.parse(load('kp_menu')||'{}'); S.items=S.items||{}; // filters + last results + shopping states
+if(S.age&&!AGES.some(a=>a[0]===S.age)){S.age=AGES.reduce((b,a)=>Math.abs(a[0]-S.age)<Math.abs(b[0]-S.age)?a:b)[0];S.results=null;S.more=null}   // an age saved before the bands changed: nearest band, and search again
 const persist=()=>save('kp_menu',JSON.stringify(S));
 const app=document.getElementById('app');
 new MutationObserver(()=>reveal()).observe(app,{childList:true});
@@ -923,15 +938,20 @@ async function loadSupport(id){
     catch(x){ msg(x.message,'err'); e.target.disabled=false }
   };
 }
+/* ===== the ten metrics ===== */
+const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
+function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
+function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>Total of the ten metrics</span><b>${ms.reduce((a,m)=>a+m.score,0)}</b></div>`}
 /* ===== recipe page ===== */
 async function getRecipe(id){
   if(!LIVE){const r=RECIPES.find(x=>x.id===id); if(!r) return null;
     return {...r,source:null,
       ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(i.n.split(',')[0]))}))})),
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
-  const res=await fetch(`${API}/api/kp/recipes/${id}${S.pref?`?pref=${S.pref}`:''}`); if(!res.ok) return null; const d=await res.json();
+  const qs=[S.pref?`pref=${S.pref}`:'',S.age?`age_months=${S.age}`:''].filter(Boolean).join('&');
+  const res=await fetch(`${API}/api/kp/recipes/${id}${qs?'?'+qs:''}`); if(!res.ok) return null; const d=await res.json();
   return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
-    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',
+    source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',metrics:d.score?.metrics||null,capped:!!d.score?.capped,ageLabel:d.score?.age_band_label||'',
     ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
     images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
@@ -977,7 +997,7 @@ async function renderRecipe(id){
   app.innerHTML=`<div class="hero">${art}<button class="back" id="back" aria-label="Back to meal ideas"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
    <article class="sheet pad">
     <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
-    ${r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
+    ${r.score&&r.metrics?`<p class="credit">Poshan Score for ${esc(r.ageLabel)}, out of 100: ten metrics, each scored 1 to 10, ${esc(r.basis||'per serving')}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}${r.capped?' Capped at 57 because one risk metric scored 3 or less.':''}</p><details class="scoredet"><summary>How the score is worked out</summary>${metricsHTML(r.metrics)}<p class="credit" style="margin-top:10px">The ten metrics and every threshold are on the <a href="age-metrics.html">Age &amp; Metrics</a> page. Change your child's age above and the score is worked out again for that age.</p></details>`:r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
     ${LIVE?'<div id="rateBox" class="ratebox"></div>':''}
     ${galleryHTML}

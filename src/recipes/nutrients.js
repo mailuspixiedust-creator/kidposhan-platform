@@ -104,6 +104,7 @@ export function estimateNutrition(ingredients, servings) {
   let weighable = 0, considered = 0;
   const t = { protein: 0, fibre: 0, satFat: 0, sodium: 0, addedSugar: 0 };
   const keys = new Set();
+  let topKey = null, topG = 0;
   for (const ing of ingredients) {
     keys.add(ing.ingredient_key);
     const w = gramsFor(ing);
@@ -114,13 +115,14 @@ export function estimateNutrition(ingredients, servings) {
     const [p, fi, sf, na] = FOOD[ing.ingredient_key], k = w.g / 100;
     t.protein += p * k; t.fibre += fi * k; t.satFat += sf * k; t.sodium += na * k;
     if (SWEETENERS[ing.ingredient_key]) t.addedSugar += w.g * SWEETENERS[ing.ingredient_key];
+    if (!ing.is_pantry && ing.ingredient_key !== 'water' && w.g > topG) { topG = w.g; topKey = ing.ingredient_key; }
   }
   const coverage = considered ? weighable / considered : 0;
   const s = servings || 4;
   if (!servings) assumptions.push('servings not stated; assumed 4');
   const per = Object.fromEntries(Object.entries(t).map(([k, v]) => [k, Math.round((v / s) * 10) / 10]));
   return {
-    per_serving: per, servings: s, coverage: Math.round(coverage * 100) / 100, unweighed, assumptions,
+    per_serving: per, servings: s, top_key: topKey, coverage: Math.round(coverage * 100) / 100, unweighed, assumptions,
     flags: {
       maida: keys.has('maida'),
       wholeGrain: [...keys].some((k) => WHOLE_GRAIN.has(k)),

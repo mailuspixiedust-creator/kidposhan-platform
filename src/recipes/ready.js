@@ -4,7 +4,7 @@
 // The Poshan Score of a pack is exact-only: it needs a label the owner entered; otherwise "pending".
 
 import { researchProducts } from '../product-intelligence.js';
-import { calculatePoshanScore } from '../poshan-score.js';
+import { scoreAllBands, REFERENCE_BAND, SCORE_VERSION } from './score2.js';
 
 // order matters: the first kind whose `dish` pattern matches the recipe name wins (specific before general).
 export const READY_KINDS = [
@@ -33,27 +33,68 @@ export const READY_KINDS = [
   { kind: 'popcorn_makhana', label: 'Roasted makhana / popcorn', query: 'roasted makhana popcorn snack', dish: /popcorn|makhana/i, product: /popcorn|makhana/i },
 ];
 
-export const kindByKey = (k) => READY_KINDS.find((x) => x.kind === k) || null;
+// ---- the Products page: packaged kids' foods that are not a dish of their own ----
+// Same research, label reading and exact scoring as the ready packs; `category` groups them on the page; `infantOk` marks plain
+// foods that may be offered from 6 months (the age guide still checks sugar and salt on the label).
+const READY_CATEGORY = {
+  ragi_dosa_mix: 'Ready mixes', dosa_batter: 'Ready mixes', dosa_mix: 'Ready mixes', idli_mix: 'Ready mixes', upma_mix: 'Ready mixes', poha_mix: 'Ready mixes',
+  khichdi_mix: 'Ready mixes', sambar_mix: 'Ready mixes', rasam_mix: 'Ready mixes', dhokla_mix: 'Ready mixes', chilla_mix: 'Ready mixes', pancake_mix: 'Ready mixes',
+  cake_mix: 'Ready mixes', halwa_mix: 'Ready mixes', kheer_mix: 'Ready mixes', pulao_mix: 'Ready mixes',
+  millet_pasta: 'Noodles and pasta', noodles: 'Noodles and pasta', paratha: 'Ready to cook', chapati: 'Ready to cook', khakhra: 'Ready to cook', cutlet: 'Ready to cook',
+  popcorn_makhana: 'Snacks',
+};
+export const CATALOGUE_KINDS = [
+  { kind: 'rolled_oats', label: 'Rolled oats', category: 'Breakfast and cereals', query: 'rolled oats no added sugar', product: /\boats?\b/i, infantOk: true },
+  { kind: 'muesli', label: 'Muesli and granola', category: 'Breakfast and cereals', query: 'muesli granola kids no added sugar', product: /muesli|granola/i },
+  { kind: 'breakfast_cereal', label: 'Breakfast cereal', category: 'Breakfast and cereals', query: 'kids breakfast cereal flakes', product: /cereal|flakes|chocos|loops|pops|puffs|wheat biscuits/i },
+  { kind: 'millet_porridge', label: 'Millet porridge mix', category: 'Breakfast and cereals', query: 'millet ragi porridge mix kids', product: /porridge|millet|ragi/i, infantOk: true },
+  { kind: 'ragi_flour', label: 'Ragi flour', category: 'Atta, flours and grains', query: 'ragi flour finger millet', product: /ragi|finger millet|nachni/i, infantOk: true },
+  { kind: 'whole_wheat_atta', label: 'Whole wheat atta', category: 'Atta, flours and grains', query: 'whole wheat atta chakki', product: /atta/i },
+  { kind: 'multigrain_atta', label: 'Multigrain atta', category: 'Atta, flours and grains', query: 'multigrain atta', product: /multi ?grain/i },
+  { kind: 'millet_flours', label: 'Millet flours', category: 'Atta, flours and grains', query: 'jowar bajra millet flour', product: /jowar|bajra|sorghum|millet/i, infantOk: true },
+  { kind: 'dalia', label: 'Dalia / broken wheat', category: 'Atta, flours and grains', query: 'dalia broken wheat', product: /dalia|daliya|broken wheat/i, infantOk: true },
+  { kind: 'brown_rice', label: 'Brown, red and black rice', category: 'Atta, flours and grains', query: 'brown rice red rice black rice', product: /brown rice|red rice|black rice/i },
+  { kind: 'baby_cereal', label: 'Baby cereal', category: 'Baby foods', query: 'baby cereal 6 months no added sugar', product: /cereal|porridge|ragi|rice|oats|nutri|stage/i, infantOk: true },
+  { kind: 'instant_noodles', label: 'Instant noodles', category: 'Noodles and pasta', query: 'instant noodles kids atta', product: /noodle/i },
+  { kind: 'peanut_butter', label: 'Peanut butter', category: 'Spreads and sauces', query: 'peanut butter unsweetened', product: /peanut butter/i },
+  { kind: 'nut_butter', label: 'Nut and seed butters', category: 'Spreads and sauces', query: 'almond nut seed butter', product: /almond butter|nut butter|seed butter|cashew butter/i },
+  { kind: 'choco_spread', label: 'Chocolate spread', category: 'Spreads and sauces', query: 'chocolate spread hazelnut kids', product: /spread|choco/i },
+  { kind: 'jam', label: 'Jam and fruit spreads', category: 'Spreads and sauces', query: 'jam fruit spread no added sugar', product: /\bjam\b|fruit spread|marmalade/i },
+  { kind: 'ketchup', label: 'Ketchup and sauces', category: 'Spreads and sauces', query: 'tomato ketchup sauce kids', product: /ketchup|sauce|mayonnaise/i },
+  { kind: 'kids_biscuits', label: 'Kids biscuits', category: 'Biscuits and bakery', query: 'biscuits for kids no maida', product: /biscuit|cookie|cracker/i },
+  { kind: 'millet_cookies', label: 'Millet cookies', category: 'Biscuits and bakery', query: 'millet ragi cookies healthy', product: /cookie|biscuit|rusk/i },
+  { kind: 'rusk_toast', label: 'Rusk and toast', category: 'Biscuits and bakery', query: 'rusk toast whole wheat', product: /rusk|toast/i },
+  { kind: 'whole_wheat_bread', label: 'Whole wheat bread', category: 'Biscuits and bakery', query: 'whole wheat bread multigrain', product: /bread|\bbun\b|\bpav\b/i },
+  { kind: 'chips', label: 'Chips and crisps', category: 'Snacks', query: 'baked chips healthy snack kids', product: /chips|crisps|nachos|puffs|chakli|murukku/i },
+  { kind: 'namkeen', label: 'Namkeen and mixture', category: 'Snacks', query: 'namkeen mixture bhujia', product: /namkeen|mixture|bhujia|\bsev\b|chivda/i },
+  { kind: 'roasted_snacks', label: 'Roasted snacks', category: 'Snacks', query: 'roasted chana peanuts seeds snack', product: /roasted|chana|peanuts|seeds|makhana/i },
+  { kind: 'snack_bars', label: 'Energy and protein bars', category: 'Snacks', query: 'energy bar protein bar kids', product: /\bbars?\b|ladoo|bites/i },
+  { kind: 'dried_fruit', label: 'Dried fruit and fruit snacks', category: 'Snacks', query: 'dried fruit dates raisins fruit snack', product: /dates|raisin|anjeer|apricot|dried|fruit (bar|roll|snack|leather)/i },
+  { kind: 'health_drink', label: 'Health drink powder', category: 'Drinks', query: 'health drink powder for kids malt', product: /horlicks|bournvita|boost|complan|pediasure|health drink|malt|protein powder/i },
+  { kind: 'fruit_juice', label: 'Fruit juice', category: 'Drinks', query: 'fruit juice kids no added sugar', product: /juice|nectar|\bdrink\b/i },
+  { kind: 'flavoured_milk', label: 'Flavoured milk and shakes', category: 'Dairy', query: 'flavoured milk lassi shake kids', product: /milk|lassi|shake|buttermilk/i },
+  { kind: 'yoghurt', label: 'Yoghurt and curd', category: 'Dairy', query: 'yoghurt curd kids', product: /yogh?urt|curd|dahi/i },
+  { kind: 'cheese', label: 'Cheese', category: 'Dairy', query: 'cheese slices spread kids', product: /cheese/i },
+  { kind: 'paneer', label: 'Paneer', category: 'Dairy', query: 'paneer packaged fresh', product: /paneer/i },
+];
+export const ALL_KINDS = [...READY_KINDS.map((k) => ({ ...k, category: READY_CATEGORY[k.kind] || 'Ready mixes' })), ...CATALOGUE_KINDS];
+export const kindByKey = (k) => ALL_KINDS.find((x) => x.kind === k) || null;
 export const kindForDish = (name) => READY_KINDS.find((k) => k.dish.test(String(name || '').split('|')[0])) || null;
 
 const num = (v) => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
 
-// Label values per 100 g -> engine inputs. Additives / palm oil / maida / whole grain come from the ingredient list.
-export function scorePack(nutrition, ingredients) {
+// Label values per 100 g -> the version 2 Poshan Score (ten metrics, each 1 to 10, out of 100) for every age band.
+// Preservatives, additives, hydrogenated fats and the first ingredient come from the ingredient list. Exact-only: all five label values are needed.
+export function scorePack(nutrition, ingredients, name = '') {
   const n = nutrition || {};
   const need = { protein_g: n.protein_g, fibre_g: n.fibre_g, added_sugars_g: n.added_sugars_g, saturated_fat_g: n.saturated_fat_g, sodium_mg: n.sodium_mg };
   const missing = Object.entries(need).filter(([, v]) => num(v) == null).map(([k]) => k);
   if (missing.length) return { status: 'pending', score: null, missing };
-  const text = (Array.isArray(ingredients) ? ingredients.join(', ') : String(ingredients || '')).toLowerCase();
-  const first = (Array.isArray(ingredients) ? String(ingredients[0] || '') : text.split(',')[0]).toLowerCase();
-  const additiveTokens = new Set((text.match(/\be\d{3}[a-z]?\b|\bins\s?\d{3}\b|preservative|emulsifier|stabili[sz]er|artificial|colou?r|flavou?r|antioxidant|acidity regulator|raising agent|thickener|maltodextrin|sweetener/g) || []));
-  const inputs = {
-    protein: num(need.protein_g), fibre: num(need.fibre_g), addedSugar: num(need.added_sugars_g), satFat: num(need.saturated_fat_g), sodium: num(need.sodium_mg),
-    additives: additiveTokens.size, palmOil: /palm/.test(text), maida: /\bmaida\b|refined (wheat )?flour|all[- ]purpose flour/.test(text),
-    wholeGrain: /\b(ragi|finger millet|jowar|bajra|millet|oats|whole wheat|atta|brown rice|multigrain)\b/.test(first), category: '',
-  };
-  const out = calculatePoshanScore(inputs, 'packaged');
-  return { status: 'exact', score: out.finalScore, band: out.band, detail: { profile: 'packaged', basis: 'per 100 g, from the pack label entered by the owner', inputs, additives_found: [...additiveTokens], engine: out.breakdown } };
+  const list = Array.isArray(ingredients) ? ingredients : String(ingredients || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const inputs = { basis: 'pack', protein: num(need.protein_g), fibre: num(need.fibre_g), addedSugar: num(need.added_sugars_g), satFat: num(need.saturated_fat_g), sodium: num(need.sodium_mg), ingredients: list, name };
+  const out = scoreAllBands(inputs);
+  const ref = out.bands[REFERENCE_BAND];
+  return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: 'per 100 g, from the pack label', reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
 }
 
 const retailerOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; } catch { return null; } };
@@ -70,7 +111,7 @@ export async function researchKind(env, kindKey) {
     const nutri = p.nutrition || {};
     const label = { protein_g: nutri.protein_g, fibre_g: nutri.fibre_g, sugars_g: nutri.sugars_g, added_sugars_g: nutri.added_sugars_g, saturated_fat_g: nutri.saturated_fat_g, sodium_mg: nutri.sodium_mg };
     const has = Object.values(label).some((v) => num(v) != null);
-    const sc = has ? scorePack(label, p.ingredients) : { status: 'pending', score: null };
+    const sc = has ? scorePack(label, p.ingredients, p.name) : { status: 'pending', score: null };
     const res = await env.DB.prepare(
       `INSERT OR IGNORE INTO kp_ready_products (kind, name, brand, sku, pack_size, product_url, image_url, retailer, ingredients_json, nutrition_json, kidposhan_score, score_status, score_breakdown_json)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
@@ -96,7 +137,7 @@ export async function researchNextKind(env, { onlyNeeded = false } = {}) {
   const { results } = await env.DB.prepare('SELECT kind, last_run_at FROM kp_ready_research').all();
   const last = new Map(results.map((r) => [r.kind, r.last_run_at]));
   const needed = await neededKinds(env);
-  const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : READY_KINDS;
+  const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : ALL_KINDS;   // dish packs for published recipes first, then the whole Products catalogue in turn
   if (!pool.length) return { skipped: 'every pack type for your published recipes has already been searched' };
   const next = [...pool].sort((a, b) =>
     (needed.has(b.kind) - needed.has(a.kind)) || String(last.get(a.kind) || '').localeCompare(String(last.get(b.kind) || '')))[0];
@@ -178,7 +219,7 @@ export async function listPacks(env, { status = 'candidate', limit = 30, offset 
   const { n } = await env.DB.prepare('SELECT COUNT(*) AS n FROM kp_ready_products WHERE status = ?').bind(status).first();
   const { results: counts } = await env.DB.prepare('SELECT status, COUNT(*) AS n FROM kp_ready_products GROUP BY status').all();
   return {
-    status, total: n, counts: Object.fromEntries(counts.map((c) => [c.status, c.n])), kinds: READY_KINDS.map((k) => ({ kind: k.kind, label: k.label })),
+    status, total: n, counts: Object.fromEntries(counts.map((c) => [c.status, c.n])), kinds: ALL_KINDS.map((k) => ({ kind: k.kind, label: k.label, category: k.category })),
     items: results.map((p) => ({ ...p, kind_label: kindByKey(p.kind)?.label || p.kind,
       ingredients: JSON.parse(p.ingredients_json || '[]'), nutrition: JSON.parse(p.nutrition_json || 'null') || {}, score_detail: JSON.parse(p.score_breakdown_json || 'null'),
       ingredients_json: undefined, nutrition_json: undefined, score_breakdown_json: undefined })),
@@ -188,7 +229,7 @@ export async function listPacks(env, { status = 'candidate', limit = 30, offset 
 export async function reviewPack(env, id, body) {
   const status = { approve: 'approved', reject: 'rejected', candidate: 'candidate' }[body.action];
   if (!status) throw new Error('action must be approve, reject or candidate');
-  const row = await env.DB.prepare('SELECT ingredients_json, nutrition_json FROM kp_ready_products WHERE id = ?').bind(id).first();
+  const row = await env.DB.prepare('SELECT name, ingredients_json, nutrition_json FROM kp_ready_products WHERE id = ?').bind(id).first();
   if (!row) throw new Error('pack not found');
   const sets = ["status = ?", "reviewed_at = datetime('now')"], args = [status];
   if (body.kind != null) { if (!kindByKey(body.kind)) throw new Error('unknown kind'); sets.push('kind = ?'); args.push(body.kind); }
@@ -196,11 +237,25 @@ export async function reviewPack(env, id, body) {
     const f = ['protein_g', 'fibre_g', 'sugars_g', 'added_sugars_g', 'saturated_fat_g', 'sodium_mg'];
     const label = {};
     for (const key of f) { const v = body.nutrition[key]; if (v === '' || v == null) { label[key] = ''; continue; } const x = num(v); if (x == null || x < 0 || x > 100000) throw new Error(`${key} must be a number`); label[key] = x; }
-    const sc = scorePack(label, JSON.parse(row.ingredients_json || '[]'));
+    const sc = scorePack(label, JSON.parse(row.ingredients_json || '[]'), row.name);
     sets.push('nutrition_json = ?', 'kidposhan_score = ?', 'score_status = ?', 'score_breakdown_json = ?', "label_source = 'owner'");
     args.push(JSON.stringify(label), sc.score, sc.status, sc.detail ? JSON.stringify(sc.detail) : null);
   }
   await env.DB.prepare(`UPDATE kp_ready_products SET ${sets.join(', ')} WHERE id = ?`).bind(...args, id).run();
   const out = await env.DB.prepare('SELECT id, status, kidposhan_score, score_status FROM kp_ready_products WHERE id = ?').bind(id).first();
   return out;
+}
+
+// Re-scores every pack that has label values with the current engine (after the scoring method changed). Needs no AI.
+export async function rescoreAllPacks(env) {
+  const { results } = await env.DB.prepare("SELECT id, name, ingredients_json, nutrition_json FROM kp_ready_products WHERE nutrition_json IS NOT NULL").all();
+  let exact = 0, pending = 0;
+  for (const p of results) {
+    const label = JSON.parse(p.nutrition_json || 'null') || {};
+    const sc = scorePack(label, JSON.parse(p.ingredients_json || '[]'), p.name);
+    await env.DB.prepare('UPDATE kp_ready_products SET kidposhan_score = ?, score_status = ?, score_breakdown_json = ? WHERE id = ?')
+      .bind(sc.score, sc.status, sc.detail ? JSON.stringify(sc.detail) : null, p.id).run();
+    if (sc.status === 'exact') exact++; else pending++;
+  }
+  return { rescored: results.length, exact, pending };
 }
