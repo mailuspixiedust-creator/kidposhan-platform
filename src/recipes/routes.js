@@ -24,7 +24,7 @@ import { UserError, joinVisitor, listVisitors, userFromRequest, logout, setName,
 import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
-import { setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
+import { setPhone, outreachSettings, updateOutreachSettings, autoOutreach, findContactEmails, sendTest, setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
 
@@ -152,11 +152,13 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/outreach' && request.method === 'GET') return json(await listOutreach(env));
     if (path === '/api/kp/admin/outreach/preview' && request.method === 'GET') return json(await previewMessage(env, +url.searchParams.get('source_id')));
     if (path === '/api/kp/admin/outreach/send' && request.method === 'POST') return json({ results: await sendOutreach(env, ((await request.json()).source_ids || []).map(Number).filter(Boolean)) });
+    if (path === '/api/kp/admin/outreach/settings') return json(request.method === 'POST' ? await updateOutreachSettings(env, await request.json()) : await outreachSettings(env));
+    if (path === '/api/kp/admin/outreach/test' && request.method === 'POST') return json(await sendTest(env, +(await request.json()).source_id));
     if (path === '/api/kp/admin/outreach/check' && request.method === 'POST') return json({ replies: await checkReplies(env) });
     m = path.match(/^\/api\/kp\/admin\/outreach\/(\d+)$/);
     if (m && request.method === 'POST') {
       const b = await request.json();
-      return json(b.email !== undefined ? await setContactEmail(env, +m[1], b.email) : await markOutreach(env, +m[1], b));
+      return json(b.email !== undefined ? await setContactEmail(env, +m[1], b.email) : b.phone !== undefined ? await setPhone(env, +m[1], b.phone) : await markOutreach(env, +m[1], b));
     }
   } catch (e) {
     return json({ error: e.message }, 400);
@@ -257,7 +259,11 @@ export async function scheduledRecipes(env, cron) {
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
   try { console.log('gallery', JSON.stringify(await galleryPending(env, { limit: 4 }))); } catch (e) { console.error('gallery', e); }
-  if (env.GMAIL_REFRESH_TOKEN) { try { console.log('replies', JSON.stringify(await checkReplies(env))); } catch (e) { console.error('replies', e); } }
+  try { console.log('contact-emails', JSON.stringify(await findContactEmails(env, { limit: 2 }))); } catch (e) { console.error('contact-emails', e); }
+  if (env.GMAIL_REFRESH_TOKEN) {
+    try { console.log('auto-outreach', JSON.stringify(await autoOutreach(env))); } catch (e) { console.error('auto-outreach', e); }
+    try { console.log('replies', JSON.stringify(await checkReplies(env))); } catch (e) { console.error('replies', e); }
+  }
   try { console.log('gap', JSON.stringify(await fillOneGap(env))); } catch (e) { console.error('gap', e); }          // look for recipes where a combination has fewer than 20
   try { console.log('seen', JSON.stringify(await pruneSeen(env))); } catch (e) { console.error('seen', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }

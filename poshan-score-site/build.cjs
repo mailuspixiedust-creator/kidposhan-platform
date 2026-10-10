@@ -63,6 +63,8 @@ swap('<title>KidPoshan | Meal ideas</title>', '<title>Meal Ideas — Poshan Scor
 fs.writeFileSync(path.join(out, 'meal-ideas.html'), m);
 // /bot: the page KidPoshanBot's user-agent points at (https://kidposhan.in/bot)
 fs.copyFileSync(path.join(root, '..', 'public', 'bot.html'), path.join(out, 'bot.html'));
+// /privacy: the privacy policy (also the address Google asks for)
+fs.copyFileSync(path.join(root, '..', 'public', 'privacy.html'), path.join(out, 'privacy.html'));
 // the small "Visitors" count at the bottom right of every page
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-visits.js'), path.join(out, 'kp-visits.js'));
 for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html'))) {
