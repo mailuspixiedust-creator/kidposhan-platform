@@ -60,6 +60,7 @@ export const CATALOGUE_KINDS = [
   { kind: 'nut_butter', label: 'Nut and seed butters', category: 'Spreads and sauces', query: 'almond nut seed butter', product: /almond butter|nut butter|seed butter|cashew butter/i },
   { kind: 'choco_spread', label: 'Chocolate spread', category: 'Spreads and sauces', query: 'chocolate spread hazelnut kids', product: /spread|choco/i },
   { kind: 'jam', label: 'Jam and fruit spreads', category: 'Spreads and sauces', query: 'jam fruit spread no added sugar', product: /\bjam\b|fruit spread|marmalade/i },
+  { kind: 'mayonnaise', label: 'Mayonnaise', category: 'Spreads and sauces', query: 'veg mayonnaise kids', product: /mayo/i },
   { kind: 'ketchup', label: 'Ketchup and sauces', category: 'Spreads and sauces', query: 'tomato ketchup sauce kids', product: /ketchup|sauce|mayonnaise/i },
   { kind: 'kids_biscuits', label: 'Kids biscuits', category: 'Biscuits and bakery', query: 'biscuits for kids no maida', product: /biscuit|cookie|cracker/i },
   { kind: 'millet_cookies', label: 'Millet cookies', category: 'Biscuits and bakery', query: 'millet ragi cookies healthy', product: /cookie|biscuit|rusk/i },
@@ -91,7 +92,7 @@ export function scorePack(nutrition, ingredients, name = '') {
   const missing = Object.entries(need).filter(([, v]) => num(v) == null).map(([k]) => k);
   if (missing.length) return { status: 'pending', score: null, missing };
   const list = Array.isArray(ingredients) ? ingredients : String(ingredients || '').split(',').map((x) => x.trim()).filter(Boolean);
-  const inputs = { basis: 'pack', protein: num(need.protein_g), fibre: num(need.fibre_g), addedSugar: num(need.added_sugars_g), satFat: num(need.saturated_fat_g), sodium: num(need.sodium_mg), ingredients: list, name };
+  const inputs = { basis: 'pack', protein: num(need.protein_g), fibre: num(need.fibre_g), addedSugar: num(need.added_sugars_g), satFat: num(need.saturated_fat_g), sodium: num(need.sodium_mg), ingredients: list, name, flags: n.flags || null };
   const out = scoreAllBands(inputs);
   const ref = out.bands[REFERENCE_BAND];
   return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: 'per 100 g, from the pack label', reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
