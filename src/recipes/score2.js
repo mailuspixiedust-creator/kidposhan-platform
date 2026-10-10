@@ -77,8 +77,11 @@ export function scoreForBand(input, bandId) {
 
   const sugarPct = share(input.addedSugar, ref.sugarIdeal), sodiumPct = share(input.sodium, ref.sodium), satPct = share(input.satFat, ref.satFat);
   const fibrePct = share(input.fibre, ref.fibre), proteinPct = share(input.protein, ref.protein);
-  const pres = distinct(text, PRESERVATIVES), add = distinct(text, ADDITIVES), trans = TRANS.test(text);
-  const integ = integrityFor(input.name, Array.isArray(input.ingredients) ? input.ingredients : [], Array.isArray(input.ingredients) && input.ingredients.length ? null : input.topKey);
+  const fl = input.flags || null;          // a pack whose ingredient list we only have as our own checked reading: counts and the integrity mark are given directly
+  const pres = fl && fl.preservatives != null ? { size: fl.preservatives, forced: true } : distinct(text, PRESERVATIVES);
+  const add = fl && fl.additives != null ? { size: fl.additives, forced: true } : distinct(text, ADDITIVES);
+  const trans = fl && fl.trans != null ? !!fl.trans : TRANS.test(text);
+  const integ = fl && fl.integrity != null ? { score: fl.integrity, note: fl.integrity_note || 'our checked reading of the ingredient list' } : integrityFor(input.name, Array.isArray(input.ingredients) ? input.ingredients : [], Array.isArray(input.ingredients) && input.ingredients.length ? null : input.topKey);
 
   const m = [
     { n: 1, id: 'sugar', name: 'Added sugar', type: 'risk', value: round1(Number(input.addedSugar || 0)), unit: 'g', share: round1(sugarPct), score: riskScore(sugarPct),
@@ -94,9 +97,9 @@ export function scoreForBand(input, bandId) {
     { n: 6, id: 'protein', name: 'Protein', type: 'credit', value: round1(Number(input.protein || 0)), unit: 'g', share: round1(proteinPct), score: creditScore(proteinPct),
       reading: `${round1(Number(input.protein || 0))} g ${shareWord}${Math.round(proteinPct)}% of the day's ${ref.protein} g RDA` },
     { n: 7, id: 'preservatives', name: 'Preservatives', type: 'check', value: pres.size, unit: 'found', share: null, score: PRESERVATIVE_STEPS[Math.min(pres.size, 3)],
-      reading: pres.size ? `${pres.size} found: ${[...pres].slice(0, 3).join(', ')}` : 'none found' },
+      reading: pres.size ? `${pres.size} found${pres.forced ? '' : ': ' + [...pres].slice(0, 3).join(', ')}` : 'none found' },
     { n: 8, id: 'additives', name: 'Artificial additives', type: 'check', value: add.size, unit: 'found', share: null, score: ADDITIVE_STEPS[Math.min(add.size, 3)],
-      reading: add.size ? `${add.size} found: ${[...add].slice(0, 3).join(', ')}` : 'none found' },
+      reading: add.size ? `${add.size} found${add.forced ? '' : ': ' + [...add].slice(0, 3).join(', ')}` : 'none found' },
     { n: 9, id: 'integrity', name: 'Base-ingredient integrity', type: 'check', value: null, unit: '', share: null, score: integ.score, reading: integ.note },
   ];
   const worst = Math.min(m[0].score, m[1].score, m[2].score);

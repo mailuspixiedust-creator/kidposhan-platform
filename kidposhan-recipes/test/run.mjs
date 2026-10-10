@@ -978,3 +978,15 @@ console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
   const one = PS.packShots({ image_url: 'https://cdn.x/f.jpg', label_image_url: null, gallery_json: null });
   ok(one.image_url === 'https://cdn.x/f.jpg' && one.back_image_url === null, 'With no back photo the product shows the front only and no spin tab');
 }
+
+// ---- packs whose ingredient reading is given as flags ----
+{
+  const RP = await import('../../src/recipes/ready.js');
+  const base = { protein_g: 6, fibre_g: 4, sugars_g: 0, added_sugars_g: 0, saturated_fat_g: 1, sodium_mg: 100 };
+  const clean = RP.scorePack({ ...base, flags: { preservatives: 0, additives: 0, trans: false, integrity: 10 } }, [], 'Rolled oats');
+  const dirty = RP.scorePack({ ...base, flags: { preservatives: 1, additives: 3, trans: true, integrity: 3 } }, [], 'Rolled oats');
+  const m = (r) => r.detail.bands['4-6'].metrics;
+  ok(m(clean)[6].score === 10 && m(clean)[7].score === 10 && m(clean)[8].score === 10 && m(clean)[3].score === 10, 'Checked-reading flags: no preservatives, additives or hydrogenated fat, whole-food first, scores 10 on each check');
+  ok(m(dirty)[6].score === 6 && m(dirty)[7].score === 1 && m(dirty)[3].score === 2 && m(dirty)[8].score === 3 && dirty.score < clean.score, 'Checked-reading flags carry a preservative, three additives, a hydrogenated fat and a refined first ingredient into the marks');
+  ok(RP.kindByKey('mayonnaise')?.category === 'Spreads and sauces', 'Mayonnaise is a product kind');
+}
