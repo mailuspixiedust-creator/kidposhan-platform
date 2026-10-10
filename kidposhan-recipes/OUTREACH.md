@@ -48,3 +48,18 @@ You do this once. It lets the Worker send as you and read replies to those email
 It tells the author that KidPoshan uses their recipes with credit and a link, asks permission, says KidPoshan is not a selling site and that a portion
 of any money made will be shared, mentions the optional ₹5 support, and asks for a YES or NO reply. It also says honestly that their recipes are already
 live and will come down on a NO. Edit the wording in `src/recipes/outreach.js` (`buildMessage`) if you want it changed.
+
+## Automatic sending and reading replies
+Once Gmail is connected you can let the system do the routine work (Admin, Authors tab):
+- **Finding addresses:** every 30 minutes it looks at a couple of sites that have live recipes but no address, reads their contact / about pages
+  (respecting robots.txt and pacing), and saves an address on the site's own domain, or a personal Gmail-style address given as the contact. It never uses an
+  address from an advertiser or agency. You can overwrite any address.
+- **Sending:** the switch "Send the permission email automatically" is **off by default**. When on, it emails creators who have an address and live recipes,
+  at most 5 every 30 minutes and no more than your daily limit (1 to 50, default 10). It never emails a site marked "Refused", and never the same site or
+  address twice. Switch it off at any time. Test first with **Send test to me**.
+- **Reading replies:** every 30 minutes it reads the threads it started. For each site the database now holds: **contacted** (date sent), **agreed**
+  (yes / no / other reply / bounced / waiting) and a **phone number** if the creator wrote one (an Indian mobile or an international +number). Out-of-office
+  replies are ignored, and the quoted copy of our own email is not read, so its YES and NO cannot confuse the result.
+- **Your word is final:** the reading is a first guess. As soon as you use **Mark as…** on a site, the automatic reading never changes that site's status again
+  (it may still add a missing phone number). A "no" never takes anything down by itself; you confirm that. You can type or correct a phone number.
+- **Copy contacts as CSV** gives site, website, email, date contacted, agreed and phone for everyone who has been emailed.

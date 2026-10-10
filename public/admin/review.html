@@ -192,7 +192,7 @@ const demo={
 
 let reviewedFilter='all', unreviewedCount=0;
 let tav=null, joined={total:0,visitors:[]}, cov=null, covBusy=false;
-let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:''};
+let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:'',settings:{auto:false,daily_cap:10,sent_last_24h:0,gmail_connected:false}};
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
 let tab='approved', token=sessionStorage.getItem('kp_admin')||'', counts={}, items=[], sites=[], siteCounts={}, siteState=null, siteQ='', offset=0, total=0;
 const app=document.getElementById('app');
@@ -215,6 +215,7 @@ async function demoApi(path,opts){
   if(u.pathname==='/api/kp/admin/tavily') return {configured:true,cap_per_day:25,used_today:3,used_last_7_days:12,account:{plan:'Researcher',used:88,limit:1000}};
   if(u.pathname==='/api/kp/admin/visitors') return {total:0,visitors:[]};
   if(u.pathname==='/api/kp/admin/coverage') return {pref:u.searchParams.get('pref'),target:20,combinations:100,below_target:42,lowest:3,median:14,worst:[]};
+  if(u.pathname==='/api/kp/admin/outreach/settings') return {auto:false,daily_cap:10,sent_last_24h:0,gmail_connected:false};
   if(u.pathname==='/api/kp/admin/remarks') return {remarks:[],counts:{}};
   if(u.pathname==='/api/kp/admin/payments') return {payments:[],totals:{}};
   if(u.pathname==='/api/kp/admin/outreach') return {sources:[],tally:{}};
@@ -420,25 +421,40 @@ const OUT_LABEL={no_email:'No email yet',not_sent:'Not sent',sent:'Sent, waiting
 function renderAuthors(list){
   const t=auth.tally, ready=auth.sources.filter(x=>x.status==='not_sent');
   list.innerHTML=`<div class="vhead"><h2>Authors: permission by email</h2></div>
-   <p class="sub">Type each site's contact email, preview the message, then send. One email per address, never repeated. Replies are read from your Gmail and sorted as yes / no / other for you to confirm. Needs the four GMAIL secrets (see OUTREACH.md).</p>
+   <p class="sub">Each creator is emailed once, at the address on their own site (found automatically from their contact page, or typed by you). Their reply is read from your Gmail and written here: contacted, agreed or not, and a phone number if they give one. You can always correct what was read.</p>
+   <div class="vcard" id="autobox"><label class="chk"><input type="checkbox" id="autoon" ${auth.settings.auto?'checked':''} ${auth.settings.gmail_connected?'':'disabled'}> Send the permission email automatically</label>
+    <p class="why">${auth.settings.gmail_connected?`Up to <input type="number" id="autocap" min="1" max="50" value="${auth.settings.daily_cap}" style="width:64px"> emails a day, at most 5 every 30 minutes. Sent in the last 24 hours: ${auth.settings.sent_last_24h}. Nothing is sent to a site that refused, and never twice to the same address.`:'Gmail is not connected yet (see OUTREACH.md), so nothing can be sent.'}</p><p class="saved" id="automsg" role="status"></p></div>
    <div class="tally">${Object.keys(OUT_LABEL).map(k=>`<span class="pill ${k}">${OUT_LABEL[k]}: ${t[k]||0}</span>`).join('')}</div>
-   <div class="actions"><button class="btn undo" id="chk">Check for replies now</button>${ready.length?`<button class="btn publish" id="sendall">Send to all ready (${Math.min(ready.length,20)})</button>`:''}</div>
+   <div class="actions"><button class="btn undo" id="chk">Check for replies now</button><button class="btn undo" id="authcsv">Copy contacts as CSV</button>${ready.length?`<button class="btn publish" id="sendall">Send to all ready (${Math.min(ready.length,20)})</button>`:''}</div>
    <p class="saved" id="amsg" role="status">${esc(auth.msg||'')}</p>
    ${auth.sources.map(x=>`<div class="vcard" data-as="${x.id}"><div class="vhead" style="margin:0 0 6px"><h3>${esc(x.name)}</h3><span class="pill ${x.status}">${OUT_LABEL[x.status]||x.status}</span></div>
      <p class="meta"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a> · ${x.live_recipes} live recipe${x.live_recipes===1?'':'s'}${x.sent_at?' · sent '+ago(x.sent_at):''}${x.replied_at?' · replied '+ago(x.replied_at):''}</p>
+     <p class="meta">Contacted: ${x.sent_at?ago(x.sent_at):'not yet'} · Agreed: ${({replied_yes:'Yes',replied_no:'No',replied_other:'Other reply',bounced:'Bounced',sent:'Waiting',no_reply:'No reply'})[x.status]||'—'} · Phone: <input data-phone value="${esc(x.phone||'')}" placeholder="not given" style="width:150px" ${['not_sent','no_email'].includes(x.status)?'disabled':''}></p>
+     ${x.contact_email_source==='auto'?'<p class="why">Address found on their own site.</p>':''}
      ${x.reply_snippet?`<p class="why">They wrote: "${esc(x.reply_snippet)}"</p>`:''}
      <div class="arow"><input type="email" data-email placeholder="contact email" value="${esc(x.contact_email||'')}" aria-label="Contact email for ${esc(x.name)}" ${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?'readonly':''}>
-      <div class="actions">${x.status==='not_sent'?'<button class="btn undo" data-prev>Preview email</button><button class="btn publish" data-send>Send</button>':''}${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?`<select data-mark aria-label="Your decision"><option value="">Mark as…</option>${['replied_yes','replied_no','replied_other','no_reply','bounced'].map(k=>`<option value="${k}">${OUT_LABEL[k]}</option>`).join('')}</select>`:''}</div>
+      <div class="actions"><button class="btn undo" data-test>Send test to me</button>${x.status==='not_sent'?'<button class="btn undo" data-prev>Preview email</button><button class="btn publish" data-send>Send</button>':''}${['sent','replied_yes','replied_no','replied_other','bounced','no_reply'].includes(x.status)?`<select data-mark aria-label="Your decision"><option value="">Mark as…</option>${['replied_yes','replied_no','replied_other','no_reply','bounced'].map(k=>`<option value="${k}">${OUT_LABEL[k]}</option>`).join('')}</select>`:''}</div>
       <div class="mailprev" data-pv hidden></div><p class="saved" data-saved role="status"></p></div></div>`).join('')||'<p class="empty">No sites with live recipes yet.</p>'}`;
   document.getElementById('chk').onclick=async e=>{e.target.disabled=true;try{const d=await api('/api/kp/admin/outreach/check',{method:'POST',body:'{}'});auth.msg=d.replies.length?`${d.replies.length} new repl${d.replies.length===1?'y':'ies'} found.`:'No new replies.';load()}catch(err){auth.msg=err.message;render()}};
   const sa=document.getElementById('sendall'); if(sa) sa.onclick=async()=>{
     if(!confirm(`Send the permission email to ${Math.min(ready.length,20)} site(s) now? This cannot be undone.`))return;
     sa.disabled=true;try{const d=await api('/api/kp/admin/outreach/send',{method:'POST',body:JSON.stringify({source_ids:ready.slice(0,20).map(x=>x.id)})});auth.msg=`Sent ${d.results.filter(r=>r.sent).length}; skipped or failed ${d.results.filter(r=>!r.sent).length}.`;load()}catch(err){auth.msg=err.message;render()}};
+  const ao=document.getElementById('autoon'); if(ao) ao.onchange=async()=>{
+    const m=document.getElementById('automsg');
+    if(ao.checked&&!confirm('Turn on automatic sending? KidPoshan will email creators who have an address, up to '+auth.settings.daily_cap+' a day. Emails cannot be unsent.')){ao.checked=false;return}
+    try{auth.settings=await api('/api/kp/admin/outreach/settings',{method:'POST',body:JSON.stringify({auto:ao.checked})});m.textContent=ao.checked?'Automatic sending is ON.':'Automatic sending is off.'}catch(e){ao.checked=false;m.textContent=e.message}};
+  const ac=document.getElementById('autocap'); if(ac) ac.onchange=async()=>{const m=document.getElementById('automsg');try{auth.settings=await api('/api/kp/admin/outreach/settings',{method:'POST',body:JSON.stringify({daily_cap:+ac.value})});m.textContent='Daily limit saved.'}catch(e){m.textContent=e.message;ac.value=auth.settings.daily_cap}};
+  const acsv=document.getElementById('authcsv'); if(acsv) acsv.onclick=async()=>{
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"', st={replied_yes:'Yes',replied_no:'No',replied_other:'Other reply',bounced:'Bounced',sent:'Waiting',no_reply:'No reply'};
+    const text=['site,website,email,contacted,agreed,phone'].concat(auth.sources.filter(x=>x.sent_at).map(x=>[x.name,x.url,x.contact_email,new Date(x.sent_at*1000).toISOString().slice(0,10),st[x.status]||'',x.phone||''].map(q).join(','))).join('\n');
+    try{await navigator.clipboard.writeText(text);acsv.textContent='Copied'}catch(e){prompt('Copy this:',text)}};
   list.querySelectorAll('[data-as]').forEach(card=>{
     const id=+card.dataset.as, saved=card.querySelector('[data-saved]'), inp=card.querySelector('[data-email]'), pv=card.querySelector('[data-pv]');
     const x=auth.sources.find(s=>s.id===id); let last=inp.value;
     inp.onblur=async()=>{if(inp.readOnly||inp.value===last)return;try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value;saved.textContent='Email saved';setTimeout(load,400)}catch(e){saved.textContent=e.message}};
+    const ph=card.querySelector('[data-phone]'); if(ph){let lastP=ph.value;ph.onblur=async()=>{if(ph.value===lastP)return;try{await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({phone:ph.value})});lastP=ph.value;saved.textContent='Phone saved'}catch(e){saved.textContent=e.message}}}
     const pb=card.querySelector('[data-prev]'); if(pb) pb.onclick=async()=>{try{if(inp.value!==last){await api(`/api/kp/admin/outreach/${id}`,{method:'POST',body:JSON.stringify({email:inp.value})});last=inp.value}const d=await api(`/api/kp/admin/outreach/preview?source_id=${id}`);pv.hidden=false;pv.textContent=`To: ${d.to||'(no email yet)'}\nSubject: ${d.subject}\n\n${d.text}`}catch(e){saved.textContent=e.message}};
+    const tb=card.querySelector('[data-test]'); if(tb) tb.onclick=async()=>{tb.disabled=true;saved.textContent='Sending a test to your own Gmail…';try{const d=await api('/api/kp/admin/outreach/test',{method:'POST',body:JSON.stringify({source_id:id})});saved.textContent='Test sent to '+d.sent_to+'. The creator was NOT contacted.'}catch(e){saved.textContent=e.message}tb.disabled=false};
     const sb=card.querySelector('[data-send]'); if(sb) sb.onclick=async()=>{
       if(!inp.value){saved.textContent='Type the email address first.';return}
       if(!confirm(`Send the permission email to ${inp.value} now? This cannot be undone.`))return;
@@ -536,7 +552,7 @@ async function load(append=false){
     vis.remarks=rw.remarks;vis.rCounts=rw.counts;vis.payments=pw.payments;vis.totals=pw.totals;
     counts.visitors=(rw.counts.pending||0)+((pw.totals.claimed||{}).count||0)||'';
     if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
-    if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
+    if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;auth.settings=await api('/api/kp/admin/outreach/settings').catch(()=>auth.settings);const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
     if(tab!=='sites'&&tab!=='packs'){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
     render();

@@ -19,5 +19,12 @@ bucket_name = "kidposhan-platform-media"
 [ai]
 binding = "AI"
 
+# Not secrets: the address the permission emails are sent from (it is visible in every email) and the name they are signed with.
+# The Google sign-in itself (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN) stays in Cloudflare secrets.
+keep_vars = true
+[vars]
+GMAIL_SENDER = "kidposhan@gmail.com"
+OUTREACH_SIGNOFF = "The KidPoshan team"
+
 [triggers]
 crons = ["*/30 * * * *", "0 */3 * * *"]

@@ -60,6 +60,7 @@ db.exec(fs.readFileSync('migrations/0021_visitor_email.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0022_site_visitors.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0023_world_regions.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0024_seen_recipes.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0025_outreach_auto.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -802,5 +803,89 @@ ok(lvRes.found === 1 && !db.prepare("SELECT 1 FROM kp_recipe_sources WHERE url L
 ok((await lvLeft(env)) === 23, 'Both searches were counted against the daily Tavily cap');
 const lvGap = await fillOneGap({ ...env, TAVILY_DAILY_CAP: '8' }, { sample: 3, rnd: () => 0.3 });
 ok(/Tavily searches/.test(lvGap.skipped || ''), 'The gap filler keeps the last Tavily searches of the day for parents');
+
+// ---- a try-out email goes only to the owner's own Gmail ----
+import { sendTest as tmSendTest } from '../../src/recipes/outreach.js';
+const tmSid = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, contact_email) VALUES ('Test Creator','https://tc.example','India',1,'creator@tc.example') RETURNING id").get().id;
+const tmSent = []; const tmFake = async (e, to, sub, text) => { tmSent.push({ to, sub, text }); return { threadId: 'T' }; };
+ok(/not connected/.test(await throwsMsg(() => tmSendTest({ ...env }, tmSid, { send: tmFake }))) && tmSent.length === 0, 'A test email needs Gmail to be connected first');
+const tmRes = await tmSendTest({ ...env, GMAIL_SENDER: 'owner@gmail.com' }, tmSid, { send: tmFake });
+ok(tmSent.length === 1 && tmSent[0].to === 'owner@gmail.com' && tmSent[0].sub.startsWith('[TEST] ') && /NOT been sent to Test Creator/.test(tmSent[0].text) && tmRes.sent_to === 'owner@gmail.com', 'The test goes to the owner\'s own address, marked TEST, and says the creator was not contacted');
+ok(!tmSent.some((m) => m.to === 'creator@tc.example') && db.prepare('SELECT count(*) n FROM kp_outreach WHERE source_id = ?').get(tmSid).n === 0, 'A test never goes to the creator and is not recorded as outreach');
+ok((await routeRecipes(new Request('https://w/api/kp/admin/outreach/test', { method: 'POST', body: JSON.stringify({ source_id: tmSid }) }), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 401, 'The test endpoint needs the admin token');
+
+// ---- automatic outreach: sending, reading replies into the database (contacted, agreed, phone), finding contact addresses ----
+import * as OA from '../../src/recipes/outreach.js';
+const b64u = (str) => Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+ok(OA.replyText('Yes, go ahead!\nMy number is 98765 43210\n\nOn Fri, 9 Oct 2026 at 10:00, KidPoshan <me@gmail.com> wrote:\n> Please reply YES or NO\n> NO - we will take down') === 'Yes, go ahead!\nMy number is 98765 43210', 'Only what the creator wrote is read; the quoted copy of our own email (with its YES and NO) is cut away');
+ok(OA.classifyReply('No problem at all, you may use my recipes') === 'replied_yes' && OA.classifyReply('I don\'t mind, happy to be featured') === 'replied_yes' && OA.classifyReply('No, please remove them') === 'replied_no' && OA.classifyReply('Who are you?') === 'replied_other', '"No problem" and "don\'t mind" count as yes; a real no is a no');
+ok(OA.extractPhone('call me on +91 98765 43210 anytime') === '+919876543210' && OA.extractPhone('9876543210') === '+919876543210' && OA.extractPhone('WhatsApp +44 7700 900123') === '+447700900123' && OA.extractPhone('I posted this in 2023, order 12345') === null, 'An Indian mobile or an international number is picked out; years and short numbers are not');
+ok(OA.messageText({ mimeType: 'multipart/alternative', parts: [{ mimeType: 'text/html', body: { data: b64u('<p>HTML <b>version</b></p>') } }, { mimeType: 'text/plain', body: { data: b64u('Plain version') } }] }) === 'Plain version' && OA.messageText({ mimeType: 'text/html', body: { data: b64u('<div>Hello<br>there &amp; you</div>') } }) === 'Hello\nthere & you', 'The readable text of a reply is taken from the plain part, or the HTML with tags removed');
+
+// reading replies
+const oaSrc = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, status, contact_email) VALUES ('Reply Blog','https://reply.example','India',1,'registered','owner@reply.example') RETURNING id").get().id;
+const oaSrc2 = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, status, contact_email) VALUES ('Auto Blog','https://auto.example','India',1,'registered','hello@auto.example') RETURNING id").get().id;
+db.prepare("INSERT INTO kp_outreach (source_id, to_email, status, gmail_thread, sent_at) VALUES (?, 'owner@reply.example', 'sent', 'TH1', ?)").run(oaSrc, Math.floor(Date.now() / 1000) - 3600);
+db.prepare("INSERT INTO kp_outreach (source_id, to_email, status, gmail_thread, sent_at) VALUES (?, 'hello@auto.example', 'sent', 'TH2', ?)").run(oaSrc2, Math.floor(Date.now() / 1000) - 3600);
+const oaEnv = { ...env, GMAIL_CLIENT_ID: 'c', GMAIL_CLIENT_SECRET: 's', GMAIL_REFRESH_TOKEN: 'r', GMAIL_SENDER: 'me@gmail.com' };
+const mkMsg = (from, text, extra = {}) => ({ internalDate: '3000000', snippet: text.slice(0, 60), payload: { mimeType: 'text/plain', headers: [{ name: 'From', value: from }, ...(extra.headers || [])], body: { data: b64u(text) } } });
+const oaThreads = {
+  TH1: [mkMsg('Me <me@gmail.com>', 'Hello from KidPoshan'), mkMsg('Owner <owner@reply.example>', 'Hi! Yes, you can feature my recipes. My WhatsApp is +91 98765 43210.\n\nOn Mon, KidPoshan <me@gmail.com> wrote:\n> reply YES or NO\n> NO - we will take down')],
+  TH2: [mkMsg('Me <me@gmail.com>', 'Hello from KidPoshan'), mkMsg('Auto <hello@auto.example>', 'I am out of office until Monday.', { headers: [{ name: 'Subject', value: 'Automatic reply: Permission' }] })],
+};
+const oaFetch = async (u) => String(u).includes('oauth2') ? { ok: true, json: async () => ({ access_token: 'tok' }) }
+  : { ok: true, json: async () => ({ messages: oaThreads[decodeURIComponent(String(u).match(/threads\/([^?]+)/)[1])] }) };
+const oaRep = await OA.checkReplies(oaEnv, { fetchFn: oaFetch });
+const oaRow = db.prepare('SELECT status, phone, reply_text FROM kp_outreach WHERE source_id = ?').get(oaSrc);
+ok(oaRep.length === 1 && oaRow.status === 'replied_yes' && oaRow.phone === '+919876543210' && /feature my recipes/.test(oaRow.reply_text) && !/take down/.test(oaRow.reply_text), 'A reply is written to the database: contacted (sent), agreed (yes) and the phone number, without the quoted original');
+ok(db.prepare('SELECT status FROM kp_outreach WHERE source_id = ?').get(oaSrc2).status === 'sent', 'An out-of-office auto-reply is ignored; the site stays "contacted, waiting"');
+await OA.markOutreach(env, oaSrc, { status: 'replied_other' });
+oaThreads.TH1.push(mkMsg('Owner <owner@reply.example>', 'Actually yes please go ahead'));
+await OA.checkReplies(oaEnv, { fetchFn: oaFetch });
+ok(db.prepare('SELECT status FROM kp_outreach WHERE source_id = ?').get(oaSrc).status === 'replied_other', 'Once the owner has decided, the automatic reading never changes the status');
+const oaSet = await OA.setPhone(env, oaSrc, '+91 99999 11111');
+ok(oaSet.phone === '+91 99999 11111' && !!(await throwsMsg(() => OA.setPhone(env, oaSrc, 'abc'))), 'The owner can correct the phone number');
+const oaList = await OA.listOutreach(env);
+const oaRowL = oaList.sources.find((x) => x.id === oaSrc);
+ok(oaRowL.phone === '+91 99999 11111' && oaRowL.sent_at > 0 && oaRowL.status === 'replied_other' && oaList.tally.with_phone === 1, 'The listing shows contacted date, agreement and phone');
+
+// automatic sending
+const aoSent = []; const aoSend = async (e, to) => { aoSent.push(to); return { threadId: 'TA-' + to }; };
+for (const [name, host2, st] of [['AO One', 'ao1.example', 'registered'], ['AO Two', 'ao2.example', 'registered'], ['AO Refused', 'ao3.example', 'registered'], ['AO NoRecipes', 'ao4.example', 'registered']]) {
+  const sid2 = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, status, contact_email, rights_status) VALUES (?,?,?,1,?,?,?) RETURNING id").get(name, 'https://' + host2, 'India', st, 'hi@' + host2, name === 'AO Refused' ? 'refused' : 'not_requested').id;
+  if (name !== 'AO NoRecipes') { const rid2 = mkRecipe('https://' + host2 + '/dish/', { status: 'approved', name: name + ' Dish' }); db.prepare('UPDATE kp_recipes SET source_id = ? WHERE id = ?').run(sid2, rid2); }
+}
+ok((await OA.autoOutreach(oaEnv, { send: aoSend })).skipped === 'automatic sending is off' && aoSent.length === 0, 'Automatic sending does nothing while it is off');
+ok(/Connect Gmail/.test(await throwsMsg(() => OA.updateOutreachSettings({ ...env }, { auto: true }))), 'It cannot be switched on before Gmail is connected');
+const aoUsed = db.prepare('SELECT count(*) n FROM kp_outreach WHERE sent_at > ?').get(Math.floor(Date.now() / 1000) - 86400).n;   // emails already sent today by earlier checks
+const aoCap = aoUsed + 2;
+await OA.updateOutreachSettings(oaEnv, { auto: true, daily_cap: aoCap });
+const aoRun = await OA.autoOutreach(oaEnv, { send: aoSend });
+ok(aoRun.sent === 2 && aoSent.slice().sort().join() === 'hi@ao1.example,hi@ao2.example', 'Automatic sending emails sites with live recipes and an address, but never a site that refused or one with no live recipes: ' + aoSent);
+ok((await OA.autoOutreach(oaEnv, { send: aoSend })).skipped?.includes('daily limit') && aoSent.length === 2, 'The daily limit stops it');
+ok(!!(await throwsMsg(() => OA.updateOutreachSettings(oaEnv, { daily_cap: 500 }))) && (await OA.outreachSettings(oaEnv)).auto === true, 'The daily limit must be 1 to 50; the settings are reported');
+await OA.updateOutreachSettings(oaEnv, { auto: false });
+ok((await OA.autoOutreach(oaEnv, { send: aoSend })).skipped === 'automatic sending is off', 'Switching it off stops it at once');
+
+// finding the contact address on the site itself
+ok(OA.decodeCfEmail('7c1409091d0a1d1c3c1d0c1d111d0b1d52111513') !== null, 'Cloudflare-protected addresses can be decoded');
+const cfHex = (e) => { const k = 0x2a; return k.toString(16).padStart(2, '0') + [...e].map((c) => (c.charCodeAt(0) ^ k).toString(16).padStart(2, '0')).join(''); };
+const oaPage = '<a href="mailto:Hello@mycooks.example?subject=Hi">Mail</a> <a class="__cf_email__" data-cfemail="' + cfHex('team@mycooks.example') + '">[email protected]</a> ads@adnetwork.example logo@2x.png noreply@mycooks.example';
+const oaFound = OA.emailsFromHtml(oaPage);
+ok(oaFound.includes('hello@mycooks.example') && oaFound.includes('team@mycooks.example') && !oaFound.some((e) => /noreply|2x\.png/.test(e)), 'Addresses are found in mailto links, protected addresses and plain text; no-reply and image names are dropped: ' + oaFound);
+ok(OA.pickEmail(oaFound, 'https://www.mycooks.example/recipes/') === 'hello@mycooks.example' && OA.pickEmail(['ads@adnetwork.example'], 'https://mycooks.example') === null && OA.pickEmail(['jane.cook@gmail.com', 'ads@x.example'], 'https://janecooks.example') === 'jane.cook@gmail.com', 'An address on the site\'s own domain (or a personal free-mail one) is chosen; an unrelated company address is not');
+const cfRes = await OA.findContactEmail(env, { url: 'https://mycooks.example/' }, { fetchPage: async (u) => (u.endsWith('/contact/') ? oaPage : '') });
+ok(cfRes.email === 'hello@mycooks.example' && cfRes.page === '/contact/', 'The contact page is tried first');
+ok((await OA.findContactEmail(env, { url: 'https://mycooks.example/' }, { fetchPage: async () => { const e = new Error('pacing'); e.code = 'later'; throw e; } })).later === true, 'If the site must be asked later (pacing), it tries again next time');
+const fcSid = db.prepare("INSERT INTO kp_recipe_sources (name, url, area, active, status) VALUES ('Find Blog','https://find.example','India',1,'registered') RETURNING id").get().id;
+const fcRid = mkRecipe('https://find.example/dish/', { status: 'approved', name: 'Find Dish' }); db.prepare('UPDATE kp_recipes SET source_id = ? WHERE id = ?').run(fcSid, fcRid);
+const fcOut = await OA.findContactEmails(env, { limit: 5, find: async () => ({ email: 'hello@find.example' }) });
+const fcRow = db.prepare('SELECT contact_email, contact_email_source, contact_checked_at FROM kp_recipe_sources WHERE id = ?').get(fcSid);
+ok(fcOut.some((x) => x.id === fcSid) && fcRow.contact_email === 'hello@find.example' && fcRow.contact_email_source === 'auto' && fcRow.contact_checked_at, 'A found address is saved, marked as found automatically, and the site is not checked again');
+await OA.setContactEmail(env, fcSid, 'typed@find.example');
+ok(db.prepare('SELECT contact_email_source FROM kp_recipe_sources WHERE id = ?').get(fcSid).contact_email_source === 'owner', 'An address typed in by the owner is marked as the owner\'s');
+ok(/phone or WhatsApp/.test(OA.buildMessage({}, { name: 'X' }, []).text), 'The email invites the creator to add a phone or WhatsApp number');
+const stRes = await routeRecipes(new Request('https://w/api/kp/admin/outreach/settings', { headers: { 'x-admin-token': 't' } }), { ...oaEnv, ADMIN_TOKEN: 't' }, ctx);
+ok(stRes.status === 200 && (await stRes.json()).daily_cap === aoCap && (await routeRecipes(new Request('https://w/api/kp/admin/outreach/settings'), { ...oaEnv, ADMIN_TOKEN: 't' }, ctx)).status === 401, 'The settings endpoint reports the limit and needs the admin token');
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
