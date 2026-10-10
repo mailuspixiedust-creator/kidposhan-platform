@@ -8,7 +8,8 @@
 import { buyLinksFor } from '../commerce/buylinks.js';
 import { displayName } from './normalize.js';
 import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
-import { VISIBLE_SCORE_SQL } from './score.js';
+import { scoreSqlFor } from './score.js';
+import { bandForMonths, bandById, REFERENCE_BAND } from './score2.js';
 
 export const MIN_RESULTS = 20;          // every filter combination should offer at least this many recipes
 const MAX_LIMIT = 40, POOL = 80;        // POOL: candidates gathered so a repeat search can pick recipes the device has not seen
@@ -46,7 +47,7 @@ function readParams(url) {
   if (!SEASONS.includes(season)) errors.push(`season must be one of ${SEASONS.join(', ')}`);
   if (!DIETS[pref]) errors.push('pref must be veg, jain or nonveg');
   if (!WORLDS.includes(world)) errors.push(`world must be one of ${WORLDS.join(', ')}`);
-  return { age, occasion, season, pref, limit, world, vid, errors };
+  return { age, band: bandForMonths(age).id, occasion, season, pref, limit, world, vid, errors };
 }
 
 async function queryTier(env, q, tier, excludeIds, take) {
@@ -54,7 +55,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   const diets = DIETS[q.pref];
   let sql = `
     SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, r.mayo_flex, r.age_min_months, r.age_max_months,
-           ${VISIBLE_SCORE_SQL} AS poshan_score, CASE WHEN r.score_hidden = 0 AND r.poshan_score IS NOT NULL THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
+           ${scoreSqlFor(q.band)} AS poshan_score, CASE WHEN r.score_hidden = 0 AND r.poshan_score IS NOT NULL THEN r.score_status END AS score_kind, r.completeness, r.source_url, s.name AS source_name, s.region AS source_region,
            (SELECT round(avg(stars), 1) FROM kp_ratings WHERE recipe_id = r.id) AS rating_avg,
            (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id) AS rating_count,
            (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id AND stars >= 4) AS liked_count,
@@ -81,7 +82,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
   }
   // Always Poshan Score descending (unscored last). Only between recipes with the same score does a sharper photo come first.
   // Photo bands: 500px+ sharp, 300px+ ok, the rest (or hidden/unmeasured) last.
-  sql += ` ORDER BY (${VISIBLE_SCORE_SQL}) IS NULL, (${VISIBLE_SCORE_SQL}) DESC,
+  sql += ` ORDER BY (${scoreSqlFor(q.band)}) IS NULL, (${scoreSqlFor(q.band)}) DESC,
            CASE WHEN s.photos_hidden = 0 AND r.image_w >= 500 THEN 0 WHEN s.photos_hidden = 0 AND r.image_w >= 300 THEN 1 ELSE 2 END,
            r.completeness = 'complete' DESC, r.id LIMIT ?`;
   args.push(take);
@@ -113,6 +114,7 @@ export function pickFresh(pool, seen, limit) {
 }
 
 export async function searchRecipes(env, q) {
+  q = { ...q, band: q.band || bandForMonths(q.age).id };
   const tiers = [
     { match: 'exact',               season: true,  occasions: [q.occasion] },
     { match: 'any_season',          season: false, occasions: [q.occasion] },
@@ -145,7 +147,7 @@ export async function searchRecipes(env, q) {
   const idx = new Map(pool.map((r, i) => [r.id, i]));
   results.sort((x, y) => (rank[x.match] - rank[y.match]) || ((y.poshan_score ?? -1) - (x.poshan_score ?? -1)) || (idx.get(x.id) - idx.get(y.id)));
   return {
-    query: { age_months: q.age, occasion: q.occasion, season: q.season, pref: q.pref, world: q.world || 'india' },
+    query: { age_months: q.age, score_band: q.band, occasion: q.occasion, season: q.season, pref: q.pref, world: q.world || 'india' },
     count: results.length,
     exact_count: results.filter((r) => r.match === 'exact').length,
     coverage_gap: results.length < MIN_RESULTS, // log these: they tell you which recipes to source next
@@ -160,7 +162,7 @@ export function mayoFor(text) {
   return String(text ?? '').replace(/((?:eggless|egg[- ]free|vegan|veg(?:etarian)?)\s+)?\bmayonnaise\b/gi, (m, pre, offset, whole) => (pre ? m : offset === 0 || /[.!?]\s*$/.test(whole.slice(0, offset)) ? 'Eggless mayonnaise' : 'eggless mayonnaise'));
 }
 
-export async function recipeDetail(env, id, { pref = '' } = {}) {
+export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
   const r = await env.DB.prepare(
     `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden, s.world
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -188,8 +190,12 @@ export async function recipeDetail(env, id, { pref = '' } = {}) {
   }
   const methodAllowed = r.rights_status === 'granted';
   const kpSteps = r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
-  const scoreVisible = r.poshan_score != null && !r.score_hidden;
   let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
+  // the score for the child's age band (the reference band, 4-6 years, when no age is given)
+  const bandId = age != null ? bandForMonths(age).id : REFERENCE_BAND;
+  const forBand = detail.bands?.[bandId] || null;
+  const scoreValue = forBand ? forBand.total : r.poshan_score;
+  const scoreVisible = scoreValue != null && !r.score_hidden;
   return {
     id: r.id,
     name: r.name,
@@ -206,8 +212,8 @@ export async function recipeDetail(env, id, { pref = '' } = {}) {
     age_min_months: r.age_min_months,
     age_max_months: r.age_max_months,
     // Score parents may see: exact always; estimated only after the owner approved it.
-    poshan_score: scoreVisible ? r.poshan_score : null,
-    score: scoreVisible ? { value: r.poshan_score, kind: r.score_status, band: bandOf(r.poshan_score), basis: detail.per_serving_basis ? `per serving (${detail.per_serving_basis} servings)` : null, inputs: detail.inputs || null, sources: detail.sources || null } : null,
+    poshan_score: scoreVisible ? scoreValue : null,
+    score: scoreVisible ? { value: scoreValue, kind: r.score_status, band: bandOf(scoreValue), age_band: bandId, age_band_label: bandById(bandId).label, metrics: forBand?.metrics || null, capped: !!forBand?.capped, basis: detail.per_serving_basis ? `per serving (${detail.per_serving_basis} servings), against a third of the day` : null, inputs: detail.inputs || null, sources: detail.sources || null } : null,
     source: { name: r.source_name, url: r.source_url, rights_status: r.rights_status },
     // Verbatim method only when the source has granted rights; otherwise the UI links out.
     // KidPoshan's own approved steps always come first; the creator's verbatim steps only with granted rights.
@@ -225,7 +231,8 @@ export async function handleRecipesApi(request, env, ctx) {
   const m = url.pathname.match(/^\/api\/kp\/recipes\/(\d+)$/);
   if (m) {
     const pref = url.searchParams.get('pref') || '';
-    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '' });
+    const ageQ = parseInt(url.searchParams.get('age_months'), 10);
+    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '', age: Number.isFinite(ageQ) ? ageQ : null });
     return d ? json(d) : json({ error: 'Recipe not found' }, 404);
   }
   const q = readParams(url);

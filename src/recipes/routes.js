@@ -24,6 +24,9 @@ import { UserError, joinVisitor, listVisitors, userFromRequest, logout, setName,
 import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
+import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
+import { methodSpec } from './score2.js';
+import { rescoreAllPacks } from './ready.js';
 import { setPhone, outreachSettings, updateOutreachSettings, autoOutreach, findContactEmails, sendTest, setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
 
 const json = (d, s = 200) => new Response(JSON.stringify(d, null, 2), { status: s, headers: { 'content-type': 'application/json' } });
@@ -94,6 +97,22 @@ export async function routeRecipes(request, env, ctx) {
     return withCors(request, await handleRecipesApi(request, env, ctx));
   }
 
+  // The Products page: GET /api/kp/products?age=3-5y&category=Snacks&min=58&sort=score|name, and one product with its score workings
+  if (request.method === 'GET' && path === '/api/kp/products') {
+    const sp = url.searchParams;
+    const res = await listProducts(env, { age: AGE_BANDS.some((b) => b.id === sp.get('age')) ? sp.get('age') : '', category: sp.get('category') || '', min: +sp.get('min') || 0, sort: sp.get('sort') === 'name' ? 'name' : 'score', limit: +sp.get('limit') || 60 });
+    return withCors(request, new Response(JSON.stringify(res), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
+  }
+  // The scoring method itself, written from the same tables the engine uses: the Age & Metrics page shows exactly this
+  if (request.method === 'GET' && path === '/api/kp/score-method') {
+    return withCors(request, new Response(JSON.stringify(methodSpec()), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
+  }
+  const prodM = path.match(/^\/api\/kp\/products\/(\d+)$/);
+  if (request.method === 'GET' && prodM) {
+    const d = await productDetail(env, +prodM[1], { age: AGE_BANDS.some((b) => b.id === url.searchParams.get('age')) ? url.searchParams.get('age') : '' });
+    return withCors(request, d ? new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }) : json({ error: 'Product not found' }, 404));
+  }
+
   // GET /api/kp/ready?recipe_id=12  -> approved ready-to-buy packs for that dish (ragi dosa -> ragi dosa mix)
   if (request.method === 'GET' && path === '/api/kp/ready') {
     if (url.searchParams.get('recipe_ids')) return withCors(request, json(await packsForRecipes(env, url.searchParams.get('recipe_ids').split(','))));
@@ -120,6 +139,9 @@ export async function routeRecipes(request, env, ctx) {
       if (id) { await env.DB.prepare('UPDATE kp_ready_products SET label_tried_at = NULL WHERE id = ? AND label_source IS NOT \'owner\'').bind(id).run(); return json({ read: [await readPackLabel(env, id)] }); }
       return json({ read: await readLabelsPending(env, { limit: Math.min(+url.searchParams.get('limit') || 2, 4) }) });
     }
+    // POST /api/kp/admin/products/approve-scored   approve every waiting product whose label was read and scored
+    if (path === '/api/kp/admin/products/approve-scored' && request.method === 'POST') return json(await approveScored(env));
+    if (path === '/api/kp/admin/products/rescore' && request.method === 'POST') return json(await rescoreAllPacks(env));      // after the scoring method changed
     const pm = path.match(/^\/api\/kp\/admin\/products\/(\d+)$/);
     if (pm && request.method === 'POST') return json(await reviewPack(env, +pm[1], await request.json()));
     // ---- owner review ----

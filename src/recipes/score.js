@@ -1,16 +1,18 @@
-// Recipe-level Poshan Score. Uses the existing engine (src/poshan-score.js, 'home_cooked' profile) unchanged.
+// Recipe-level Poshan Score (version 2, see score2.js): ten metrics, each 1 to 10, out of 100, worked out for each age band.
 // Inputs per serving: protein, fibre, saturated fat, sodium from the recipe page's nutrition block when it has them,
 // otherwise estimated from ingredient quantities (nutrients.js). Added sugar always comes from the listed sweeteners.
+// Preservatives, additives and hydrogenated fats are read from the ingredient lines. A cooked dish is measured against one meal's share of the day.
 //   exact     = all four from the page (+ sweeteners weighed)
 //   estimated = any input estimated; shown to parents labelled "estimated" unless the owner hides it (score_hidden)
 //   pending   = too many ingredients could not be weighed to score honestly
+// poshan_score holds the score for the reference band (4-6 years); score_13 / score_46 / score_79 / score_1012 hold each band's score.
 // The source site's own star rating never feeds the score.
 
-import { calculatePoshanScore } from '../poshan-score.js';
+import { scoreAllBands, REFERENCE_BAND, SCORE_COLUMN, SCORE_VERSION } from './score2.js';
 import { estimateNutrition, servingsFrom } from './nutrients.js';
 import { parseIngredientLine } from './normalize.js';
 
-export const SCORE_VERSION = 'kp-recipe-score-v1';
+export { SCORE_VERSION };
 const MIN_COVERAGE = 0.75; // share of non-pantry ingredient lines that must be weighable
 
 const num = (v) => {
@@ -41,18 +43,16 @@ export function computeRecipeScore(row, ingredients) {
   const sources = {};
   const pick = (k) => { if (page[k] != null) { sources[k] = 'recipe_data'; return page[k]; } sources[k] = 'estimated'; return est.per_serving[k]; };
   const inputs = {
-    protein: pick('protein'), fibre: pick('fibre'), satFat: pick('satFat'), sodium: pick('sodium'),
-    addedSugar: est.per_serving.addedSugar, additives: 0,
-    palmOil: ingredients.some((i) => /\bpalm\s*oil\b/i.test(i.raw_text)),
-    maida: est.flags.maida, wholeGrain: est.flags.wholeGrain, category: '',
+    basis: 'meal', protein: pick('protein'), fibre: pick('fibre'), satFat: pick('satFat'), sodium: pick('sodium'), addedSugar: est.per_serving.addedSugar,
+    ingredients: ingredients.map((i) => i.raw_text).join(', '), topKey: est.top_key,
   };
   sources.addedSugar = 'from_listed_sweeteners';
-  const out = calculatePoshanScore(inputs, 'home_cooked');
+  const out = scoreAllBands(inputs);
   const exact = ['protein', 'fibre', 'satFat', 'sodium'].every((k) => sources[k] === 'recipe_data');
   return {
-    status: exact ? 'exact' : 'estimated', score: out.finalScore, band: out.band,
-    detail: { version: SCORE_VERSION, profile: 'home_cooked', inputs, sources, per_serving_basis: est.servings, coverage: est.coverage,
-      assumptions: est.assumptions, unweighed: est.unweighed, engine: out.breakdown },
+    status: exact ? 'exact' : 'estimated', score: out.reference, band: out.bands[REFERENCE_BAND].tier, bands: out.bands,
+    detail: { version: SCORE_VERSION, basis: 'meal', reference_band: REFERENCE_BAND, inputs, sources, per_serving_basis: est.servings, coverage: est.coverage,
+      assumptions: est.assumptions, unweighed: est.unweighed, bands: out.bands },
   };
 }
 
@@ -76,10 +76,13 @@ export async function scoreRecipe(env, id) {
   const detail = r.status === 'pending' ? { version: SCORE_VERSION, reason: r.reason, unweighed: r.estimate.unweighed, assumptions: r.estimate.assumptions } : r.detail;
   const changed = r.score !== row.poshan_score || r.status !== row.score_status;
   await env.DB.prepare(
-    `UPDATE kp_recipes SET poshan_score = ?, score_status = ?, score_breakdown_json = ?${changed ? ', score_approved = 0' : ''} WHERE id = ?`
-  ).bind(r.score, r.status, JSON.stringify(detail), id).run();
+    `UPDATE kp_recipes SET poshan_score = ?, score_status = ?, score_breakdown_json = ?, score_13 = ?, score_46 = ?, score_79 = ?, score_1012 = ?${changed ? ', score_approved = 0' : ''} WHERE id = ?`
+  ).bind(r.score, r.status, JSON.stringify(detail), ...['1-3', '4-6', '7-9', '10-12'].map((k) => r.bands?.[k]?.total ?? null), id).run();
   return { id, status: r.status, score: r.score };
 }
 
 // SQL fragment: the score parents are allowed to see.
 export const VISIBLE_SCORE_SQL = "CASE WHEN r.score_hidden = 0 THEN r.poshan_score END";
+
+// SQL fragment for one age band: the score parents are allowed to see for that band (falls back to the reference score).
+export const scoreSqlFor = (bandId) => `CASE WHEN r.score_hidden = 0 THEN COALESCE(r.${SCORE_COLUMN[bandId] || 'poshan_score'}, r.poshan_score) END`;
