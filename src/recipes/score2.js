@@ -4,7 +4,8 @@
 //   Age:     the score is worked out for the child's age band (1-3, 4-6, 7-9, 10-12 years). Sugar, sodium, saturated fat, fibre and protein
 //            are compared with that band's daily reference. Under 12 months there is no published band, so the 1-3 year reference is used.
 //   Basis:   packaged food is measured per 100 g (as the label prints it) against the day's reference;
-//            a cooked dish is measured per serving, counted as one of about three meals a day (the amount is divided by three) against the day's reference.
+//            a cooked dish is measured per serving against the day's reference. The serving is never divided: one bowl that holds
+//            half the day's sugar limit scores as half the day's sugar limit.
 //   Metrics: 1 added sugar, 2 sodium, 3 saturated fat, 4 trans fat / hydrogenated oils, 5 fibre, 6 protein, 7 preservatives,
 //            8 artificial additives, 9 base-ingredient integrity, 10 HFSS (the worst of sugar, sodium and saturated fat).
 //   Cap:     a product that fails any one risk metric outright (score 3 or less on sugar, sodium, saturated fat or trans fat) cannot score above 57.
@@ -70,10 +71,11 @@ function integrityFor(name, ingredients, topKey) {
 // (grams, except sodium in mg). Returns the score for one band.
 export function scoreForBand(input, bandId) {
   const band = bandById(bandId), ref = band.ref, meal = input.basis === 'meal';
-  const meals = meal ? 3 : 1;             // a dish is one of about three meals a day, so only a third of a serving counts toward the day
-  const share = (v, r) => (r > 0 ? (Number(v || 0) / meals / r) * 100 : 0);
+  // The full serving is compared with the full day's reference. (An earlier version divided a dish's serving by three,
+  // which made every dish and pack look three times lighter than it is.)
+  const share = (v, r) => (r > 0 ? (Number(v || 0) / r) * 100 : 0);
   const text = asText(input.ingredients);
-  const shareWord = meal ? '(a serving counts as one of three meals) = ' : '= ';
+  const shareWord = meal ? 'per serving = ' : '= ';
 
   const sugarPct = share(input.addedSugar, ref.sugarIdeal), sodiumPct = share(input.sodium, ref.sodium), satPct = share(input.satFat, ref.satFat);
   const fibrePct = share(input.fibre, ref.fibre), proteinPct = share(input.protein, ref.protein);
@@ -127,7 +129,7 @@ export function methodSpec() {
     version: SCORE_VERSION, scale: { min: 1, max: 10, total: 100 }, reference_band: REFERENCE_BAND, cap: { score: CAP_SCORE, because: 'a score of 3 or less on sugar, sodium, saturated fat or trans fat' },
     tiers: [{ name: 'Excellent', min: 80, max: 100 }, { name: 'Good', min: 58, max: 79 }, { name: 'Fair', min: 40, max: 57 }, { name: 'Occasional', min: 10, max: 39 }],
     bands: BANDS.map((b) => ({ id: b.id, label: b.label, reference: b.ref })),
-    bases: { pack: 'Packaged food: measured per 100 g, as the label prints it, against the day\'s reference.', meal: 'A cooked dish: measured per serving, counted as one of about three meals a day (a third of the amount counts toward the day), against the day\'s reference.' },
+    bases: { pack: 'Packaged food: measured per 100 g, as the label prints it, against the day\'s reference.', meal: 'A cooked dish: measured per serving, the whole serving against the day\'s reference.' },
     sodium_example: { mg: 793.8, what: 'one 38 g serving of a masala oats sachet', by_age: BANDS.map((b) => { const pct = (793.8 / b.ref.sodium) * 100; return { id: b.id, label: b.label, share: Math.round(pct), score: riskScore(pct) }; }) },
     under_12_months: 'Under 12 months there is no published reference band, so the 1–3 year reference is used.',
     metrics: [
