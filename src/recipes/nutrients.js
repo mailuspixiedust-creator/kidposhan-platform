@@ -58,17 +58,25 @@ Object.assign(FOOD, {
 // Share of the ingredient's weight that counts as ADDED sugar.
 export const SWEETENERS = { sugar: 1, jaggery: 0.95, honey: 0.82 };
 const WHOLE_GRAIN = new Set(['wheat_flour', 'ragi', 'oats', 'dalia']);
-const NO_QTY_GRAMS = { salt: 1.5, oil: 8, ghee: 8 }; // "to taste" / "as needed" assumptions, per recipe
+// "to taste" / "as needed" assumptions, PER SERVING (multiplied by the servings). Salt 1.25 g a serving is about a quarter
+// teaspoon (~490 mg sodium); oil or ghee 5 g a serving is about a teaspoon. Oil for deep or shallow frying assumes 10 g a
+// serving absorbed. An earlier version assumed 1.5 g salt for the WHOLE recipe, so salted dishes looked almost salt-free.
+const NO_QTY_GRAMS = { salt: 1.25, oil: 5, ghee: 5 };
+const FRYING_OIL_G = 10;
+const FRYING = /\b(?:deep[- ]?fry|deep[- ]?frying|for frying|to fry|shallow[- ]?fry|frying)\b/i;
 const SPICE_NO_QTY = 1;
 const LIQUID_ML = { milk: 1.03, curd: 1.03, oil: 0.92, ghee: 0.91, honey: 1.4, water: 1, lemon: 1, coconut_milk: 1, stock: 1, fish_sauce: 1.2, cream: 1 };
 
-export function gramsFor(ing) {
+export function gramsFor(ing, servings = 4) {
   const key = ing.ingredient_key, f = key && FOOD[key];
   if (!f) return { g: null, why: 'unknown ingredient' };
   const [, , , , cup, piece] = f;
   const q = ing.quantity, u = ing.unit;
   if (q == null) {
-    if (key in NO_QTY_GRAMS) return { g: NO_QTY_GRAMS[key], assumed: `${key} with no quantity assumed ${NO_QTY_GRAMS[key]} g per recipe` };
+    if (key in NO_QTY_GRAMS) {
+      const per = (key === 'oil' || key === 'ghee') && FRYING.test(String(ing.raw_text || '')) ? FRYING_OIL_G : NO_QTY_GRAMS[key];
+      return { g: per * servings, assumed: `${key} with no quantity assumed ${per} g per serving` };
+    }
     if (ing.is_pantry) return { g: SPICE_NO_QTY, assumed: `${key} with no quantity assumed ${SPICE_NO_QTY} g per recipe` };
     return { g: null, why: 'no quantity' };
   }
@@ -105,9 +113,10 @@ export function estimateNutrition(ingredients, servings) {
   const t = { protein: 0, fibre: 0, satFat: 0, sodium: 0, addedSugar: 0 };
   const keys = new Set();
   let topKey = null, topG = 0;
+  const s = servings || 4;
   for (const ing of ingredients) {
     keys.add(ing.ingredient_key);
-    const w = gramsFor(ing);
+    const w = gramsFor(ing, s);
     if (!ing.is_pantry) considered++;
     if (w.g == null) { if (!ing.is_pantry) unweighed.push({ line: ing.raw_text, why: w.why }); continue; }
     if (!ing.is_pantry) weighable++;
@@ -118,7 +127,6 @@ export function estimateNutrition(ingredients, servings) {
     if (!ing.is_pantry && ing.ingredient_key !== 'water' && w.g > topG) { topG = w.g; topKey = ing.ingredient_key; }
   }
   const coverage = considered ? weighable / considered : 0;
-  const s = servings || 4;
   if (!servings) assumptions.push('servings not stated; assumed 4');
   const per = Object.fromEntries(Object.entries(t).map(([k, v]) => [k, Math.round((v / s) * 10) / 10]));
   return {
