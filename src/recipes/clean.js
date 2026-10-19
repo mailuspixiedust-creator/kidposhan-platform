@@ -95,3 +95,17 @@ export const savouryOnly = (occasions) => occasions.length > 0 && occasions.ever
 
 // ---- the same dish twice ("Dhal Curry" from two sites) ----
 export const dishKey = (name) => String(name || '').split('|')[0].toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/\b(recipe|easy|quick|simple|best|authentic|homemade|how to make|for kids|kids)\b/g, ' ').replace(/\bdhal\b/g, 'dal').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+// ---- steps as points ----
+// A long paragraph of method becomes one point per sentence; short steps stay as they are.
+export function toPoints(steps) {
+  const out = [];
+  for (const st of steps || []) {
+    const text = String(typeof st === 'string' ? st : st?.text || '').replace(/^\s*(step\s*)?\d+\s*[.):-]\s*/i, '').replace(/\s+/g, ' ').trim();
+    if (!text || (text.match(/\|/g) || []).length >= 2 || /^(see|check) (the )?(below|above)|watch (the )?(video|recipe)|subscribe|follow us/i.test(text)) continue;      // a list of other recipes, a pointer to a picture or video: not a step
+    const section = typeof st === 'string' ? null : st?.section || null;
+    const parts = text.length > 160 ? text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map((x) => x.trim()).filter(Boolean) : [text];
+    for (const p of parts) out.push({ section, text: p });
+  }
+  return out;
+}
