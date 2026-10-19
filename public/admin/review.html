@@ -191,6 +191,7 @@ const demo={
 };
 
 let reviewedFilter='all', unreviewedCount=0;
+let trf={days:30,path:null,data:null};
 let tav=null, joined={total:0,visitors:[]}, cov=null, covBusy=false;
 let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:'',settings:{auto:false,daily_cap:10,sent_last_24h:0,gmail_connected:false}};
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
@@ -214,6 +215,7 @@ async function demoApi(path,opts){
   if(u.pathname==='/api/kp/admin/products'){return {status:'candidate',total:0,counts:{},kinds:[],items:[]}}
   if(u.pathname==='/api/kp/admin/tavily') return {configured:true,cap_per_day:25,used_today:3,used_last_7_days:12,account:{plan:'Researcher',used:88,limit:1000}};
   if(u.pathname==='/api/kp/admin/visitors') return {total:0,visitors:[]};
+  if(u.pathname==='/api/kp/admin/traffic') return {days:30,path:null,totals:{views:412,visitors:236,avg_seconds:74,bots_excluded:58},pages:[{path:'/',label:null,views:180,visitors:120,avg_seconds:41,timed:150},{path:'/products',label:null,views:96,visitors:70,avg_seconds:88,timed:80},{path:'/meal-ideas',label:null,views:84,visitors:55,avg_seconds:102,timed:70}],countries:[{country:'IN',views:380,visitors:215},{country:'US',views:20,visitors:12}],cities:[{country:'IN',city:'Kolkata',views:140,visitors:80},{country:'IN',city:'Mumbai',views:90,visitors:52},{country:'US',city:'Seattle',views:12,visitors:7}],by_day:[{day:'2026-10-17',views:120,visitors:70},{day:'2026-10-18',views:150,visitors:90},{day:'2026-10-19',views:142,visitors:80}]};
   if(u.pathname==='/api/kp/admin/coverage') return {pref:u.searchParams.get('pref'),target:20,combinations:100,below_target:42,lowest:3,median:14,worst:[]};
   if(u.pathname==='/api/kp/admin/outreach/settings') return {auto:false,daily_cap:10,sent_last_24h:0,gmail_connected:false};
   if(u.pathname==='/api/kp/admin/remarks') return {remarks:[],counts:{}};
@@ -234,7 +236,7 @@ function render(){
     document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
     return;
   }
-  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['authors','Authors']];
+  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['traffic','Traffic'],['authors','Authors']];
   app.innerHTML=`<h1>Recipe review</h1>
     <p class="sub">Recipes that pass the automatic checks go live by themselves. Review them here afterwards: pull one back, edit its steps or ingredients, or tick "Reviewed by me". Recipes that failed a check are held with the reason shown.</p>
     ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
@@ -245,6 +247,7 @@ function render(){
   if(tab==='packs'){renderPacks(list);return}
   if(tab==='sites'){renderSites(list);return}
   if(tab==='visitors'){renderVisitors(list);return}
+  if(tab==='traffic'){renderTraffic(list);return}
   if(tab==='authors'){renderAuthors(list);return}
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
     `<p class="empty">${tab==='pending'?'Nothing is held. Recipes that pass the checks go live by themselves; any that fail appear here with the reason.':'Nothing here yet.'}</p>`;
@@ -383,6 +386,31 @@ function bindCards(){
 }
 
 const ago=t=>{if(!t)return '';const d=Math.floor((Date.now()/1000-t)/86400);return d<1?'today':d===1?'yesterday':d+' days ago'};
+const COUNTRY=(()=>{try{return new Intl.DisplayNames(['en'],{type:'region'})}catch(e){return null}})();
+const cname=c=>c==='??'||!c?'Unknown':(COUNTRY&&COUNTRY.of(c))||c;
+const mmss=sec=>sec==null?'not measured':(sec>=60?Math.floor(sec/60)+' min '+String(sec%60).padStart(2,'0')+' s':sec+' s');
+function renderTraffic(list){
+  const d=trf.data; if(!d){list.innerHTML='<p class="empty">Loading…</p>';return}
+  const T=d.totals, max=Math.max(1,...d.by_day.map(x=>x.views));
+  const table=(head,rows)=>'<div class="vcard" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--muted)">'+head.map((h,i)=>'<th style="padding:6px 10px 6px 0'+(i?';text-align:right':'')+'">'+h+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  const td=(v,right)=>'<td style="padding:7px 10px 7px 0;border-top:1px solid var(--line)'+(right?';text-align:right;white-space:nowrap':'')+'">'+v+'</td>';
+  list.innerHTML=`<div class="vhead"><h2>Traffic</h2><div class="filters" role="group" aria-label="Period">${[7,30,90].map(n=>`<button class="fchip" data-days="${n}" aria-pressed="${trf.days===n}">Last ${n} days</button>`).join('')}</div></div>
+   <p class="sub">Real visitors only: crawlers, monitors and headless browsers are left out (${T.bots_excluded} such visits in this period). No IP address is stored: the country and city are what Cloudflare saw when the page loaded. A visitor is one browser. Time is how long the page was on screen, so a tab left in the background does not count.</p>
+   <div class="vcard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;text-align:center">
+     <div><div style="font-size:28px;font-weight:700">${T.visitors}</div><div class="sub">visitors</div></div>
+     <div><div style="font-size:28px;font-weight:700">${T.views}</div><div class="sub">page views</div></div>
+     <div><div style="font-size:28px;font-weight:700">${esc(mmss(T.avg_seconds))}</div><div class="sub">average time on a page</div></div>
+     <div><div style="font-size:28px;font-weight:700">${T.bots_excluded}</div><div class="sub">bot visits left out</div></div></div>
+   <div class="vcard"><div class="sub" style="margin:0 0 8px">Page views per day</div><div style="display:flex;align-items:flex-end;gap:3px;height:70px">${d.by_day.map(x=>'<div title="'+esc(x.day)+': '+x.views+' views, '+x.visitors+' visitors" style="flex:1;min-width:2px;background:var(--leaf,#3F6B3C);height:'+Math.max(3,Math.round(x.views/max*70))+'px;border-radius:2px 2px 0 0"></div>').join('')||'<span class="sub">No visits recorded yet.</span>'}</div></div>
+   <div class="vhead"><h2>Pages</h2></div><p class="sub">Tap a page to see where its visitors come from.</p>
+   ${d.pages.length?table(['Page','Visitors','Views','Average time'],d.pages.map(p=>'<tr class="trow" data-path="'+esc(p.path)+'" style="cursor:pointer'+(trf.path===p.path?';background:var(--leaf-2,#E3EEDF)':'')+'">'+td('<b>'+esc(p.label||p.path)+'</b>'+(p.label?'<br><span class="sub">'+esc(p.path)+'</span>':''))+td(p.visitors,1)+td(p.views,1)+td(esc(mmss(p.avg_seconds))+(p.timed&&p.timed<p.views?' <span class="sub">('+p.timed+' timed)</span>':''),1)+'</tr>').join('')):'<p class="empty">Nothing recorded yet. Pages report a visit once they load.</p>'}
+   <div class="vhead"><h2>Where from ${trf.path?'<span class="sub">· '+esc(trf.path)+'</span> <button class="btn undo" id="allpages">All pages</button>':'<span class="sub">· all pages</span>'}</h2></div>
+   ${d.countries.length?table(['Country','Visitors','Views'],d.countries.map(c=>'<tr>'+td(esc(cname(c.country)))+td(c.visitors,1)+td(c.views,1)+'</tr>').join('')):''}
+   ${d.cities.length?'<p class="sub" style="margin-top:14px">Cities</p>'+table(['City','Country','Visitors','Views'],d.cities.map(c=>'<tr>'+td(esc(c.city))+td(esc(cname(c.country)))+td(c.visitors,1)+td(c.views,1)+'</tr>').join('')):''}`;
+  list.querySelectorAll('[data-days]').forEach(b=>b.onclick=()=>{trf.days=+b.dataset.days;load()});
+  list.querySelectorAll('.trow').forEach(r=>r.onclick=()=>{trf.path=r.dataset.path;load()});
+  const ap=document.getElementById('allpages'); if(ap) ap.onclick=()=>{trf.path=null;load()};
+}
 function renderVisitors(list){
   const R=vis.remarks, P=vis.payments, tot=vis.totals;
   list.innerHTML=`<div class="vhead"><h2>Remarks</h2><div class="filters" role="group" aria-label="Remark status">${[['pending','Waiting'],['approved','Published'],['rejected','Rejected']].map(([k,l])=>`<button class="fchip" data-rs="${k}" aria-pressed="${vis.rStatus===k}">${l}<span class="n">${vis.rCounts[k]??0}</span></button>`).join('')}</div></div>
@@ -556,6 +584,7 @@ async function load(append=false){
     vis.remarks=rw.remarks;vis.rCounts=rw.counts;vis.payments=pw.payments;vis.totals=pw.totals;
     counts.visitors=(rw.counts.pending||0)+((pw.totals.claimed||{}).count||0)||'';
     if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
+    if(tab==='traffic'){trf.data=await api('/api/kp/admin/traffic?days='+trf.days+(trf.path?'&path='+encodeURIComponent(trf.path):''))}
     if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;auth.settings=await api('/api/kp/admin/outreach/settings').catch(()=>auth.settings);const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';
     if(['approved','pending','rejected'].includes(tab)){const d=await api(`/api/kp/admin/review?status=${tab}&limit=20&offset=${offset}${reviewedFilter==='all'?'':'&reviewed='+reviewedFilter}`);items=append?items.concat(d.items):d.items;total=d.total}
