@@ -26,6 +26,7 @@ import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
 import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
 import { searchAll, siteStats, cooksShelf } from './search.js';
+import { importOffNext, importOffJob, offBrandJob } from './openfood.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
 import { methodSpec } from './score2.js';
@@ -163,6 +164,11 @@ export async function routeRecipes(request, env, ctx) {
     // ---- ready-to-buy packs ----
     if (path === '/api/kp/admin/products' && request.method === 'GET') {
       return json(await listPacks(env, { status: url.searchParams.get('status') || 'candidate', limit: +url.searchParams.get('limit') || 30, offset: +url.searchParams.get('offset') || 0 }));
+    }
+    // POST /api/kp/admin/products/import-off[?brand=maggi]   the next page of popular products from Open Food Facts
+    if (path === '/api/kp/admin/products/import-off' && request.method === 'POST') {
+      const bj = offBrandJob(url.searchParams.get('brand') || '');
+      return json(bj ? await importOffJob(env, bj) : await importOffNext(env));
     }
     // POST /api/kp/admin/products/research?kind=ragi_dosa_mix   (no kind = the one that has waited longest)
     if (path === '/api/kp/admin/products/research' && request.method === 'POST') {
@@ -318,6 +324,7 @@ export async function scheduledRecipes(env, cron) {
   }
   // Pack labels: read the nutrition panel from pack images for packs never tried (2 per run).
   try { console.log('labels', JSON.stringify(await readLabelsPending(env, { limit: 2 }))); } catch (e) { console.error('labels', e); }
+  try { console.log('open-food-facts', JSON.stringify(await importOffNext(env))); } catch (e) { console.error('open-food-facts', e); }       // popular products, one page a run
   // KidPoshan steps first: it is quick, and the paced crawl below can run for minutes.
   try { console.log('rewrite', JSON.stringify(await rewritePending(env, { limit: 6 }))); } catch (e) { console.error('rewrite', e); }
   try { console.log('gallery', JSON.stringify(await galleryPending(env, { limit: 4 }))); } catch (e) { console.error('gallery', e); }
