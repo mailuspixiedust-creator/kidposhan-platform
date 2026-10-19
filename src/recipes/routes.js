@@ -15,7 +15,7 @@ import { discoverSource } from './discover.js';
 import { processPending } from './pipeline.js';
 import { scoreRecipe, reparseIngredients } from './score.js';
 import { readPackLabel, readLabelsPending } from './label.js';
-import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind } from './ready.js';
+import { packsForRecipes, packsForRecipe, listPacks, reviewPack, researchKind, researchNextKind, PRIORITY_BRANDS } from './ready.js';
 import { rewriteSteps, rewritePending } from './rewrite.js';
 import { autoPublishPending } from './autopublish.js';
 import { galleryPending, sizePending } from './gallery.js';
@@ -25,6 +25,8 @@ import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
 import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
+import { searchAll, siteStats, cooksShelf } from './search.js';
+import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
 import { setPhone, outreachSettings, updateOutreachSettings, autoOutreach, findContactEmails, sendTest, setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
@@ -50,8 +52,8 @@ export function withCors(request, res) {
 // Visitor endpoints (login, rate, remark, support). Called from the main site too, so they answer CORS preflights for the allowed origins.
 async function routeVisitors(request, env, url, path) {
   const m = path.match(/^\/api\/kp\/recipes\/(\d+)\/(social|rate|remarks|support)$/);
-  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit';
-  if (!m && !isAuth && !isPay && !isVisit) return null;
+  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/');
+  if (!m && !isAuth && !isPay && !isVisit && !isSync) return null;
   const origin = request.headers.get('origin');
   if (request.method === 'OPTIONS') {
     if (!origin || !ALLOWED_ORIGIN.test(origin)) return new Response(null, { status: 403 });
@@ -62,6 +64,16 @@ async function routeVisitors(request, env, url, path) {
     const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
     const user = await userFromRequest(request, env);
     const need = () => { if (!user) throw new UserError('Please log in with your mobile number first.', 401); return user; };
+    // Saved recipes on another device: a one-time code to the mobile number first (verified), nothing is stored under an unverified number
+    if (isSync && request.method === 'POST') {
+      if (path === '/api/kp/sync/start') return reply(await startSync(env, body));
+      if (path === '/api/kp/sync/verify') return reply(await verifySync(env, body));
+      const su = await syncUser(request, env);
+      if (!su) return reply({ error: 'Please verify your mobile number again.' }, 401);
+      if (path === '/api/kp/sync/load') return reply(await readSync(env, su));
+      if (path === '/api/kp/sync/save') return reply(await writeSync(env, su, body));
+      if (path === '/api/kp/sync/logout') { await endSync(request, env); return reply({ ok: true }); }
+    }
     if (path === '/api/kp/auth/join' && request.method === 'POST') return reply(await joinVisitor(env, body));
     if (path === '/api/kp/auth/me' && request.method === 'GET') return user ? reply({ name: user.name, mobile_tail: String(user.mobile || '').slice(-4) }) : reply({ error: 'Not logged in' }, 401);
     if (path === '/api/kp/auth/name' && request.method === 'POST') return reply(await setName(env, need(), body.name));
@@ -103,6 +115,23 @@ export async function routeRecipes(request, env, ctx) {
     const res = await listProducts(env, { age: AGE_BANDS.some((b) => b.id === sp.get('age')) ? sp.get('age') : '', category: sp.get('category') || '', min: +sp.get('min') || 0, sort: sp.get('sort') === 'name' ? 'name' : 'score', limit: +sp.get('limit') || 60 });
     return withCors(request, new Response(JSON.stringify(res), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
   }
+  // The landing page's "from various cooks and cookbooks": one good recipe from each of several creators
+  if (request.method === 'GET' && path === '/api/kp/cooks') {
+    const ageQ = parseInt(url.searchParams.get('age_months'), 10);
+    const occ = url.searchParams.get('occasion'), prefs = (url.searchParams.get('pref') || '').split(',').filter((p) => ['veg', 'jain', 'nonveg'].includes(p));
+    const out = await cooksShelf(env, { age: Number.isFinite(ageQ) && ageQ >= 12 && ageQ <= 144 ? ageQ : null, limit: Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 8, 1), 12), occasion: ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'].includes(occ) ? occ : null, prefs });
+    return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
+  }
+  // The landing page's numbers
+  if (request.method === 'GET' && path === '/api/kp/stats') {
+    return withCors(request, new Response(JSON.stringify(await siteStats(env)), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }));
+  }
+  // One search box for the whole site: GET /api/kp/search?q=saffola
+  if (request.method === 'GET' && path === '/api/kp/search') {
+    const ageQ = parseInt(url.searchParams.get('age_months'), 10);
+    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 144 ? ageQ : null });
+    return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }));
+  }
   // The scoring method itself, written from the same tables the engine uses: the Age & Metrics page shows exactly this
   if (request.method === 'GET' && path === '/api/kp/score-method') {
     return withCors(request, new Response(JSON.stringify(methodSpec()), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
@@ -130,7 +159,9 @@ export async function routeRecipes(request, env, ctx) {
     }
     // POST /api/kp/admin/products/research?kind=ragi_dosa_mix   (no kind = the one that has waited longest)
     if (path === '/api/kp/admin/products/research' && request.method === 'POST') {
-      const kind = url.searchParams.get('kind');
+      const kind = url.searchParams.get('kind'), brandKey = url.searchParams.get('brand');
+      const pb = brandKey && PRIORITY_BRANDS.find((b) => b.key === brandKey);
+      if (pb) return json(await researchKind(env, pb.kind, { key: pb.key, query: pb.query, match: pb.match }));
       return json(kind ? await researchKind(env, kind) : await researchNextKind(env, { onlyNeeded: url.searchParams.get('scope') === 'published' }));
     }
     // POST /api/kp/admin/products/read-labels?id=5  (one pack, retries)  or  ?limit=2 (next packs never tried)

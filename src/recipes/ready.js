@@ -82,37 +82,67 @@ export const ALL_KINDS = [...READY_KINDS.map((k) => ({ ...k, category: READY_CAT
 export const kindByKey = (k) => ALL_KINDS.find((x) => x.kind === k) || null;
 export const kindForDish = (name) => READY_KINDS.find((k) => k.dish.test(String(name || '').split('|')[0])) || null;
 
+// A realistic serving in grams (millilitres for drinks), by kind of product. The label is per 100 g and is scaled to this.
+export const SERVING_G = {
+  rolled_oats: 40, muesli: 40, breakfast_cereal: 30, millet_porridge: 40, ragi_flour: 30, whole_wheat_atta: 50, multigrain_atta: 50, millet_flours: 40, dalia: 40, brown_rice: 60,
+  baby_cereal: 25, instant_noodles: 70, peanut_butter: 15, nut_butter: 15, choco_spread: 15, jam: 15, ketchup: 15, mayonnaise: 15, kids_biscuits: 25, millet_cookies: 25, rusk_toast: 20,
+  whole_wheat_bread: 60, chips: 25, namkeen: 25, roasted_snacks: 25, snack_bars: 40, dried_fruit: 25, health_drink: 20, fruit_juice: 200, flavoured_milk: 200, yoghurt: 100, cheese: 20, paneer: 60,
+  ragi_dosa_mix: 50, dosa_batter: 100, dosa_mix: 50, idli_mix: 50, upma_mix: 60, poha_mix: 60, khichdi_mix: 60, sambar_mix: 20, rasam_mix: 20, dhokla_mix: 50, chilla_mix: 50, pancake_mix: 50, cake_mix: 40,
+  millet_pasta: 80, noodles: 70, paratha: 70, chapati: 60, khakhra: 30, cutlet: 60, pulao_mix: 60, kheer_mix: 30, halwa_mix: 30, popcorn_makhana: 20,
+};
+export const servingFor = (kind) => SERVING_G[kind] || 50;
+
 const num = (v) => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
 
 // Label values per 100 g -> the version 2 Poshan Score (ten metrics, each 1 to 10, out of 100) for every age band.
 // Preservatives, additives, hydrogenated fats and the first ingredient come from the ingredient list. Exact-only: all five label values are needed.
-export function scorePack(nutrition, ingredients, name = '') {
+export function scorePack(nutrition, ingredients, name = '', kind = '') {
   const n = nutrition || {};
   const need = { protein_g: n.protein_g, fibre_g: n.fibre_g, added_sugars_g: n.added_sugars_g, saturated_fat_g: n.saturated_fat_g, sodium_mg: n.sodium_mg };
   const missing = Object.entries(need).filter(([, v]) => num(v) == null).map(([k]) => k);
   if (missing.length) return { status: 'pending', score: null, missing };
   const list = Array.isArray(ingredients) ? ingredients : String(ingredients || '').split(',').map((x) => x.trim()).filter(Boolean);
-  const inputs = { basis: 'pack', protein: num(need.protein_g), fibre: num(need.fibre_g), addedSugar: num(need.added_sugars_g), satFat: num(need.saturated_fat_g), sodium: num(need.sodium_mg), ingredients: list, name, flags: n.flags || null };
+  // The label is per 100 g; the score is for one realistic serving of this kind of food.
+  const serving_g = num(n.serving_g) || servingFor(kind), k = serving_g / 100;
+  const per = (v) => (num(v) == null ? null : Math.round(num(v) * k * 100) / 100);
+  const inputs = { basis: 'meal', serving_g, protein: per(need.protein_g), fibre: per(need.fibre_g), addedSugar: per(need.added_sugars_g), satFat: per(need.saturated_fat_g), sodium: per(need.sodium_mg), ingredients: list, name, flags: n.flags || null };
   const out = scoreAllBands(inputs);
   const ref = out.bands[REFERENCE_BAND];
-  return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: 'per 100 g, from the pack label', reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
+  return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: `per serving of ${serving_g} g, from the pack label (per 100 g)`, serving_g, reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
 }
 
 const retailerOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; } catch { return null; } };
 
-export async function researchKind(env, kindKey) {
+// The foods parents search for by name. They are researched before the rest of the catalogue, one every run, so the best-known
+// kids' foods are scored first. (Each result still waits in the Packs tab until the owner approves it.)
+export const PRIORITY_BRANDS = [
+  { key: 'maggi', kind: 'instant_noodles', label: 'Maggi noodles', query: 'Maggi 2-minute masala noodles nutrition information per 100g', match: /maggi/i },
+  { key: 'bournvita', kind: 'health_drink', label: 'Bournvita', query: 'Cadbury Bournvita health drink nutrition information per 100g', match: /bournvita/i },
+  { key: 'horlicks', kind: 'health_drink', label: 'Horlicks', query: 'Horlicks health drink nutrition information per 100g', match: /horlicks/i },
+  { key: 'cerelac', kind: 'baby_cereal', label: 'Cerelac', query: 'Nestle Cerelac baby cereal nutrition information per 100g', match: /cerelac/i },
+  { key: 'kurkure', kind: 'chips', label: 'Kurkure', query: 'Kurkure Masala Munch nutrition information per 100g', match: /kurkure/i },
+  { key: 'complan', kind: 'health_drink', label: 'Complan', query: 'Complan health drink nutrition information per 100g', match: /complan/i },
+  { key: 'boost', kind: 'health_drink', label: 'Boost', query: 'Boost malt health drink nutrition information per 100g', match: /\bboost\b/i },
+  { key: 'parle-g', kind: 'kids_biscuits', label: 'Parle-G', query: 'Parle-G biscuits nutrition information per 100g', match: /parle[- ]?g/i },
+  { key: 'good-day', kind: 'kids_biscuits', label: 'Britannia Good Day', query: 'Britannia Good Day biscuits nutrition information per 100g', match: /good day/i },
+  { key: 'lays', kind: 'chips', label: "Lay's", query: "Lay's India Magic Masala chips nutrition information per 100g", match: /\blay'?s\b/i },
+];
+
+// opts: a brand search ({ key, query, match }) instead of the kind's own search
+export async function researchKind(env, kindKey, opts = {}) {
   const k = kindByKey(kindKey);
   if (!k) throw new Error('unknown kind');
-  const r = await researchProducts(env, { query: k.query });
+  const r = await researchProducts(env, { query: opts.query || k.query });
+  const matchName = opts.match || k.product;
   let added = 0, kept = 0;
   for (const p of r.products || []) {
-    if (!k.product.test(p.name || '')) continue;      // the pack must be the dish itself, not an ingredient or a lookalike
+    if (!matchName.test(p.name || '')) continue;      // the pack must be the dish itself, not an ingredient or a lookalike
     const url = p.product_url || p.source_urls?.[0];
     if (!url) continue;
     const nutri = p.nutrition || {};
     const label = { protein_g: nutri.protein_g, fibre_g: nutri.fibre_g, sugars_g: nutri.sugars_g, added_sugars_g: nutri.added_sugars_g, saturated_fat_g: nutri.saturated_fat_g, sodium_mg: nutri.sodium_mg };
     const has = Object.values(label).some((v) => num(v) != null);
-    const sc = has ? scorePack(label, p.ingredients, p.name) : { status: 'pending', score: null };
+    const sc = has ? scorePack(label, p.ingredients, p.name, k.kind) : { status: 'pending', score: null };
     const res = await env.DB.prepare(
       `INSERT OR IGNORE INTO kp_ready_products (kind, name, brand, sku, pack_size, product_url, image_url, retailer, ingredients_json, nutrition_json, kidposhan_score, score_status, score_breakdown_json)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
@@ -123,8 +153,8 @@ export async function researchKind(env, kindKey) {
   await env.DB.prepare(
     `INSERT INTO kp_ready_research (kind, last_run_at, found) VALUES (?, datetime('now'), ?)
      ON CONFLICT(kind) DO UPDATE SET last_run_at = datetime('now'), found = excluded.found, runs = runs + 1`
-  ).bind(k.kind, added).run();
-  return { kind: k.kind, query: k.query, candidates_seen: (r.products || []).length, added, already_known: kept };
+  ).bind(opts.key ? 'brand:' + opts.key : k.kind, added).run();
+  return { kind: k.kind, query: opts.query || k.query, candidates_seen: (r.products || []).length, added, already_known: kept };
 }
 
 // Cron: research the kind that has gone longest without a run (never-run kinds first).
@@ -137,6 +167,9 @@ export async function neededKinds(env) {
 export async function researchNextKind(env, { onlyNeeded = false } = {}) {
   const { results } = await env.DB.prepare('SELECT kind, last_run_at FROM kp_ready_research').all();
   const last = new Map(results.map((r) => [r.kind, r.last_run_at]));
+  // the best-known brands first, once each
+  const brand = PRIORITY_BRANDS.find((b) => !last.has('brand:' + b.key));
+  if (brand && !onlyNeeded) return { brand: brand.key, ...(await researchKind(env, brand.kind, { key: brand.key, query: brand.query, match: brand.match })) };
   const needed = await neededKinds(env);
   const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : ALL_KINDS;   // dish packs for published recipes first, then the whole Products catalogue in turn
   if (!pool.length) return { skipped: 'every pack type for your published recipes has already been searched' };
@@ -176,7 +209,7 @@ export async function packsForRecipe(env, recipeId) {
        FROM kp_ready_products WHERE kind = ? AND status = 'approved'
       ORDER BY kidposhan_score IS NULL, kidposhan_score DESC, id`
   ).bind(k.kind).all();
-  const results = dedupePacks(all).slice(0, 8);
+  const results = dedupePacks(all).slice(0, 2);          // a recipe page shows the two best packs, not a wall of them
   const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
   return {
     kind: k.kind, label: k.label,
@@ -208,7 +241,10 @@ export async function packsForRecipes(env, ids, { limit = 16 } = {}) {
     score: p.score_status === 'exact' && p.kidposhan_score != null ? { value: p.kidposhan_score, band: band(p.kidposhan_score) } : null }));
   // best scored first; within a dish type keep the packs together so the carousel reads kind by kind
   items.sort((a, b) => (b.score?.value ?? -1) - (a.score?.value ?? -1) || a.id - b.id);
-  return { items: items.slice(0, limit), total: items.length };
+  // at most two packs per kind of dish, so five chapati packs do not fill the shelf
+  const perKind = new Map(), capped = [];
+  for (const it of items) { const n = perKind.get(it.kind) || 0; if (n < 2) { capped.push(it); perKind.set(it.kind, n + 1); } }
+  return { items: capped.slice(0, limit), total: capped.length };
 }
 
 // ---- owner ----
@@ -230,7 +266,7 @@ export async function listPacks(env, { status = 'candidate', limit = 30, offset 
 export async function reviewPack(env, id, body) {
   const status = { approve: 'approved', reject: 'rejected', candidate: 'candidate' }[body.action];
   if (!status) throw new Error('action must be approve, reject or candidate');
-  const row = await env.DB.prepare('SELECT name, ingredients_json, nutrition_json FROM kp_ready_products WHERE id = ?').bind(id).first();
+  const row = await env.DB.prepare('SELECT name, kind, ingredients_json, nutrition_json FROM kp_ready_products WHERE id = ?').bind(id).first();
   if (!row) throw new Error('pack not found');
   const sets = ["status = ?", "reviewed_at = datetime('now')"], args = [status];
   if (body.kind != null) { if (!kindByKey(body.kind)) throw new Error('unknown kind'); sets.push('kind = ?'); args.push(body.kind); }
@@ -238,7 +274,8 @@ export async function reviewPack(env, id, body) {
     const f = ['protein_g', 'fibre_g', 'sugars_g', 'added_sugars_g', 'saturated_fat_g', 'sodium_mg'];
     const label = {};
     for (const key of f) { const v = body.nutrition[key]; if (v === '' || v == null) { label[key] = ''; continue; } const x = num(v); if (x == null || x < 0 || x > 100000) throw new Error(`${key} must be a number`); label[key] = x; }
-    const sc = scorePack(label, JSON.parse(row.ingredients_json || '[]'), row.name);
+    try { const old = JSON.parse(row.nutrition_json || 'null') || {}; if (old.flags) label.flags = old.flags; if (old.serving_g) label.serving_g = old.serving_g; } catch { /* ignore */ }   // a checked reading of the ingredient list survives an edit of the numbers
+    const sc = scorePack(label, JSON.parse(row.ingredients_json || '[]'), row.name, body.kind || row.kind);
     sets.push('nutrition_json = ?', 'kidposhan_score = ?', 'score_status = ?', 'score_breakdown_json = ?', "label_source = 'owner'");
     args.push(JSON.stringify(label), sc.score, sc.status, sc.detail ? JSON.stringify(sc.detail) : null);
   }
@@ -249,11 +286,11 @@ export async function reviewPack(env, id, body) {
 
 // Re-scores every pack that has label values with the current engine (after the scoring method changed). Needs no AI.
 export async function rescoreAllPacks(env) {
-  const { results } = await env.DB.prepare("SELECT id, name, ingredients_json, nutrition_json FROM kp_ready_products WHERE nutrition_json IS NOT NULL").all();
+  const { results } = await env.DB.prepare("SELECT id, kind, name, ingredients_json, nutrition_json FROM kp_ready_products WHERE nutrition_json IS NOT NULL").all();
   let exact = 0, pending = 0;
   for (const p of results) {
     const label = JSON.parse(p.nutrition_json || 'null') || {};
-    const sc = scorePack(label, JSON.parse(p.ingredients_json || '[]'), p.name);
+    const sc = scorePack(label, JSON.parse(p.ingredients_json || '[]'), p.name, p.kind);
     await env.DB.prepare('UPDATE kp_ready_products SET kidposhan_score = ?, score_status = ?, score_breakdown_json = ? WHERE id = ?')
       .bind(sc.score, sc.status, sc.detail ? JSON.stringify(sc.detail) : null, p.id).run();
     if (sc.status === 'exact') exact++; else pending++;

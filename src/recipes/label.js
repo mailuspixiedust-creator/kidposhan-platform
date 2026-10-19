@@ -110,7 +110,7 @@ export function consensus(la, lb) {
 
 // Reads one stored pack. Saves the proposed label + the image it came from; computes the exact score when complete.
 export async function readPackLabel(env, id) {
-  const p = await env.DB.prepare('SELECT id, product_url, ingredients_json, nutrition_json, label_source FROM kp_ready_products WHERE id = ?').bind(id).first();
+  const p = await env.DB.prepare('SELECT id, kind, name, product_url, ingredients_json, nutrition_json, label_source FROM kp_ready_products WHERE id = ?').bind(id).first();
   if (!p) return { id, error: 'not found' };
   if (p.label_source === 'owner') return { id, skipped: 'owner already entered the label' };
   const done = (note, extra = '') => env.DB.prepare(`UPDATE kp_ready_products SET label_tried_at = datetime('now'), label_note = ?${extra} WHERE id = ?`);
@@ -148,7 +148,7 @@ export async function readPackLabel(env, id) {
     if (!SWEET.test(ingredients.join(', '))) { label.added_sugars_g = 0; notes.push('added sugars set to 0: the ingredient list names no sugar, jaggery, syrup or honey'); }
     else notes.push('added sugars not printed and the ingredients include a sweetener: enter added sugars by hand');
   } else if (label.added_sugars_g == null) notes.push('added sugars not printed and no ingredient list: enter it by hand');
-  const sc = scorePack(label, ingredients, p.name);
+  const sc = scorePack(label, ingredients, p.name, p.kind);
   await env.DB.prepare(
     `UPDATE kp_ready_products SET nutrition_json = ?, ingredients_json = ?, kidposhan_score = ?, score_status = ?, score_breakdown_json = ?,
        label_image_url = ?, label_source = 'pack_image', label_tried_at = datetime('now'), label_note = ? WHERE id = ?`

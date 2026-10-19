@@ -3,13 +3,14 @@
 //
 //   Age:     the score is worked out for the child's age band (1-3, 4-6, 7-9, 10-12 years). Sugar, sodium, saturated fat, fibre and protein
 //            are compared with that band's daily reference. Under 12 months there is no published band, so the 1-3 year reference is used.
-//   Basis:   packaged food is measured per 100 g (as the label prints it) against the day's reference;
-//            a cooked dish is measured per serving, counted as one of about three meals a day (the amount is divided by three) against the day's reference.
+//   Basis:   every food, packaged or cooked, is measured per realistic serving, and the FULL serving is compared with the age band's FULL daily
+//            reference (no division). A pack's label is per 100 g and is scaled to its serving size first.
 //   Metrics: 1 added sugar, 2 sodium, 3 saturated fat, 4 trans fat / hydrogenated oils, 5 fibre, 6 protein, 7 preservatives,
 //            8 artificial additives, 9 base-ingredient integrity, 10 HFSS (the worst of sugar, sodium and saturated fat).
-//   Cap:     a product that fails any one risk metric outright (score 3 or less on sugar, sodium, saturated fat or trans fat) cannot score above 57.
+//   Cap:     a product that fails any one risk metric outright (score 3 or less on sugar, sodium, saturated fat or trans fat) cannot be rated above Fair.
+//            The total shown is still the real sum of the ten marks, so two capped products can still be told apart; they carry a "capped" badge.
 
-export const SCORE_VERSION = 'kp-score-v2';
+export const SCORE_VERSION = 'kp-score-v3';
 export const REFERENCE_BAND = '4-6';        // the band shown when no age is chosen
 export const CAP_SCORE = 57;
 
@@ -30,6 +31,8 @@ export function bandForMonths(m) {
 }
 export const SCORE_COLUMN = { '1-3': 'score_13', '4-6': 'score_46', '7-9': 'score_79', '10-12': 'score_1012' };
 
+// ten marks of 1 to 10 add up to 10..100; the Poshan Score is that stretched to 0..100: a perfect product is exactly 100 and the worst possible is 0
+export const stretch = (sum) => Math.round(((sum - 10) / 90) * 100);
 export const totalBand = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
 
 // share of the reference -> 1..10. A risk metric (less is better): the score is the first row whose cutoff the share is BELOW.
@@ -69,11 +72,10 @@ function integrityFor(name, ingredients, topKey) {
 // input: { basis: 'pack' | 'meal', addedSugar, sodium, satFat, fibre, protein, ingredients (array or text), name, topKey }
 // (grams, except sodium in mg). Returns the score for one band.
 export function scoreForBand(input, bandId) {
-  const band = bandById(bandId), ref = band.ref, meal = input.basis === 'meal';
-  const meals = meal ? 3 : 1;             // a dish is one of about three meals a day, so only a third of a serving counts toward the day
-  const share = (v, r) => (r > 0 ? (Number(v || 0) / meals / r) * 100 : 0);
+  const band = bandById(bandId), ref = band.ref;
+  const share = (v, r) => (r > 0 ? (Number(v || 0) / r) * 100 : 0);      // the full serving against the full day's reference
   const text = asText(input.ingredients);
-  const shareWord = meal ? '(a serving counts as one of three meals) = ' : '= ';
+  const shareWord = '= ';
 
   const sugarPct = share(input.addedSugar, ref.sugarIdeal), sodiumPct = share(input.sodium, ref.sodium), satPct = share(input.satFat, ref.satFat);
   const fibrePct = share(input.fibre, ref.fibre), proteinPct = share(input.protein, ref.protein);
@@ -106,10 +108,11 @@ export function scoreForBand(input, bandId) {
   m.push({ n: 10, id: 'hfss', name: 'HFSS status', type: 'composite', value: worst, unit: '', share: null, score: worst,
     reading: worst <= 3 ? 'high in sugar, sodium or saturated fat' : 'the worst of sugar, sodium and saturated fat' });
 
-  const sum = m.reduce((a, x) => a + x.score, 0);
-  const capped = [m[0], m[1], m[2], m[3]].some((x) => x.score <= 3) && sum > CAP_SCORE;
-  const total = capped ? CAP_SCORE : sum;
-  return { band: band.id, band_label: band.label, total, tier: totalBand(total), sum, capped, metrics: m };
+  const sum = m.reduce((a, x) => a + x.score, 0);                    // the ten marks add up to 10 (worst) to 100 (best)
+  const total = stretch(sum);                                          // the Poshan Score: that stretched to run from 0 to 100
+  // The total is the real sum of the ten marks. A risk metric at 3 or less holds the TIER at Fair (never Good or Excellent) and the result is marked capped.
+  const capped = [m[0], m[1], m[2], m[3]].some((x) => x.score <= 3) && total > CAP_SCORE;
+  return { band: band.id, band_label: band.label, total, tier: totalBand(capped ? CAP_SCORE : total), sum, capped, metrics: m };
 }
 
 export function scoreAllBands(input) {
@@ -124,10 +127,10 @@ export function methodSpec() {
   const creditRules = CREDIT_STEPS.map(([s, c], i) => ({ score: s, rule: i === 0 ? `${c}% or more` : `${c}% to under ${CREDIT_STEPS[i - 1][1]}%` })).concat([{ score: 1, rule: `under ${CREDIT_STEPS[CREDIT_STEPS.length - 1][1]}%` }]);
   const countRules = (steps, what) => steps.map((s, i) => ({ score: s, rule: i === 0 ? `no ${what} found` : i === 3 ? `3 or more ${what} found` : `${i} ${what} found` }));
   return {
-    version: SCORE_VERSION, scale: { min: 1, max: 10, total: 100 }, reference_band: REFERENCE_BAND, cap: { score: CAP_SCORE, because: 'a score of 3 or less on sugar, sodium, saturated fat or trans fat' },
-    tiers: [{ name: 'Excellent', min: 80, max: 100 }, { name: 'Good', min: 58, max: 79 }, { name: 'Fair', min: 40, max: 57 }, { name: 'Occasional', min: 10, max: 39 }],
+    version: SCORE_VERSION, scale: { min: 1, max: 10, total: 100, sum_range: [10, 100], formula: 'Poshan Score = (sum of the ten marks - 10) / 90 x 100, so the worst possible is 0 and a perfect product is exactly 100' }, reference_band: REFERENCE_BAND, cap: { score: CAP_SCORE, because: 'a score of 3 or less on sugar, sodium, saturated fat or trans fat', effect: 'holds the rating at Fair; the total shown stays the real sum of the ten marks and the item carries a capped badge' },
+    tiers: [{ name: 'Excellent', min: 80, max: 100 }, { name: 'Good', min: 58, max: 79 }, { name: 'Fair', min: 40, max: 57 }, { name: 'Occasional', min: 0, max: 39 }],
     bands: BANDS.map((b) => ({ id: b.id, label: b.label, reference: b.ref })),
-    bases: { pack: 'Packaged food: measured per 100 g, as the label prints it, against the day\'s reference.', meal: 'A cooked dish: measured per serving, counted as one of about three meals a day (a third of the amount counts toward the day), against the day\'s reference.' },
+    bases: { serving: "Every food, packaged or cooked, is measured per realistic serving, and the full serving is compared with the age band's full daily reference. A pack's label is per 100 g, so it is scaled to the serving size first." },
     sodium_example: { mg: 793.8, what: 'one 38 g serving of a masala oats sachet', by_age: BANDS.map((b) => { const pct = (793.8 / b.ref.sodium) * 100; return { id: b.id, label: b.label, share: Math.round(pct), score: riskScore(pct) }; }) },
     under_12_months: 'Under 12 months there is no published reference band, so the 1–3 year reference is used.',
     metrics: [

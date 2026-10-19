@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /bot
+
+Sitemap: https://www.kidposhan.in/sitemap.xml

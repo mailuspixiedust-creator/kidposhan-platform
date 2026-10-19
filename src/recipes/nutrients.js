@@ -58,16 +58,20 @@ Object.assign(FOOD, {
 // Share of the ingredient's weight that counts as ADDED sugar.
 export const SWEETENERS = { sugar: 1, jaggery: 0.95, honey: 0.82 };
 const WHOLE_GRAIN = new Set(['wheat_flour', 'ragi', 'oats', 'dalia']);
-const NO_QTY_GRAMS = { salt: 1.5, oil: 8, ghee: 8 }; // "to taste" / "as needed" assumptions, per recipe
+const NO_QTY_GRAMS = { oil: 8, ghee: 8 };   // "as needed" assumptions, per recipe
+export const SALT_TO_TASTE_SODIUM_MG = 570;  // salt "to taste": 1/4 tsp, 570 mg of sodium PER SERVING
+export const SALT_TO_TASTE_G = SALT_TO_TASTE_SODIUM_MG / 393.4;   // the salt that carries it (table salt is 39.34% sodium): about 1.45 g
+export const FRY_OIL_G = 10;                 // oil a deep-fried serving soaks up, about 10 g PER SERVING
 const SPICE_NO_QTY = 1;
 const LIQUID_ML = { milk: 1.03, curd: 1.03, oil: 0.92, ghee: 0.91, honey: 1.4, water: 1, lemon: 1, coconut_milk: 1, stock: 1, fish_sauce: 1.2, cream: 1 };
 
-export function gramsFor(ing) {
+export function gramsFor(ing, servings = 1) {
   const key = ing.ingredient_key, f = key && FOOD[key];
   if (!f) return { g: null, why: 'unknown ingredient' };
   const [, , , , cup, piece] = f;
   const q = ing.quantity, u = ing.unit;
   if (q == null) {
+    if (key === 'salt') return { g: SALT_TO_TASTE_G * servings, assumed: 'salt "to taste" assumed 1/4 tsp (570 mg sodium) per serving', default: 'salt' };
     if (key in NO_QTY_GRAMS) return { g: NO_QTY_GRAMS[key], assumed: `${key} with no quantity assumed ${NO_QTY_GRAMS[key]} g per recipe` };
     if (ing.is_pantry) return { g: SPICE_NO_QTY, assumed: `${key} with no quantity assumed ${SPICE_NO_QTY} g per recipe` };
     return { g: null, why: 'no quantity' };
@@ -92,6 +96,13 @@ export function gramsFor(ing) {
   }
 }
 
+// A dish that is deep-fried (by its name, or an ingredient line like "oil for deep frying").
+export function isDeepFried(name, ingredients = []) {
+  const n = String(name || '').split('|')[0];
+  if (/\b(vada|vadai|vade|bhajiya|bhajia|bhajji|pakora|pakoda|pakode|samosa|puri|poori|bonda|kachori|fritters?|nuggets|tempura|croquettes?|churros?|doughnuts?|donuts?)\b|deep[- ]?fr/i.test(n)) return true;
+  return ingredients.some((i) => /\b(for|to)\s+(deep[- ]?)?fry(ing)?\b|deep[- ]?fry/i.test(i.raw_text || ''));
+}
+
 export function servingsFrom(text) {
   const m = String(text || '').match(/(\d+(?:\.\d+)?)/);
   const n = m ? +m[1] : null;
@@ -99,30 +110,34 @@ export function servingsFrom(text) {
 }
 
 // ingredients: rows of kp_recipe_ingredients. Returns totals per serving + audit trail.
-export function estimateNutrition(ingredients, servings) {
-  const assumptions = [], unweighed = [];
+export function estimateNutrition(ingredients, servings, { fried = false } = {}) {
+  const assumptions = [], unweighed = [], defaults = [];
+  const s = servings || 4;
   let weighable = 0, considered = 0;
   const t = { protein: 0, fibre: 0, satFat: 0, sodium: 0, addedSugar: 0 };
   const keys = new Set();
   let topKey = null, topG = 0;
   for (const ing of ingredients) {
     keys.add(ing.ingredient_key);
-    const w = gramsFor(ing);
+    // a deep-fried dish lists a pan of frying oil: only what the food absorbs counts (added below), not the whole pan
+    if (fried && ing.ingredient_key === 'oil' && /\b(for|to)\s+(deep[- ]?)?fry(ing)?\b|deep[- ]?fry/i.test(ing.raw_text || '')) { assumptions.push('frying oil counted as what the food absorbs (about 10 g per serving), not the whole pan'); continue; }
+    const w = gramsFor(ing, s);
     if (!ing.is_pantry) considered++;
     if (w.g == null) { if (!ing.is_pantry) unweighed.push({ line: ing.raw_text, why: w.why }); continue; }
     if (!ing.is_pantry) weighable++;
     if (w.assumed) assumptions.push(w.assumed);
+    if (w.default && !defaults.includes(w.default)) defaults.push(w.default);
     const [p, fi, sf, na] = FOOD[ing.ingredient_key], k = w.g / 100;
     t.protein += p * k; t.fibre += fi * k; t.satFat += sf * k; t.sodium += na * k;
     if (SWEETENERS[ing.ingredient_key]) t.addedSugar += w.g * SWEETENERS[ing.ingredient_key];
     if (!ing.is_pantry && ing.ingredient_key !== 'water' && w.g > topG) { topG = w.g; topKey = ing.ingredient_key; }
   }
+  if (fried) { t.satFat += (FOOD.oil[2] * FRY_OIL_G * s) / 100; assumptions.push('deep-fried: about 10 g of oil absorbed per serving'); defaults.push('fry oil'); }
   const coverage = considered ? weighable / considered : 0;
-  const s = servings || 4;
   if (!servings) assumptions.push('servings not stated; assumed 4');
   const per = Object.fromEntries(Object.entries(t).map(([k, v]) => [k, Math.round((v / s) * 10) / 10]));
   return {
-    per_serving: per, servings: s, top_key: topKey, coverage: Math.round(coverage * 100) / 100, unweighed, assumptions,
+    per_serving: per, servings: s, top_key: topKey, coverage: Math.round(coverage * 100) / 100, unweighed, assumptions, defaults,
     flags: {
       maida: keys.has('maida'),
       wholeGrain: [...keys].some((k) => WHOLE_GRAIN.has(k)),
