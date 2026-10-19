@@ -245,7 +245,7 @@ const hiddenByOwner = await (await handleRecipesApi(new Request('https://w/api/k
 ok(hiddenByOwner.poshan_score === null && hiddenByOwner.score === null, 'Owner can hide one recipe score');
 db.prepare('UPDATE kp_recipes SET score_hidden = 0 WHERE id=?').run(rid);
 const shown = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(shown.score?.value === stored.score && shown.method === null, 'Score back on; no creator steps shown without rights or KidPoshan steps');
+ok(shown.score?.value === stored.score && shown.method_by === 'creator' && shown.method.length > 0, 'Score back on; the author steps are shown whatever the rights');
 const orig = ['Roast 1 cup rava for 5 minutes.', 'Add water and cook 3 minutes.'];
 ok(checkRewrite(orig, ['Dry roast the rava (1 cup) for 5 minutes.', 'Pour in water and cook for 3 minutes.']) === null, 'Faithful rewrite accepted');
 ok(/numbers missing/.test(checkRewrite(orig, ['Roast the rava.', 'Add water and cook.'])), 'Rewrite that drops quantities/times is rejected');
@@ -253,7 +253,7 @@ const aiEnv = { ...env, AI: { run: async () => ({ response: 'Here you go: ["Dry 
 const rw = await rewriteSteps(aiEnv, rid);
 ok(/author/.test(rw.skipped || '') && db.prepare('SELECT kp_steps_status s FROM kp_recipes WHERE id=?').get(rid).s === 'none', "An author's steps are never rewritten: nothing is written and the recipe keeps no wording of ours");
 const liveNow = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(liveNow.method === null && liveNow.method_by === null, "Without permission to show them, the author's steps are linked to, not rewritten and not shown");
+ok(liveNow.method_by === 'creator' && liveNow.method.length > 0, "The author's steps are shown as points, never rewritten");
 // publishing by hand still needs steps (or the link-only choice) when none exist
 db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status, instructions_json) VALUES (9060,'https://site.in/nosteps/','Needs Steps','[]','jsonld','complete','veg',24,72,'pending',?)").run(JSON.stringify([{ section: null, text: 'Cook it.' }]));
 const nsId = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/nosteps/'").get().id;
@@ -348,7 +348,7 @@ ok((await packsForRecipes(env, [por])).items.length === 0 && (await packsForReci
 db.prepare("UPDATE kp_recipes SET image_url='https://site.in/ragi.jpg' WHERE id=?").run(ragiId);
 const ph1 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
 ok(ph1.image_url === 'https://site.in/ragi.jpg' && ph1.source.name === 'NoRights' && ph1.source.rights_status === 'not_requested', 'Dish photo shown without granted rights, with the source named for the credit');
-ok(ph1.method === null || ph1.method_by === 'kidposhan', 'Verbatim steps are still not shown without rights');
+ok(ph1.method_by === 'creator' || ph1.method === null, 'Steps shown from the author whatever the rights');
 await updateSource(env, 9060, { photos_hidden: true });
 const ph2 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + ragiId), env, ctx)).json();
 ok(ph2.image_url === null, "Owner can switch a site's photos off");
@@ -1242,5 +1242,6 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(noTok.status === 401, 'Importing needs the admin token');
 }
 
+{ const { toPoints } = await import('../../src/recipes/clean.js'); const p = toPoints([{ text: 'Step 1: Heat oil in a pan. Add cumin and let it splutter. Add the onions and fry until golden brown, stirring often so they do not catch. Add the tomatoes and cook until soft and the oil separates from the masala.' }, { text: 'Serve hot.' }]); ok(p.length === 5 && p[0].text === 'Heat oil in a pan.' && p[4].text === 'Serve hot.', 'A long paragraph of method becomes one point per sentence; short steps stay as they are'); }
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

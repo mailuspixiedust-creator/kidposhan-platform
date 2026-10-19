@@ -14,7 +14,7 @@ import { buyLinksFor } from '../commerce/buylinks.js';
 import { displayName } from './normalize.js';
 import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
 import { scoreSqlFor, capSqlFor } from './score.js';
-import { creditName, cleanIngredients, singleMethod, hasChilli, KID_CHILLI_NOTE, isRealMeal, SWEET_OR_BAKED, savouryOnly, dishKey } from './clean.js';
+import { creditName, cleanIngredients, singleMethod, toPoints, hasChilli, KID_CHILLI_NOTE, isRealMeal, SWEET_OR_BAKED, savouryOnly, dishKey } from './clean.js';
 export { isPrepRecipe } from './clean.js';
 import { bandForMonths, bandById, REFERENCE_BAND } from './score2.js';
 
@@ -240,9 +240,8 @@ export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
       buy: i.ingredient_key === 'water' || r.world !== 'india' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
     });
   }
-  const methodAllowed = r.rights_status === 'granted';
-  // The author's own steps are never re-written. Where the author has steps they are shown as they are (when the site has granted
-  // permission) or linked to; our own wording is used only for a recipe whose author gave no steps at all.
+  // The author's own steps are always the ones shown, set out as points (a long paragraph becomes one point per sentence), credited and
+  // linked to the original. Our own wording is used only for a recipe whose author gave no steps at all.
   const authorSteps = (() => { try { return JSON.parse(r.instructions_json || '[]'); } catch { return []; } })();
   const kpSteps = !authorSteps.length && r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
   let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
@@ -275,9 +274,9 @@ export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
     // Verbatim method only when the source has granted rights; otherwise the UI links out.
     // KidPoshan's own approved steps always come first; the creator's verbatim steps only with granted rights.
     // one method: when a page gives stovetop and Instant Pot one after the other, the first (stovetop) is kept
-    method: kpSteps.length ? singleMethod(kpSteps).map((text) => ({ section: null, text: fix(text) })) : methodAllowed ? singleMethod(JSON.parse(r.instructions_json || '[]')).map((st) => ({ ...st, text: fix(st.text) })) : null,
+    method: authorSteps.length ? toPoints(singleMethod(authorSteps)).map((st) => ({ ...st, text: fix(st.text) })) : kpSteps.length ? singleMethod(kpSteps).map((text) => ({ section: null, text: fix(text) })) : null,
     mayo_note: r.mayo_flex !== 1 ? null : flex ? 'This recipe uses mayonnaise. It is shown with eggless mayonnaise, so it suits a vegetarian meal.' : pref === 'nonveg' ? 'This recipe uses regular mayonnaise.' : 'This recipe uses mayonnaise. Choose eggless mayonnaise for a vegetarian meal.',
-    method_by: kpSteps.length ? 'kidposhan' : methodAllowed ? 'creator' : null,
+    method_by: authorSteps.length ? 'creator' : kpSteps.length ? 'kidposhan' : null,
     method_url: r.source_url,
     ingredients,
     tag_reasons: JSON.parse(r.tag_reasons_json || '{}'),
