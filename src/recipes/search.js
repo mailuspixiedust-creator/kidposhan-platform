@@ -4,6 +4,7 @@
 import { listProducts, AGE_BANDS } from './products.js';
 import { bandForMonths, SCORE_COLUMN } from './score2.js';
 import { isPrepRecipe } from './api.js';
+import { creditName, isRealMeal } from './clean.js';
 
 export const tokens = (q) => String(q || '').toLowerCase().replace(/[^a-z0-9ऀ-ॿ\s'&-]/g, ' ').split(/\s+/).map((t) => t.replace(/^['-]+|['-]+$/g, '')).filter((t) => t.length >= 2).slice(0, 5);
 const like = (t) => '%' + t.replace(/[%_\\]/g, (c) => '\\' + c) + '%';
@@ -45,4 +46,35 @@ export async function siteStats(env) {
   const p = await env.DB.prepare("SELECT COUNT(*) n FROM kp_ready_products WHERE status = 'approved' AND score_status = 'exact' AND kidposhan_score IS NOT NULL").first();
   const r = await env.DB.prepare("SELECT COUNT(*) n FROM kp_recipes WHERE review_status = 'approved' AND score_hidden = 0 AND poshan_score IS NOT NULL AND total_minutes IS NOT NULL").first();
   return { products: p?.n || 0, recipes: r?.n || 0, brands_paying: 0 };
+}
+
+// "From various cooks and cookbooks": one good recipe from each of several different creators, so the home page shows the range of
+// people the recipes come from. Only real meals that score 58 or more for the age (and are not capped); a random cook and dish each time.
+export async function cooksShelf(env, { limit = 8, age = null, occasion = null, prefs = [], rng = Math.random } = {}) {
+  const band = bandForMonths(Number.isFinite(age) ? age : 60);
+  const scoreCol = SCORE_COLUMN[band.id] || 'poshan_score', capCol = CAP_COL[band.id] || 'cap_46';
+  const DIETS_OF = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'] };
+  const diets = [...new Set(prefs.flatMap((p) => DIETS_OF[p] || []))];
+  const { results } = await env.DB.prepare(
+    `SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, COALESCE(r.${scoreCol}, r.poshan_score) AS score, COALESCE(r.${capCol}, 0) AS capped, s.name AS source_name
+       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
+      WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND s.world = 'india' AND r.total_minutes IS NOT NULL AND r.image_url IS NOT NULL AND s.photos_hidden = 0
+        AND COALESCE(r.${scoreCol}, r.poshan_score) >= 58 AND COALESCE(r.${capCol}, 0) = 0 AND r.age_min_months <= ? AND r.age_max_months >= ?${occasion ? " AND EXISTS (SELECT 1 FROM kp_recipe_occasions o WHERE o.recipe_id = r.id AND o.occasion = ?)" : ''}${diets.length ? ` AND r.diet IN (${diets.map(() => '?').join(',')})` : ''}
+      ORDER BY COALESCE(r.${scoreCol}, r.poshan_score) DESC LIMIT 600`
+  ).bind(Number.isFinite(age) ? age : 60, Number.isFinite(age) ? age : 60, ...(occasion ? [occasion] : []), ...diets).all();
+  const byCook = new Map();
+  for (const r of results) {
+    if (!isRealMeal(r.name)) continue;
+    const cook = creditName(r.source_name);
+    if (!byCook.has(cook)) byCook.set(cook, []);
+    byCook.get(cook).push(r);
+  }
+  const cooks = [...byCook.keys()].sort(() => rng() - 0.5).slice(0, limit);
+  return {
+    cooks: cooks.map((cook) => {
+      const best = byCook.get(cook).slice(0, 3), r = best[Math.floor(rng() * best.length)];
+      return { cook, id: r.id, name: r.name, image_url: r.image_url, total_minutes: r.total_minutes, score: r.score, capped: !!r.capped };
+    }),
+    count_cooks: byCook.size,
+  };
 }

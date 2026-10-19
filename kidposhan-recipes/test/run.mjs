@@ -249,9 +249,9 @@ ok(checkRewrite(orig, ['Dry roast the rava (1 cup) for 5 minutes.', 'Pour in wat
 ok(/numbers missing/.test(checkRewrite(orig, ['Roast the rava.', 'Add water and cook.'])), 'Rewrite that drops quantities/times is rejected');
 const aiEnv = { ...env, AI: { run: async () => ({ response: 'Here you go: ["Dry roast 1 cup rava for 5 minutes.", "Add water, cook for 3 minutes."]' }) } };
 const rw = await rewriteSteps(aiEnv, rid);
-ok(rw.status === 'approved' && db.prepare('SELECT kp_steps_status s, kp_steps_auto a FROM kp_recipes WHERE id=?').get(rid).a === 1, 'AI steps that keep every number go live automatically (marked auto)');
+ok(/author/.test(rw.skipped || '') && db.prepare('SELECT kp_steps_status s FROM kp_recipes WHERE id=?').get(rid).s === 'none', "An author's steps are never rewritten: nothing is written and the recipe keeps no wording of ours");
 const liveNow = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + rid), env, ctx)).json();
-ok(liveNow.method_by === 'kidposhan' && liveNow.method[0].text.startsWith('Dry roast'), 'KidPoshan steps are shown on the recipe page without waiting for the owner');
+ok(liveNow.method === null && liveNow.method_by === null, "Without permission to show them, the author's steps are linked to, not rewritten and not shown");
 // publishing by hand still needs steps (or the link-only choice) when none exist
 db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status, instructions_json) VALUES (9060,'https://site.in/nosteps/','Needs Steps','[]','jsonld','complete','veg',24,72,'pending',?)").run(JSON.stringify([{ section: null, text: 'Cook it.' }]));
 const nsId = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/nosteps/'").get().id;
@@ -276,7 +276,7 @@ ok(parseIngredientLine('1 potato').ingredient_key === 'potato' && parseIngredien
 
 db.prepare("UPDATE kp_recipes SET kp_steps_status='none', kp_steps_json=NULL WHERE id=?").run(rid);
 const chatEnv = { ...env, AI: { run: async () => ({ choices: [{ message: { content: '["Dry roast 1 cup rava for 5 minutes.", "Add water and cook for 3 minutes."]' } }] }) } };
-ok((await rewriteSteps(chatEnv, rid)).status === 'approved', 'AI reply in chat-completion shape is read');
+ok(/author/.test((await rewriteSteps(chatEnv, rid)).skipped || ''), 'No AI call is made to rewrite an author\'s steps');
 
 // ---- ready-to-buy packs: the dish in pack form, exact label-based score, owner approval ----
 import { kindForDish, scorePack, packsForRecipe, listPacks, reviewPack } from '../../src/recipes/ready.js';
@@ -381,7 +381,7 @@ ok(holdReasons({ recipe: okRecipe, source: okSource, ingredients: ing4, steps: 3
 ok(holdReasons({ recipe: { ...okRecipe, age_min_months: 9 }, source: okSource, ingredients: ing4, steps: 3, occasions: 1 }).some((w) => /under 12 months/.test(w)), 'Recipes for under 12 months are always held for a person');
 ok(holdReasons({ recipe: okRecipe, source: okSource, flags: ['check_jain', 'partial'], ingredients: ing4, steps: 3, occasions: 1 }).length === 2, 'Jain-check and partial-read flags hold a recipe back');
 ok(holdReasons({ recipe: { ...okRecipe, age_min_months: 12 }, source: okSource, ingredients: [...ing4, { ingredient_key: 'honey' }], steps: 3, occasions: 1 }).some((w) => /honey/.test(w)), 'Honey in a recipe for under 2 years is held');
-ok(holdReasons({ recipe: { ...okRecipe, kp_steps_status: 'none' }, source: okSource, ingredients: ing4.slice(0, 2), steps: 1, occasions: 0 }).length >= 4, 'Thin recipes (few ingredients, one step, no meal, no KidPoshan steps) are held with every reason listed');
+ok(holdReasons({ recipe: { ...okRecipe, kp_steps_status: 'none' }, source: okSource, ingredients: ing4.slice(0, 2), steps: 1, occasions: 0 }).length >= 3, 'Thin recipes (few ingredients, one step, no meal) are held with every reason listed');
 ok(holdReasons({ recipe: okRecipe, source: { status: 'suggested', active: 0 }, ingredients: ing4, steps: 3, occasions: 1 }).length === 1, 'A site that is not in the registry holds its recipes');
 
 let autoDishN = 0;
@@ -405,10 +405,10 @@ const infRes = await maybeAutoPublish(env, infantId);
 ok(infRes.held && db.prepare('SELECT review_status, hold_reasons_json h FROM kp_recipes WHERE id=?').get(infantId).h.includes('under 12 months'), 'An infant recipe stays held and records why');
 const nokpId = mkRecipe('https://site.in/auto-nokp/', { kp: 'none' });
 const sweep0 = await autoPublishPending(env, { limit: 100 });
-ok(db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(nokpId).review_status === 'pending', 'No KidPoshan steps yet: not live (and not even evaluated by the sweep)');
+ok(db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(nokpId).review_status === 'approved', "A recipe whose author gave steps does not wait for wording of ours: it goes live on its own");
 const rwEnv = { ...env, AI: { run: async () => ({ response: '["Cook 1 cup rice for 10 minutes.", "Serve it warm."]' }) } };
 const rwRes = await rewriteSteps(rwEnv, nokpId);
-ok(rwRes.published === true && db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(nokpId).review_status === 'approved', 'When the steps are written and pass the number check, the recipe goes live');
+ok(/author/.test(rwRes.skipped || ''), 'Asking to rewrite an author\'s steps does nothing');
 const decidedId = mkRecipe('https://site.in/auto-decided/');
 db.prepare("UPDATE kp_recipes SET reviewed_at = datetime('now') WHERE id=?").run(decidedId);
 ok((await maybeAutoPublish(env, decidedId)).skipped && db.prepare('SELECT review_status FROM kp_recipes WHERE id=?').get(decidedId).review_status === 'pending', 'A recipe the owner already decided on is never touched by the automation');
@@ -427,6 +427,7 @@ const edited = db.prepare('SELECT owner_reviewed_at o, ingredients_edited e, kp_
 ok(edited.e === 1 && edited.a === 0 && edited.o === null && edited.k.includes('Boil'), 'Owner edits steps and ingredients on a live recipe: saved, no longer marked auto, bookmark untouched');
 const ingNow = db.prepare('SELECT raw_text, quantity, unit, ingredient_key FROM kp_recipe_ingredients WHERE recipe_id=? ORDER BY position').all(goodId);
 ok(ingNow.length === 3 && ingNow[0].quantity === 2 && ingNow[0].unit === 'cup', 'Edited ingredient lines are re-parsed (quantity and unit) and the score recomputed');
+db.prepare("UPDATE kp_recipes SET instructions_json = '[]' WHERE id = ?").run(goodId);      // an author who gave no steps: our own are used
 const pubIng = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + goodId), env, ctx)).json();
 ok(pubIng.ingredients[0].raw_text === '2 cups basmati rice' && pubIng.method[0].text.startsWith('Boil'), 'Parents see the edited ingredients and steps');
 await reviewRecipe(env, goodId, { action: 'pending' });
@@ -474,6 +475,7 @@ ok(jn.includes(dJain) && !jn.includes(dVeg) && !jn.includes(dEgg) && !jn.include
 // ---- mayonnaise: appears in both searches, labelled for the preference chosen ----
 import { mayoFor } from '../../src/recipes/api.js';
 const mayoId = mkRecipe('https://site.in/mayo-sandwich/', { status: 'approved' });
+db.prepare("UPDATE kp_recipes SET instructions_json = '[]' WHERE id = ?").run(mayoId);
 db.prepare("UPDATE kp_recipes SET mayo_flex = 1, diet = 'veg', kp_steps_json = ? WHERE id = ?").run(JSON.stringify(['Spread the Mayonnaise on the bread.', 'Serve.']), mayoId);
 db.prepare("INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?, 9, '1/2 cup Mayonnaise', 0.5, 'cup', 'Mayonnaise', NULL, 0)").run(mayoId);
 const nvIds = await ids('nonveg'), vgIds = await ids('veg'), jnIds = await ids('jain');
@@ -1147,12 +1149,29 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const did = mkRecipe('https://tidy.example/dalfry/', { status: 'approved', name: 'Tidy Dal Fry', score: 90 });
   db.prepare('DELETE FROM kp_recipe_ingredients WHERE recipe_id = ?').run(did);
   for (const [n, t, k] of [[1, '1-2 green chili (finely chopped)', 'green_chilli'], [2, 'salt (optional)', 'salt'], [3, 'salt (to taste)', 'salt']]) db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?,?,?,?,?,?,?,0)').run(did, n, t, null, null, t, k);
-  db.prepare("UPDATE kp_recipes SET kp_steps_json = ? WHERE id = ?").run(JSON.stringify(steps), did);
+  db.prepare('UPDATE kp_recipes SET instructions_json = ? WHERE id = ?').run(JSON.stringify(steps.map((t) => ({ section: null, text: t }))), did);
   const dd = await recipeDetail(env, did, { age: 60 });
   ok(dd.ingredients.length === 2 && dd.method.length === 7 && /chilli/i.test(dd.kid_note) && (await recipeDetail(env, did, { age: 132 })).kid_note === null, 'The recipe page shows clean ingredients, one method, and a chilli note for young children only');
   const twin1 = mkRecipe('https://tidy.example/tw1/', { status: 'approved', name: 'Dhal Curry', score: 80 }), twin2 = mkRecipe('https://tidy.example/tw2/', { status: 'approved', name: 'Dal Curry Recipe', score: 85 });
   let both = 0; for (let k = 0; k < 6; k++) { const r = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&season=all&limit=40&shuffle=1'), env, ctx)).json()).results.map((x) => x.id); if (r.includes(twin1) && r.includes(twin2)) both++; }
   ok(both === 0, 'The same dish never appears twice in one list');
+}
+
+// ---- the author's steps ----
+{ const gId = mkRecipe('https://site.in/author-steps/', { status: 'approved', name: 'Author Steps Dish' }); const g = await (await handleRecipesApi(new Request('https://w/api/kp/recipes/' + gId), env, ctx)).json(); ok(g.method_by === 'creator' && g.method[0].text === 'Cook 1 cup rice for 10 minutes.', "Where the site has granted permission, the author's own steps are shown as they are, even if we hold wording of ours"); }
+
+
+// ---- from various cooks and cookbooks ----
+{
+  const SRX = await import('../../src/recipes/search.js');
+  for (const [sid, nm] of [[9101, 'Aunty Asha - Baby food'], [9102, 'Chef Ravi / Instagram'], [9103, 'The Millet Table']]) db.prepare("INSERT INTO kp_recipe_sources (id, name, url, notes, rights_status, world, status, active) VALUES (?,?,?,?,?,?,?,?)").run(sid, nm, 'https://cook' + sid + '.example/', '', 'granted', 'india', 'registered', 1);
+  const cookRecipe = (sid, n, name) => { const id = mkRecipe('https://cook' + sid + '.example/' + n, { status: 'approved', name, score: 85 }); db.prepare('UPDATE kp_recipes SET source_id = ?, image_url = ?, age_min_months = 12, age_max_months = 144 WHERE id = ?').run(sid, 'https://img.example/' + id + '.jpg', id); return id; };
+  for (let n = 0; n < 3; n++) { cookRecipe(9101, 'a' + n, 'Asha Dish ' + n); cookRecipe(9102, 'b' + n, 'Ravi Dish ' + n); cookRecipe(9103, 'c' + n, 'Millet Dish ' + n); }
+  const shelf = await SRX.cooksShelf(env, { limit: 8, age: 60 });
+  const names = shelf.cooks.map((c) => c.cook);
+  ok(['Aunty Asha', 'Chef Ravi', 'The Millet Table'].every((c) => names.includes(c)) && new Set(names).size === names.length, 'The shelf has one recipe from each of several different cooks, credited by the creator\'s name only: ' + names.join(', '));
+  const http = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  ok(http.status === 200 && Array.isArray((await http.json()).cooks), 'The home page can ask for the cooks shelf');
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

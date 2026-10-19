@@ -241,7 +241,10 @@ export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
     });
   }
   const methodAllowed = r.rights_status === 'granted';
-  const kpSteps = r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
+  // The author's own steps are never re-written. Where the author has steps they are shown as they are (when the site has granted
+  // permission) or linked to; our own wording is used only for a recipe whose author gave no steps at all.
+  const authorSteps = (() => { try { return JSON.parse(r.instructions_json || '[]'); } catch { return []; } })();
+  const kpSteps = !authorSteps.length && r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
   let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
   // the score for the child's age band (the reference band, 4-6 years, when no age is given)
   const bandId = age != null ? bandForMonths(age).id : REFERENCE_BAND;

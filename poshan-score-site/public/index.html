@@ -329,6 +329,7 @@
     .plan-btn{ display:block; text-align:center; }
   }
   @media(min-width:701px){ .tf-card:nth-child(n+4){ display:none; } }
+  .tf-card .by{ grid-column:1/-1; font-size:12px; font-family:var(--font-mono); letter-spacing:.04em; color:var(--gold); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 @media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
   @media(min-width:1180px){.nav-links{gap:22px}}
   .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
@@ -460,7 +461,7 @@
   </div>
 
   <div class="tf-head"><h2>Tomorrow's <em>tiffin ideas</em></h2><select id="tfAge" aria-label="Child's age"></select></div>
-  <p class="tf-sub">The best Poshan Score first, for your child's age.</p>
+  <p class="tf-sub">From various cooks and cookbooks, each credited to the person who wrote it. Scored for your child's age.</p>
   <div class="tf-grid" id="tfGrid" role="list" aria-live="polite"></div>
   <a class="plan-btn" href="meal-ideas.html">Plan today's meals</a>
 
@@ -550,12 +551,23 @@ window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fi
   function tiffin() {
     const g = $('tfGrid'); g.innerHTML = '<div class="tf-card"><div class="ph"></div><div class="tx"><b>Loading…</b></div></div>';
     const pref = (choices.pref && choices.pref.length) ? choices.pref.join(',') : 'veg';
-    fetch(API + '/api/kp/recipes?age_months=' + age + '&occasion=lunchbox&season=' + seasonNow() + '&pref=' + encodeURIComponent(pref))
+    const card = (x, cook) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx">' + (cook ? '<span class="by">By ' + esc(cook) + '</span>' : '') + '<b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead || x.total_minutes >= 240 ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.score != null ? x.score : x.poshan_score, x.capped) + '">' + Math.round(x.score != null ? x.score : x.poshan_score) + '</em></div></a>';
+    // one lunch-box recipe from each of several different cooks and cookbooks; if there are too few, the best-scored lunch-box recipes fill the row
+    fetch(API + '/api/kp/cooks?age_months=' + age + '&occasion=lunchbox&limit=6&pref=' + encodeURIComponent(pref))
       .then((r) => { if (!r.ok) throw 0; return r.json(); })
-      .then((d) => { g.innerHTML = d.results.slice(0, 6).map((x) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx"><b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.poshan_score, x.capped) + '">' + Math.round(x.poshan_score) + '</em></div></a>').join('') || '<p class="home-note">No lunch-box ideas for this age yet. Try Meal Ideas.</p>'; })
+      .then(async (d) => {
+        let html = (d.cooks || []).map((x) => card(x, x.cook)).join('');
+        if ((d.cooks || []).length < 3) {
+          const r = await fetch(API + '/api/kp/recipes?age_months=' + age + '&occasion=lunchbox&season=' + seasonNow() + '&pref=' + encodeURIComponent(pref));
+          const more = (await r.json()).results || [];
+          const have = new Set((d.cooks || []).map((x) => x.id));
+          html += more.filter((x) => !have.has(x.id)).slice(0, 6 - (d.cooks || []).length).map((x) => card(x, x.source_name)).join('');
+        }
+        g.innerHTML = html || '<p class="home-note">No lunch-box ideas for this age yet. Try Meal Ideas.</p>'; })
       .catch(() => { g.innerHTML = '<p class="home-note">Could not load the ideas just now. Open Meal Ideas instead.</p>'; });
   }
   tiffin();
+
 
   fetch(API + '/api/kp/stats').then((r) => r.json()).then((d) => { $('nProducts').textContent = Number(d.products).toLocaleString('en-IN'); $('nBrands').textContent = d.brands_paying; }).catch(() => { $('nProducts').textContent = '40+'; });
 

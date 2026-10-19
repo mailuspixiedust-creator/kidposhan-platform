@@ -83,7 +83,7 @@ export function isPrepRecipe(name) {
   if (/\b(with|using|in)\b/i.test(core)) return false;      // a soup made WITH a paste is still a meal
   return PREP_END.test(core) || /^(how to make|homemade)\s+(batter|dough|stock|paste|powder)/i.test(core);
 }
-const NOT_INDIAN = /\b(casserole|lasagn[ae]|pizza|burgers?|hot dogs?|mac(?:aroni)?\s*(?:and|&|n)\s*cheese|garlic bread|quiche|pot pie|tacos?|burritos?|enchiladas?|quesadillas?|nachos?|halloumi|meatloaf|pot roast|shepherd'?s pie|fish and chips|spaghetti (?:bolognese|carbonara)|carbonara|bolognese|risotto|gnocchi|ravioli|tiramisu|brownies?|cheesecake)\b/i;
+const NOT_INDIAN = /\b(casserole|lasagn[ae]|pizza|burgers?|hot dogs?|mac(?:aroni)?\s*(?:and|&|n)\s*cheese|garlic bread|quiche|pot pie|tacos?|burritos?|enchiladas?|quesadillas?|nachos?|halloumi|pesto|minestrone|alfredo|meatloaf|pot roast|shepherd'?s pie|fish and chips|spaghetti (?:bolognese|carbonara)|carbonara|bolognese|risotto|gnocchi|ravioli|tiramisu|brownies?|cheesecake)\b/i;
 export const isFamiliar = (name) => !NOT_INDIAN.test(String(name || ''));
 // sweet or baked things that are not lunch or dinner
 export const SWEET_OR_BAKED = /\b(waffles?|pancakes?|muffins?|cupcakes?|cakes?|cookies?|brownies?|donuts?|doughnuts?|ladoo|laddu|halwa|kheer|payasam|pudding|ice[- ]cream|smoothie|milkshake|popsicle|jam|custard)\b/i;

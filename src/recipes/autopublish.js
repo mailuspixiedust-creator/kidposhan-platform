@@ -25,7 +25,6 @@ export function holdReasons({ recipe, source, flags = [], ingredients = [], step
   for (const f of flags) if (HOLD_FLAGS[f]) why.push(HOLD_FLAGS[f]);
   if (ingredients.length < MIN_INGREDIENTS) why.push(`only ${ingredients.length} ingredient lines`);
   if (steps < MIN_STEPS) why.push(`only ${steps} step(s) in the original`);
-  if (recipe.kp_steps_status !== 'approved') why.push('the KidPoshan steps are not ready yet');
   if (!occasions) why.push('no meal type selected');
   if (!(recipe.age_min_months <= recipe.age_max_months)) why.push('the age range is not valid');
   // Safety: very young children have rules that rule-based tagging cannot be trusted with (textures, honey, salt, allergens).
@@ -69,7 +68,7 @@ export async function maybeAutoPublish(env, id) {
 export async function autoPublishPending(env, { limit = 25 } = {}) {
   const { results } = await env.DB.prepare(
     // Held recipes (hold_reasons_json set) are re-checked only when something about them changes, not on every run.
-    `SELECT id FROM kp_recipes WHERE review_status = 'pending' AND reviewed_at IS NULL AND kp_steps_status = 'approved'
+    `SELECT id FROM kp_recipes WHERE review_status = 'pending' AND reviewed_at IS NULL
         AND hold_reasons_json IS NULL ORDER BY id LIMIT ?`
   ).bind(limit).all();
   const out = { published: 0, held: 0 };

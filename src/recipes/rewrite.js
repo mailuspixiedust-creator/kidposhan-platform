@@ -30,6 +30,8 @@ export async function rewriteSteps(env, id) {
   if (r.kp_steps_status === 'approved') return { id, skipped: 'already approved' };
   const original = JSON.parse(r.instructions_json || '[]').map((s) => s.text).filter(Boolean);
   if (!original.length) return { id, skipped: 'no steps to rewrite' };
+  // The author put in steps: they are used as they are (or linked to), never written again.
+  return { id, skipped: "the author's steps are used as they are, not rewritten" };
 
   const prompt = [
     'Rewrite these recipe steps in your own simple words for parents cooking for children.',
@@ -59,13 +61,7 @@ export async function rewriteSteps(env, id) {
   return { id, status: 'approved', steps: steps.length, published: !!pub.published, held: pub.held };
 }
 
-// Cron/admin helper: next recipes that have verbatim steps but no KidPoshan version yet.
-export async function rewritePending(env, { limit = 3 } = {}) {
-  const { results } = await env.DB.prepare(
-    `SELECT id FROM kp_recipes WHERE kp_steps_status = 'none' AND review_status IN ('pending','approved')
-        AND instructions_json IS NOT NULL AND instructions_json != '[]' ORDER BY review_status = 'approved' DESC, id LIMIT ?`
-  ).bind(limit).all();
-  const out = [];
-  for (const r of results) out.push(await rewriteSteps(env, r.id));
-  return out;
+// Cron/admin helper. An author's steps are never rewritten, so there is nothing to do; kept so the cron and admin calls stay valid.
+export async function rewritePending() {
+  return [];
 }

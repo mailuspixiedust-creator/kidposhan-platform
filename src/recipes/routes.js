@@ -25,7 +25,7 @@ import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
 import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
-import { searchAll, siteStats } from './search.js';
+import { searchAll, siteStats, cooksShelf } from './search.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
@@ -114,6 +114,13 @@ export async function routeRecipes(request, env, ctx) {
     const sp = url.searchParams;
     const res = await listProducts(env, { age: AGE_BANDS.some((b) => b.id === sp.get('age')) ? sp.get('age') : '', category: sp.get('category') || '', min: +sp.get('min') || 0, sort: sp.get('sort') === 'name' ? 'name' : 'score', limit: +sp.get('limit') || 60 });
     return withCors(request, new Response(JSON.stringify(res), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
+  }
+  // The landing page's "from various cooks and cookbooks": one good recipe from each of several creators
+  if (request.method === 'GET' && path === '/api/kp/cooks') {
+    const ageQ = parseInt(url.searchParams.get('age_months'), 10);
+    const occ = url.searchParams.get('occasion'), prefs = (url.searchParams.get('pref') || '').split(',').filter((p) => ['veg', 'jain', 'nonveg'].includes(p));
+    const out = await cooksShelf(env, { age: Number.isFinite(ageQ) && ageQ >= 12 && ageQ <= 144 ? ageQ : null, limit: Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 8, 1), 12), occasion: ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'].includes(occ) ? occ : null, prefs });
+    return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
   }
   // The landing page's numbers
   if (request.method === 'GET' && path === '/api/kp/stats') {
