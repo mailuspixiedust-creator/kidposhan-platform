@@ -66,6 +66,7 @@ db.exec(fs.readFileSync('migrations/0027_pack_gallery.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0028_cap_flags.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0029_sync_and_misses.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0030_pageviews.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0031_open_food_facts.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1204,6 +1205,41 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const adm2 = await routeRecipes(new Request('https://w/api/kp/admin/traffic?days=7', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx);
   ok(adm.status === 401 && adm2.status === 200 && (await adm2.json()).totals.visitors === 2, 'The traffic report needs the admin token');
   ok(!JSON.stringify(db.prepare('SELECT * FROM kp_pageviews').all()).includes('1.2.3'), 'No IP address is kept');
+}
+
+
+// ---- popular products from Open Food Facts ----
+{
+  const OF = await import('../../src/recipes/openfood.js');
+  ok(OF.kindFor(['en:breakfast-cereals', 'en:cereals-and-potatoes'], 'Kellogg\'s Corn Flakes') === 'breakfast_cereal' && OF.kindFor(['en:instant-noodles'], 'Maggi 2-minute Masala') === 'instant_noodles' && OF.kindFor([], 'Bournvita Health Drink') === 'health_drink' && OF.kindFor(['en:biscuits'], 'Parle-G') === 'kids_biscuits' && OF.kindFor(['en:spices'], 'Garam masala powder') === null, 'A product is matched to one of our kinds of food, and spices and the like are left out');
+  ok(OF.splitIngredients('Wheat flour (maida), Sugar, Spices [Chilli, Cumin], Salt.').join('|') === 'Wheat flour (maida)|Sugar|Spices [Chilli, Cumin]|Salt', 'Ingredient lists split at commas outside brackets');
+  const base = { code: '8901058000290', product_name: 'Masala Noodles', brands: 'Maggi, Nestle', quantity: '70 g', unique_scans_n: 900, categories_tags: ['en:instant-noodles'], ingredients_text: 'Wheat flour, Palm oil, Salt, Flavour enhancer (INS 627)', image_front_url: 'https://img.off/front.jpg', image_nutrition_url: 'https://img.off/nutri.jpg',
+    nutriments: { proteins_100g: 8.2, fiber_100g: 2.1, sugars_100g: 1.9, 'saturated-fat_100g': 6.5, salt_100g: 3.2 } };
+  const m1 = OF.mapProduct(base);
+  ok(m1.kind === 'instant_noodles' && m1.brand === 'Maggi' && m1.name === 'Maggi Masala Noodles' && Math.abs(m1.nutrition.sodium_mg - 1280) < 1 && m1.estimated === true && m1.nutrition.added_sugars_g === 1.9, 'Salt on the label becomes sodium (3.2 g salt = 1,280 mg), and total sugars stand in for missing added sugar, marked estimated: ' + JSON.stringify(m1.nutrition));
+  const m2 = OF.mapProduct({ ...base, nutriments: { ...base.nutriments, 'added-sugars_100g': 0.5, salt_100g: undefined, sodium_100g: 0.4 } });
+  ok(m2.estimated === false && m2.nutrition.added_sugars_g === 0.5 && Math.abs(m2.nutrition.sodium_mg - 400) < 0.1, 'A printed added-sugar line is used as it is, and sodium in grams becomes milligrams');
+  const imp = OF.mapProduct({ ...base, code: '5000159484695' });
+  ok(!imp.skip && imp.foreign_barcode === true && OF.mapProduct(base).foreign_barcode === false, 'An imported brand sold in India is taken, and a barcode that is not an Indian one (890) is flagged for the owner to check');
+  ok(OF.mapProduct({ ...base, brands: '' }).skip && OF.mapProduct({ ...base, code: '123' }).skip && OF.mapProduct({ ...base, nutriments: { proteins_100g: 8 } }).skip === 'label incomplete' && OF.mapProduct({ ...base, categories_tags: ['en:spices'], product_name: 'Chilli powder' }).skip, 'A product with no brand, no barcode, an incomplete label or a kind we do not score is skipped');
+
+  const seen = [];
+  const page = (products) => async (u, init) => { seen.push({ url: String(u), ua: init?.headers?.['user-agent'] }); return { ok: true, status: 200, text: async () => JSON.stringify({ products }) }; };
+  const dupe = { ...base, code: '8901058000291' };                                                            // a second barcode of the same name is a different pack
+  const r1 = await OF.importOffNext(env, page([base, { ...base }, dupe, { ...base, code: '8901058000292', nutriments: { proteins_100g: 1 } }]));
+  ok(r1.key === 'off:brand:maggi' && r1.added === 2 && r1.known === 1 && r1.skipped['label incomplete'] === 1, 'The first run searches the first brand; each barcode is added once: ' + JSON.stringify(r1));
+  ok(/brands_tags=maggi/.test(seen[0].url) && /countries_tags_en=india/.test(seen[0].url) && /KidPoshan/.test(seen[0].ua || ''), 'The request asks for Indian products of that brand and names KidPoshan');
+  const row = db.prepare("SELECT status, score_status, label_source, retailer, barcode, data_source, popularity, nutrition_json FROM kp_ready_products WHERE barcode = '8901058000290'").get();
+  ok(row.status === 'candidate' && row.score_status === 'exact' && row.retailer === 'openfoodfacts' && row.data_source === 'openfoodfacts' && row.popularity === 900 && JSON.parse(row.nutrition_json).added_sugar_estimated === true, 'An imported product waits for approval as a candidate, with its source and popularity');
+  const slow = await OF.importOffNext(env, async () => ({ ok: true, status: 200, text: async () => '<html>Page temporarily unavailable</html>' }));
+  ok(slow.slowdown === true, 'When Open Food Facts says it is unavailable, the run stops quietly');
+  ok(db.prepare("SELECT runs FROM kp_ready_research WHERE kind = 'off:brand:maggi'").get().runs === 999, 'A short page finishes that search');
+  const r2 = await OF.importOffNext(env, page([]));
+  ok(r2.key === 'off:brand:bournvita' && r2.page === 1, 'The next run moves on to the next brand (the slow-down run did not use one up)');
+  const r3 = await OF.importOffNext(env, page([]));
+  ok(r3.key === 'off:brand:horlicks' || r3.key === 'off:brand:cerelac', 'And then the one after: ' + r3.key);
+  const noTok = await routeRecipes(new Request('https://w/api/kp/admin/products/import-off', { method: 'POST' }), { ...env, ADMIN_TOKEN: 't' }, ctx);
+  ok(noTok.status === 401, 'Importing needs the admin token');
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

@@ -572,7 +572,7 @@ body.lb-open{overflow:hidden}
 </main>
 <footer class="site-footer">
   Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification<br>
-  Pack photos are the sellers'. The age guide is general and cautious. It is not medical advice.
+  Pack photos are the sellers' or, where marked, from <a href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> contributors (CC BY-SA). Some label data comes from Open Food Facts under the Open Database Licence. The age guide is general and cautious. It is not medical advice.
 </footer>
 
 <script>
@@ -595,6 +595,8 @@ function shotHTML(front,back){
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'See front of pack':'See back of pack'});
 const retailerName=r=>r?String(r).replace(/^./,c=>c.toUpperCase()):'the seller';
+const fromOff=p=>p.retailer==='openfoodfacts';
+const buyLink=(p,cls)=>fromOff(p)?`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>`:`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>`;
 /* the ten metrics, each on a numbered 1-10 ruler */
 const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
 function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
@@ -614,7 +616,7 @@ async function load(){
   document.getElementById('count').textContent=`${d.total} product${d.total===1?'':'s'}, scored for ${d.age_label}`;
   document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}" title="${p.capped?'Held at Fair because one risk metric scored 3 or less':'Poshan Score'}">${Math.round(p.score)}<small>Poshan</small>${p.capped?'<span class="cap">capped</span>':''}</span></div>
     <div class="pbody"><div class="pbrand">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="pmeta">${esc([p.pack_size,p.category].filter(Boolean).join(' · '))}</div>
-    <div class="pactions"><a class="pbuy" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>${(window.KP_PRODUCT_PAGES||{})[p.id]?`<a class="pscore" href="/products/${(window.KP_PRODUCT_PAGES||{})[p.id]}">See the score</a>`:`<button class="pscore" type="button" data-id="${p.id}">See the score</button>`}</div></div></article>`).join('');
+    <div class="pactions">${buyLink(p)}${(window.KP_PRODUCT_PAGES||{})[p.id]?`<a class="pscore" href="/products/${(window.KP_PRODUCT_PAGES||{})[p.id]}">See the score</a>`:`<button class="pscore" type="button" data-id="${p.id}">See the score</button>`}</div></div></article>`).join('');
   document.getElementById('empty').innerHTML=d.total?'':(d.in_catalogue
     ?'<div class="pempty"><h3>Nothing matches these filters</h3><p>Widen the score range or clear the category or age to see more.</p></div>'
     :`<div class="pempty"><h3>${S.age==='6-12m'?'No products for 6–12 months yet':'The first products are on their way'}</h3><p>${S.age==='6-12m'?'Under 12 months we list only plain foods meant for babies, with almost no added sugar or salt. Try another age to see everything else.':'A product is listed only when its nutrition label has been read and checked. We search for new products every few hours, so this page fills up by itself.'}</p></div>`);
@@ -634,7 +636,8 @@ async function openDetail(id){
     <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics,d.score)}
     <h4>On the label (per 100 g)</h4><table class="ptab"><tr><td>Protein</td><td>${fmt(n.protein_g,'g')}</td></tr><tr><td>Fibre</td><td>${fmt(n.fibre_g,'g')}</td></tr><tr><td>Total sugars</td><td>${fmt(n.sugars_g,'g')}</td></tr><tr><td>Added sugar</td><td>${fmt(n.added_sugars_g,'g')}</td></tr><tr><td>Saturated fat</td><td>${fmt(n.saturated_fat_g,'g')}</td></tr><tr><td>Sodium</td><td>${fmt(n.sodium_mg,'mg')}</td></tr></table>
     ${d.ingredients.length?`<h4>Ingredients</h4><p style="font-size:14.5px">${esc(d.ingredients.join(', '))}</p>`:''}
-    <p style="margin-top:16px"><a class="pbuy" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(d.retailer))}</a></p>
+    ${d.added_sugar_estimated?'<p class="fine">Added sugar is not printed in the database, so total sugars are used here. That can make the score a little stricter than the pack deserves.</p>':''}
+    <p style="margin-top:16px">${buyLink(d)}</p>
     <p class="fine">Label values come from the pack's own product page and are checked before a product is listed. Every threshold is on the <a href="age-metrics.html">Age &amp; Metrics</a> page. The age guide is general and cautious, not medical advice.</p></div>`;
   const prev=document.activeElement;
   const close=()=>{bg.remove();document.removeEventListener('keydown',onKey);prev&&prev.focus&&prev.focus()};

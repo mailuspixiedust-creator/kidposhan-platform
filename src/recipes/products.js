@@ -81,7 +81,7 @@ export async function productDetail(env, id, { age = '' } = {}) {
     // under 12 months a product that is not a plain baby-suitable food gets no number: it is simply not for under 1
     scores_by_age: Object.fromEntries(AGE_BANDS.map((x) => [x.id, offeredFor(p.kind, nutrition, ingredients, x.id) ? sc.detail.bands[x.band].total : null])),
     offered_for: agesFor(p.kind, nutrition, ingredients), nutrition_per_100g: nutrition, ingredients, basis: sc.detail.basis,
-    metrics: b.metrics, label_source: p.label_source || null,
+    metrics: b.metrics, label_source: p.label_source || null, data_source: p.data_source || null, source_url: p.data_source === 'openfoodfacts' ? p.product_url : null, added_sugar_estimated: !!nutrition.added_sugar_estimated,
   };
 }
 
