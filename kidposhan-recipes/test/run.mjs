@@ -63,6 +63,8 @@ db.exec(fs.readFileSync('migrations/0024_seen_recipes.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0025_outreach_auto.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0026_score_by_age.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0027_pack_gallery.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0028_cap_flags.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0029_sync_and_misses.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -108,6 +110,8 @@ ok(before.count === 0, 'Nothing visible to parents before the owner publishes');
 const pend = await listForReview(env, { status: 'pending', limit: 50 });
 ok(pend.total === 14, `Review queue holds all 14 extracted recipes (${pend.total})`);
 for (const it of pend.items) await reviewRecipe(env, it.id, { action: 'publish', steps_link_only: true });
+// parents only see recipes that have a cooking time and a score of 58 or more: give the fixtures both
+db.prepare("UPDATE kp_recipes SET total_minutes = COALESCE(total_minutes, 25), poshan_score = 70, score_13 = NULL, score_46 = NULL, score_79 = NULL, score_1012 = NULL, cap_13 = 0, cap_46 = 0, cap_79 = 0, cap_1012 = 0, score_status = COALESCE(score_status, 'estimated') WHERE review_status = 'approved'").run();
 const res = await searchRecipes(env, { age: 48, occasion: 'lunchbox', season: 'monsoon', pref: 'veg', limit: 10 });
 ok(res.count === 10 && res.exact_count === 0 && res.results.filter((r) => r.match === 'any_season').length === 6 && res.results.every((r) => ['veg', 'jain'].includes(r.diet)), `Veg lunchbox 4y monsoon (pea pulao is winter-tagged) -> ${res.count} (${res.exact_count} exact), tiers: ${[...new Set(res.results.map((r) => r.match))]}`);
 const res2 = await searchRecipes(env, { age: 30, occasion: 'snack_4pm', season: 'all', pref: 'veg', limit: 10 });
@@ -380,13 +384,16 @@ ok(holdReasons({ recipe: { ...okRecipe, age_min_months: 12 }, source: okSource, 
 ok(holdReasons({ recipe: { ...okRecipe, kp_steps_status: 'none' }, source: okSource, ingredients: ing4.slice(0, 2), steps: 1, occasions: 0 }).length >= 4, 'Thin recipes (few ingredients, one step, no meal, no KidPoshan steps) are held with every reason listed');
 ok(holdReasons({ recipe: okRecipe, source: { status: 'suggested', active: 0 }, ingredients: ing4, steps: 3, occasions: 1 }).length === 1, 'A site that is not in the registry holds its recipes');
 
+let autoDishN = 0;
 const mkRecipe = (url, extra = {}) => {
-  const f = { name: 'Auto Dish', method: 'jsonld', complete: 'complete', agemin: 24, agemax: 72, status: 'pending', kp: 'approved', ...extra };
+  const f = { name: 'Auto Dish ' + (++autoDishN), method: 'jsonld', complete: 'complete', agemin: 24, agemax: 72, status: 'pending', kp: 'approved', ...extra };
   const id = db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status, instructions_json, kp_steps_status, kp_steps_json) VALUES (1,?,?,'[]',?,?,'veg',?,?,?,?,?,?) RETURNING id")
     .get(url, f.name, f.method, f.complete, f.agemin, f.agemax, f.status, JSON.stringify([{ section: null, text: 'Cook 1 cup rice for 10 minutes.' }, { section: null, text: 'Serve warm.' }]), f.kp, f.kp === 'approved' ? JSON.stringify(['Cook the rice for 10 minutes.', 'Serve warm.']) : null).id;
   ['1 cup rice', '1 carrot', '2 tbsp oil', 'Salt to taste'].forEach((l, n) => { const q = parseIngredientLine(l); db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?,?,?,?,?,?,?,?)').run(id, n, q.raw_text, q.quantity, q.unit, q.name, q.ingredient_key, q.is_pantry ? 1 : 0); });
   db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'lunch')").run(id);
   db.prepare("INSERT INTO kp_recipe_seasons (recipe_id, season) VALUES (?, 'all')").run(id);
+  db.prepare('UPDATE kp_recipes SET total_minutes = ? WHERE id = ?').run(extra.minutes ?? 30, id);
+  if (f.status === 'approved') db.prepare("UPDATE kp_recipes SET poshan_score = COALESCE(poshan_score, ?), score_status = COALESCE(score_status, 'estimated') WHERE id = ?").run(extra.score ?? 70, id);   // only recipes with a score are offered
   return id;
 };
 const goodId = mkRecipe('https://site.in/auto-good/');
@@ -684,12 +691,12 @@ ok((await routeRecipes(new Request('https://w/api/kp/admin/tavily'), { ...tEnv, 
 
 // ---- email on the join form, the admin list of people, and the visitor count ----
 import { recordVisit, visitCount } from '../../src/recipes/visits.js';
-ok(/valid email/i.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '9811111111', email: 'nope' }))) && /valid email/i.test(await throwsMsg(() => joinVisitor(env, { name: 'Asha', mobile: '9811111111' }))), 'A missing or malformed email is refused');
+ok(!!(await joinVisitor(env, { name: 'Asha', mobile: '9822222222', email: 'nope' })).token && !!(await joinVisitor(env, { name: 'Asha', mobile: '9822222222' })).token, 'No email is needed: a missing or malformed one is ignored, not refused');
 const ravi = db.prepare("SELECT name, mobile, email FROM kp_visitors WHERE mobile = '9811111111'").get();
 ok(ravi && ravi.email === 'ravi@example.com' && ravi.name === 'Ravi', 'The email is stored tidied (lower case)');
 const people = await listVisitors(env);
-ok(people.total === 2 && people.visitors.some((v) => v.email === 'ravi@example.com' && v.ratings >= 0 && v.remarks >= 0), 'The admin list shows who joined, with email and how much they took part');
-ok((await routeRecipes(new Request('https://w/api/kp/admin/visitors'), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 401 && (await (await routeRecipes(new Request('https://w/api/kp/admin/visitors', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx)).json()).total === 2, 'The visitor list needs the admin token');
+ok(people.total === 3 && people.visitors.some((v) => v.email === 'ravi@example.com' && v.ratings >= 0 && v.remarks >= 0), 'The admin list shows who joined, with email and how much they took part');
+ok((await routeRecipes(new Request('https://w/api/kp/admin/visitors'), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 401 && (await (await routeRecipes(new Request('https://w/api/kp/admin/visitors', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx)).json()).total === 3, 'The visitor list needs the admin token');
 
 const vc0 = await visitCount(env);
 const vc1 = await recordVisit(env, 'abcdef0123456789abcd', 'Mozilla/5.0 (iPhone)');
@@ -739,14 +746,21 @@ ok(Math.round(gf(pil('8 oz pasta')).g) === 227 && Math.round(gf(pil('1 lb potato
 ok(pil('2 tbsp chopped parsley').is_pantry === true && pil('1 tbsp fish sauce').is_pantry === false, 'Herbs count as pantry; fish sauce does not');
 
 // ---- at least 20 recipes per combination; a repeat search from the same device shows fresh recipes first ----
-import { pickFresh, MIN_RESULTS } from '../../src/recipes/api.js';
+import { pickRandom, isPrepRecipe, seasonMismatch, MIN_RESULTS } from '../../src/recipes/api.js';
 import { coverageReport, fillOneGap, pruneSeen } from '../../src/recipes/coverage.js';
 ok(MIN_RESULTS === 20, 'The target is 20 recipes per filter combination');
-const pickA = pickFresh(Array.from({ length: 8 }, (_, i) => ({ id: i + 1 })), new Map([[1, 1], [2, 1], [3, 2]]), 5);
-ok(pickA.map((r) => r.id).join() === '4,5,6,7,8', 'pickFresh: unseen recipes first, in order');
-const pickB = pickFresh(Array.from({ length: 6 }, (_, i) => ({ id: i + 1 })), new Map([[1, 3], [2, 1], [3, 1], [4, 2]]), 6);
-ok(pickB.map((r) => r.id).join() === '5,6,2,3,4,1', 'pickFresh: when too few are unseen, the least-seen come back first: ' + pickB.map((r) => r.id));
-for (let i = 0; i < 30; i++) { const id = mkRecipe('https://fresh.example/' + i, { status: 'approved', name: 'Fresh Dish ' + i }); db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ? WHERE id = ?').run(30 + i, 'estimated', id); }
+const seq = (n) => { let x = 7; return () => { x = (x * 48271) % 2147483647; return x / 2147483647; }; };
+const poolA = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, match: 'exact' }));
+const pickA = pickRandom(poolA, new Set([1, 2, 3]), 5, seq());
+ok(pickA.length === 5 && pickA.every((r) => ![1, 2, 3].includes(r.id)), 'pickRandom: recipes shown last time are skipped when enough others exist');
+const pickB = pickRandom(poolA.slice(0, 6), new Set([1, 2, 3, 4]), 6, seq());
+ok(pickB.length === 6 && new Set(pickB.map((r) => r.id)).size === 6 && pickB.slice(0, 2).every((r) => [5, 6].includes(r.id)), 'pickRandom: when too few are new, the seen ones come back last: ' + pickB.map((r) => r.id));
+ok(pickRandom(poolA, new Set(), 5, seq()).map((r) => r.id).join() !== pickRandom(poolA, new Set(), 5, () => 0.99).map((r) => r.id).join(), 'pickRandom: a different random source gives a different set');
+const pickT = pickRandom([...poolA.slice(0, 3), ...Array.from({ length: 5 }, (_, i) => ({ id: 20 + i, match: 'any_season' }))], new Set(), 5, seq());
+ok(pickT.slice(0, 3).every((r) => r.match === 'exact'), 'pickRandom: the best-matching tier (in season, right meal) is used before a looser one');
+ok(isPrepRecipe('Idli Dosa Batter | Homemade Idli Dosa Batter Recipe') && isPrepRecipe('Vietnamese Curry Powder (Bot Ca Ri Viet)') && !isPrepRecipe('Thai Pumpkin Soup With Red Curry Paste Recipe') && !isPrepRecipe('Masala Dosa Recipe'), 'Batters, spice powders and pastes are ingredients, not meals; a soup made with a paste is still a meal');
+ok(seasonMismatch('Cold Sesame Soba', 'winter') && !seasonMismatch('Cold Sesame Soba', 'summer') && seasonMismatch('Beef Stew', 'summer') && !seasonMismatch('Dal Tadka', 'winter'), 'A cold dish is not a winter dish and a hot stew is not a summer dish');
+for (let i = 0; i < 30; i++) { const id = mkRecipe('https://fresh.example/' + i, { status: 'approved', name: 'Fresh Dish ' + i }); db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ? WHERE id = ?').run(60 + i, 'estimated', id); }
 const fq = (extra = '') => handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&season=all' + extra), env, ctx);
 const fresh0 = await (await fq()).json();
 ok(fresh0.count === 20, 'With no limit given, a combination that has enough recipes returns 20: ' + fresh0.count);
@@ -758,11 +772,13 @@ ok(ids2.filter((i) => !ids1.has(i)).length >= 10, 'The second search from the sa
 const asc = (arr) => arr.every((x, i) => i === 0 || x.match !== arr[i - 1].match || (x.poshan_score ?? -1) <= (arr[i - 1].poshan_score ?? -1));
 ok(asc(r1j.results) && asc(r2j.results), 'Each shelf is still in descending Poshan Score order after the repeat');
 const otherDev = await (await fq('&vid=otherdevice0123456789')).json();
-ok(otherDev.results.map((x) => x.id).join() === r1j.results.map((x) => x.id).join(), 'A different device gets the same first list as the first search');
+ok(otherDev.count === 20 && otherDev.results.every((x) => x.poshan_score >= 58 && !x.capped), 'Every recipe offered scores 58 or more and is not capped');
+const shuf = await (await fq('&shuffle=1&exclude=' + r1j.results.map((x) => x.id).join(','))).json();
+ok(shuf.count === 20 && shuf.results.filter((x) => !ids1.has(x.id)).length >= 8, 'Shuffle draws a new set that avoids the recipes on screen: ' + shuf.results.filter((x) => !ids1.has(x.id)).length + ' new');
 const hitsRowF = db.prepare("SELECT sum(times) m FROM kp_seen WHERE vid = ?").get(devId);
 ok(hitsRowF.m >= 40, "Every recipe shown to a device is counted (two searches of 20 = 40 hits)");
 const rnRes = await fq('&vid=' + devId); await rnRes.json();
-ok(rnRes.headers.get('cache-control') === 'private, no-store' && (await fq()).headers.get('cache-control').startsWith('public'), 'Answers for a device are never cached for others; the plain search still is');
+ok(rnRes.headers.get('cache-control') === 'private, no-store' && (await fq()).headers.get('cache-control') === 'private, no-store', 'Searches are never cached, because every one is a fresh random draw');
 ok((await (await fq('&vid=bad!')).json()).count === 20 && db.prepare("SELECT count(*) n FROM kp_seen WHERE vid = 'bad!'").get().n === 0, 'A malformed device id is ignored');
 
 const covRep = await coverageReport(env, { pref: 'veg' });
@@ -917,14 +933,14 @@ const prodAll = await PR.listProducts(env, {});
 ok(prodAll.items.map((x) => x.name).sort().join() === 'Choco Kids Biscuit,Organic Ragi Flour,Rolled Oats 1kg' && prodAll.in_catalogue === 3, 'Only approved products with an exact score are listed, and the same product in two pack sizes is one product: ' + prodAll.items.map((x) => x.name));
 ok(prodAll.items[0].score >= prodAll.items[1].score && prodAll.items[1].score >= prodAll.items[2].score, 'Products are in descending Poshan Score order');
 ok((await PR.listProducts(env, { sort: 'name' })).items.map((x) => x.name).join() === 'Choco Kids Biscuit,Organic Ragi Flour,Rolled Oats 1kg', 'They can be sorted by name');
-ok((await PR.listProducts(env, { min: 80 })).items.every((x) => x.score >= 80) && (await PR.listProducts(env, { min: 80 })).total === 2 && (await PR.listProducts(env, { min: 58 })).total === 2, 'The minimum score filter works (Excellent 80, Good 58)');
+{ const m80 = await PR.listProducts(env, { min: 80 }), m58 = await PR.listProducts(env, { min: 58 }); ok(m80.items.every((x) => x.score >= 80) && m58.items.every((x) => x.score >= 58) && m80.total === prodAll.items.filter((x) => x.score >= 80).length && m58.total === prodAll.items.filter((x) => x.score >= 58).length, 'The minimum score filter works (Excellent 80, Good 58)'); }
 ok((await PR.listProducts(env, { category: 'Snacks' })).total === 0 && (await PR.listProducts(env, { category: 'Biscuits and bakery' })).total === 1, 'The category filter works');
 const prodInfants = await PR.listProducts(env, { age: '6-12m' });
 ok(prodInfants.items.map((x) => x.name).sort().join() === 'Organic Ragi Flour,Rolled Oats 1kg' && prodInfants.categories.length === 2, 'For 6-12 months only the plain, low-sugar, low-salt baby-suitable products are listed (the biscuit is not), and the category list follows the age: ' + prodInfants.items.map((x) => x.name));
 const bisc1 = (await PR.listProducts(env, { age: '1-3y' })).items.find((x) => x.name === 'Choco Kids Biscuit'), bisc10 = (await PR.listProducts(env, { age: '10-12y' })).items.find((x) => x.name === 'Choco Kids Biscuit');
 ok((await PR.listProducts(env, { age: '4-6y' })).total === 3 && bisc1 && bisc10 && bisc10.score >= bisc1.score, 'From 12 months every scored product is listed, and the same biscuit scores no better for a 1-3 year old than for a 10-12 year old');
 const prodDet = await PR.productDetail(env, pRagi);
-ok(prodDet && prodDet.name === 'Organic Ragi Flour' && prodDet.offered_for[0] === '6-12m' && prodDet.nutrition_per_100g.fibre_g === 11 && prodDet.metrics.length === 10 && prodDet.metrics.every((m) => m.score >= 1 && m.score <= 10) && prodDet.score === prodDet.metrics.reduce((a, m) => a + m.score, 0) && Object.keys(prodDet.scores_by_age).length === 5, 'The product detail carries the label, the age guide and the ten metrics (each 1 to 10, adding up to the score)');
+ok(prodDet && prodDet.name === 'Organic Ragi Flour' && prodDet.offered_for[0] === '6-12m' && prodDet.nutrition_per_100g.fibre_g === 11 && prodDet.metrics.length === 10 && prodDet.metrics.every((m) => m.score >= 1 && m.score <= 10) && prodDet.score === Math.round((prodDet.metrics.reduce((a, m) => a + m.score, 0) - 10) / 90 * 100) && Object.keys(prodDet.scores_by_age).length === 5, 'The product detail carries the label, the age guide and the ten metrics (each 1 to 10, adding up to the score)');
 ok(await PR.productDetail(env, 999999) === null && await PR.productDetail(env, db.prepare("SELECT id FROM kp_ready_products WHERE name = 'Waiting Chips'").get().id) === null, 'A product that is not approved and scored has no page');
 const prodApi = await routeRecipes(new Request('https://w/api/kp/products?age=nonsense&sort=name', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
 const prodApiJ = await prodApi.json();
@@ -943,7 +959,7 @@ ok(S2.BANDS.length === 4 && S2.bandForMonths(9).id === '1-3' && S2.bandForMonths
 ok(S2.riskScore(0) === 10 && S2.riskScore(1.9) === 10 && S2.riskScore(2) === 9 && S2.riskScore(9.9) === 8 && S2.riskScore(10) === 7 && S2.riskScore(29.9) === 4 && S2.riskScore(30) === 3 && S2.riskScore(49.9) === 2 && S2.riskScore(50) === 1 && S2.riskScore(500) === 1, 'A risk metric scores 10 down to 1 by its share of the daily reference (pass under 10% = 8-10, partial under 30% = 4-7, fail 30%+ = 1-3)');
 ok(S2.creditScore(30) === 10 && S2.creditScore(15) === 8 && S2.creditScore(14.9) === 7 && S2.creditScore(5) === 4 && S2.creditScore(4.9) === 3 && S2.creditScore(1.4) === 1, 'A credit metric (fibre, protein) scores 10 down to 1 (pass 15%+ = 8-10, partial 5-15% = 4-7, fail under 5% = 1-3)');
 const s2Clean = S2.scoreAllBands({ basis: 'pack', protein: 12, fibre: 10, addedSugar: 0, satFat: 1, sodium: 10, name: 'Rolled Oats', ingredients: ['Rolled oats'] });
-ok(s2Clean.version === 'kp-score-v2' && Object.keys(s2Clean.bands).join() === '1-3,4-6,7-9,10-12' && s2Clean.reference === s2Clean.bands['4-6'].total && s2Clean.bands['4-6'].metrics.length === 10, 'Every score is worked out for all four age bands, with ten metrics each');
+ok(s2Clean.version === 'kp-score-v3' && Object.keys(s2Clean.bands).join() === '1-3,4-6,7-9,10-12' && s2Clean.reference === s2Clean.bands['4-6'].total && s2Clean.bands['4-6'].metrics.length === 10, 'Every score is worked out for all four age bands, with ten metrics each');
 ok(s2Clean.bands['4-6'].metrics.every((m, i) => m.n === i + 1 && m.score >= 1 && m.score <= 10 && Number.isInteger(m.score)) && s2Clean.bands['4-6'].total === s2Clean.bands['4-6'].metrics.reduce((a, m) => a + m.score, 0) && s2Clean.bands['4-6'].total >= 90, 'The ten metrics are whole numbers from 1 to 10 and add up to the score out of 100: ' + s2Clean.bands['4-6'].total);
 const s2Junk = S2.scoreAllBands({ basis: 'pack', protein: 3, fibre: 1, addedSugar: 30, satFat: 14, sodium: 700, name: 'Choco Wafer', ingredients: ['Sugar', 'Palm oil', 'Refined wheat flour', 'Hydrogenated vegetable fat', 'Preservative (INS 211)', 'Artificial flavour', 'Colour (INS 110)'] });
 const jm = s2Junk.bands['4-6'].metrics;
@@ -952,7 +968,7 @@ ok(s2Junk.bands['4-6'].total <= 57 && s2Junk.bands['4-6'].tier !== 'Excellent' &
 const salty = (b) => S2.scoreForBand({ basis: 'pack', protein: 8, fibre: 6, addedSugar: 1, satFat: 2, sodium: 600, name: 'Savoury Mix', ingredients: ['Chickpea flour'] }, b).metrics[1].score;
 ok(salty('1-3') <= salty('4-6') && salty('4-6') <= salty('7-9') && salty('7-9') <= salty('10-12') && salty('1-3') < salty('10-12'), 'The same salty food scores worse on sodium for a younger child than for an older one');
 const sameMeal = { protein: 9, fibre: 5, addedSugar: 1, satFat: 2.5, sodium: 380, name: 'Veg pulao', ingredients: '', topKey: 'rice' };
-ok(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share < S2.scoreForBand({ ...sameMeal, basis: 'pack' }, '4-6').metrics[1].share, 'A cooked dish counts as one of three meals (a third of the serving counts toward the day), so the same numbers weigh less than they would per 100 g of a pack');
+ok(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share === S2.scoreForBand({ ...sameMeal, basis: 'pack' }, '4-6').metrics[1].share && Math.round(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share) === 25, 'A serving is compared with the FULL daily reference (380 mg of 1,500 mg = 25%), not a third of it');
 ok(S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'sugar' }, '4-6').metrics[8].score === 4 && S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'rice' }, '4-6').metrics[8].score === 10, 'For a dish, base-ingredient integrity looks at what dominates by weight');
 const spec = s2Spec();
 ok(spec.metrics.length === 10 && spec.scale.max === 10 && spec.scale.total === 100 && spec.bands.length === 4 && spec.metrics.every((m) => Array.isArray(m.steps) && m.steps.length >= 1) && spec.metrics[0].steps.length === 10 && spec.metrics[4].steps.length === 10, 'The method page data lists ten metrics, four age bands, and a demarcated 1-10 table for the number-based metrics');
@@ -961,14 +977,15 @@ const specRes = await routeRecipes(new Request('https://w/api/kp/score-method', 
 ok(specRes.status === 200 && (await specRes.json()).metrics.length === 10 && specRes.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'The scoring method is served to the Age & Metrics page (and answers CORS for kidposhan.in)');
 
 // recipes carry a score per age band, and search/detail follow the child's age
+const s2Q = async (age) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&pref=veg&limit=40'), env, ctx)).json());
 const s2Id = mkRecipe('https://s2.example/dish/', { status: 'approved', name: 'Salty Dal Dish', agemin: 6, agemax: 144 });
-db.prepare('UPDATE kp_recipes SET score_13 = 40, score_46 = 60, score_79 = 70, score_1012 = 80, poshan_score = 60 WHERE id = ?').run(s2Id);
-const s2Q = async (age) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&pref=veg&limit=50'), env, ctx)).json());
-const s2a = (await s2Q(24)).results.find((x) => x.id === s2Id), s2b = (await s2Q(132)).results.find((x) => x.id === s2Id);
-ok(s2a && s2b && s2a.poshan_score === 40 && s2b.poshan_score === 80 && (await s2Q(60)).results.find((x) => x.id === s2Id).poshan_score === 60, 'A recipe\'s listed score follows the child\'s age band (40 at 1-3 years, 60 at 4-6, 80 at 10-12 in this example)');
+db.prepare('UPDATE kp_recipes SET score_13 = 62, score_46 = 66, score_79 = 72, score_1012 = 88, poshan_score = 66 WHERE id = ?').run(s2Id);
+// every search is a random draw, so ask a few times until the recipe is in the draw
+const s2Find = async (age) => { for (let i = 0; i < 12; i++) { const r = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&pref=veg&limit=40&shuffle=1'), env, ctx)).json()).results.find((x) => x.id === s2Id); if (r) return r; } return null; };
+const s2a = await s2Find(24), s2b = await s2Find(132), s2c = await s2Find(60);
+ok(s2a && s2b && s2c && s2a.poshan_score === 62 && s2b.poshan_score === 88 && s2c.poshan_score === 66, "A recipe's listed score follows the child's age band (62 at 1-3 years, 66 at 4-6, 88 at 10-12 in this example)");
 ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_band === '10-12', 'The search says which age band the scores are for');
 
-console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 
 // ---- front and back of the pack ----
 {
@@ -990,3 +1007,153 @@ console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
   ok(m(dirty)[6].score === 6 && m(dirty)[7].score === 1 && m(dirty)[3].score === 2 && m(dirty)[8].score === 3 && dirty.score < clean.score, 'Checked-reading flags carry a preservative, three additives, a hydrogenated fat and a refined first ingredient into the marks');
   ok(RP.kindByKey('mayonnaise')?.category === 'Spreads and sauces', 'Mayonnaise is a product kind');
 }
+
+// ---- one search for products and recipes ----
+{
+  const SR = await import('../../src/recipes/search.js');
+  const SC = await import('../../src/recipes/score2.js');
+  ok(SR.tokens("Saffola  Masala-Oats!").join() === 'saffola,masala-oats' && SR.tokens('a').length === 0, 'The search splits what is typed into words and ignores single letters');
+  const rid = mkRecipe('https://srch.example/ragi-dosa/', { status: 'approved', name: 'Crispy Ragi Dosa Recipe', score: 81 });
+  const rid2 = mkRecipe('https://srch.example/ragi-batter/', { status: 'approved', name: 'Ragi Dosa Batter', score: 90 });
+  const rid3 = mkRecipe('https://srch.example/no-time/', { status: 'approved', name: 'Ragi Mystery Bowl', score: 90, minutes: null });
+  db.prepare('UPDATE kp_recipes SET total_minutes = NULL WHERE id = ?').run(rid3);
+  const got = await SR.searchAll(env, 'ragi dosa');
+  ok(got.recipes.some((r) => r.id === rid) && !got.recipes.some((r) => r.id === rid2) && !got.recipes.some((r) => r.id === rid3), 'Recipe search finds a dish by words in its name, and leaves out a batter and a recipe with no cooking time');
+  const gp = await SR.searchAll(env, 'organic ragi');
+  ok(gp.products.some((p) => /Ragi Flour/.test(p.name)) && (await SR.searchAll(env, 'zzzz')).products.length === 0, 'Product search finds an approved product by name');
+  const sres = await routeRecipes(new Request('https://w/api/kp/search?q=ragi', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  ok(sres.status === 200 && Array.isArray((await sres.json()).recipes) && sres.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'The search is served to every page of the main site');
+}
+
+// ---- real total with a "capped" badge; one serving basis for packs and recipes; waiting time ----
+{
+  const E = await import('../../src/recipes/score2.js');
+  const RP = await import('../../src/recipes/ready.js');
+  const salty = E.scoreForBand({ basis: 'meal', protein: 8, fibre: 6, addedSugar: 0, satFat: 1, sodium: 3000, name: 'Dal', ingredients: ['Toor dal', 'Salt'] }, '4-6');
+  ok(salty.capped && salty.total === Math.round((salty.sum - 10) / 90 * 100) && salty.total > 57 && salty.tier === 'Fair', `A capped result keeps the real score (${salty.total}) and is rated Fair, not clipped to 57`);
+  const flakes = { protein_g: 6.7, fibre_g: 2.5, sugars_g: 9.2, added_sugars_g: 8, saturated_fat_g: 0.6, sodium_mg: 490 };
+  const asPack = RP.scorePack(flakes, ['Corn grits', 'Sugar', 'Salt'], 'Corn Flakes', 'breakfast_cereal');
+  ok(asPack.detail.inputs.basis === 'meal' && asPack.detail.inputs.serving_g === 30 && Math.abs(asPack.detail.inputs.sodium - 147) < 0.01, 'A pack is scored per serving (30 g of cereal), like a recipe, not per 100 g');
+  const big = RP.scorePack({ ...flakes, serving_g: 60 }, ['Corn grits', 'Sugar', 'Salt'], 'Corn Flakes', 'breakfast_cereal');
+  ok(big.detail.inputs.sodium > asPack.detail.inputs.sodium && big.score <= asPack.score, 'A bigger serving counts for more');
+  const d = await PR.productDetail(env, (await PR.listProducts(env, {})).items[0].id, {});
+  ok(d.scores_by_age['6-12m'] === null || typeof d.scores_by_age['6-12m'] === 'number', 'Under 12 months a product gets a number only if it is a plain baby-suitable food; otherwise none (shown as Not for under 1)');
+  const long = mkRecipe('https://wait.example/dosa/', { status: 'approved', name: 'Masala Dosa Waiting', minutes: 495, score: 80 });
+  const lres = await handleRecipesApi(new Request('https://w/api/kp/recipes/' + long + '?age_months=60'), env, ctx);
+  ok((await lres.json()).make_ahead === true, 'A recipe over four hours is flagged "make ahead" (mostly soaking or fermenting)');
+}
+
+
+// ---- several choices in each filter ----
+{
+  const mq = async (qs) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?' + qs + '&limit=40'), env, ctx)).json());
+  const mAll = async (qs) => { const seen = new Set(); for (let k = 0; k < 10; k++) (await mq(qs + '&shuffle=1')).results.forEach((r) => seen.add(r.id)); return seen; };
+  const lowId = mkRecipe('https://multi.example/toddler/', { status: 'approved', name: 'Toddler Only Mash', agemin: 12, agemax: 40, score: 85 });
+  const midId = mkRecipe('https://multi.example/teen/', { status: 'approved', name: 'Big Kid Wrap', agemin: 96, agemax: 144, score: 85 });
+  const bothId = mkRecipe('https://multi.example/both/', { status: 'approved', name: 'Family Khichdi', agemin: 12, agemax: 144, score: 85 });
+  const two = await mAll('age_months=24,132&occasion=lunch&pref=veg&season=all');
+  ok(two.has(bothId) && !two.has(lowId) && !two.has(midId), 'Two ages: only recipes that suit both children are offered');
+  const echo = await mq('age_months=24,132&occasion=lunch&pref=veg&season=all');
+  ok(echo.query.age_months_all.join() === '24,132' && echo.query.score_bands.join() === '1-3,10-12', 'The answer says which ages and age bands the choices covered');
+  const mixed = await mAll('age_months=60&occasion=lunch&pref=veg,nonveg&season=all');
+  ok(mixed.has(dVeg) && mixed.has(dEgg) && mixed.has(dNon), 'Veg and Non-veg together offer both kinds of dish');
+  const jv = await mAll('age_months=60&occasion=lunch&pref=jain,nonveg&season=all');
+  ok(jv.has(dJain) && jv.has(dNon) && !jv.has(dVeg), 'Jain and Non-veg together: Jain, egg and non-veg dishes, not plain veg');
+  const dn = db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'dinner')");
+  dn.run(dVeg);
+  const meals = await mAll('age_months=60&occasion=snack_4pm,dinner&pref=veg&season=all');
+  ok(meals.has(dVeg), 'Two meals together: a recipe that suits either one is offered');
+  const bad = await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=24,999&occasion=lunch'), env, ctx);
+  ok(bad.status === 400, 'An age outside 6 to 144 months is refused, even in a list');
+}
+
+
+// ---- defaults for "salt to taste" and for deep frying ----
+{
+  const N = await import('../../src/recipes/nutrients.js');
+  const SCm = await import('../../src/recipes/score.js');
+  const ing = (raw, key, q = null, u = null, pantry = false) => ({ raw_text: raw, ingredient_key: key, quantity: q, unit: u, name: key, is_pantry: pantry });
+  const base = [ing('1 cup moong dal', 'moong_dal', 1, 'cup'), ing('salt to taste', 'salt', null, null, true)];
+  const e4 = N.estimateNutrition(base, 4), e2 = N.estimateNutrition(base, 2);
+  ok(Math.abs(e4.per_serving.sodium - (15 * 2 + 570 * 4) / 4) < 3 && e4.defaults.includes('salt'), 'Salt "to taste" is assumed 1/4 tsp (570 mg sodium) per serving: ' + e4.per_serving.sodium + ' mg');
+  ok(e2.per_serving.sodium > 570 && e2.per_serving.sodium < 640 && Math.abs(e2.per_serving.sodium - e4.per_serving.sodium) < 10, 'The salt default is per serving, so it does not change with the number of servings');
+  ok(N.isDeepFried('Moong Dal Vada') && N.isDeepFried('Onion Bhajiya | Kanda Bhaji') && N.isDeepFried('Veg Cutlet', [ing('oil for deep frying', 'oil')]) && !N.isDeepFried('Dal Fry'), 'Vada, bhajiya and pakora are deep-fried; Dal Fry is not');
+  const fried = [ing('1 cup moong dal', 'moong_dal', 1, 'cup'), ing('oil for deep frying', 'oil', 2, 'cup'), ing('salt', 'salt', null, null, true)];
+  const plainEst = N.estimateNutrition(fried, 4), friedEst = N.estimateNutrition(fried, 4, { fried: true });
+  ok(friedEst.per_serving.satFat < plainEst.per_serving.satFat && Math.abs(friedEst.per_serving.satFat - 1.4) < 0.3 && friedEst.defaults.includes('fry oil'), 'A deep-fried serving counts about 10 g of absorbed oil (1.4 g saturated fat), not the whole pan of frying oil: ' + friedEst.per_serving.satFat);
+  const row = { name: 'Moong Dal Vada', servings: '4', nutrition_json: null };
+  const sc = SCm.computeRecipeScore(row, fried.map((x) => ({ ...x })));
+  ok(sc.status === 'estimated' && sc.detail.defaults_used.includes('salt') && sc.detail.defaults_used.includes('fry oil'), 'A score that used a default is labelled estimated and says which defaults');
+  const withPage = SCm.computeRecipeScore({ name: 'Dal', servings: '4', nutrition_json: JSON.stringify({ proteinContent: '9 g', fiberContent: '5 g', saturatedFatContent: '1 g', sodiumContent: '300 mg' }) }, base.map((x) => ({ ...x })));
+  ok(withPage.status === 'exact', 'When the page gives all four figures the salt default does not matter and the score stays exact');
+}
+
+
+// ---- the score runs from 0 to 100 ----
+{
+  const E2 = await import('../../src/recipes/score2.js');
+  ok(E2.stretch(10) === 0 && E2.stretch(100) === 100 && E2.stretch(55) === 50, 'Ten marks of 1 give 0 and ten marks of 10 give exactly 100 (the 10-100 sum is stretched to 0-100)');
+  const best = E2.scoreForBand({ basis: 'pack', protein: 20, fibre: 20, addedSugar: 0, satFat: 0, sodium: 0, name: 'Rolled oats', ingredients: ['Rolled oats'] }, '4-6');
+  ok(best.total === 100 && best.tier === 'Excellent', 'A perfect product scores exactly 100: ' + best.total);
+  const worst = E2.scoreForBand({ basis: 'pack', protein: 0, fibre: 0, addedSugar: 100, satFat: 100, sodium: 5000, name: 'Sugar', ingredients: ['Sugar', 'Hydrogenated vegetable fat', 'Preservative (E211)', 'Artificial flavour', 'Colour (E102)'] }, '4-6');
+  ok(worst.total <= 10 && worst.tier === 'Occasional', 'The worst possible product scores near 0: ' + worst.total);
+  ok(E2.methodSpec().tiers.at(-1).min === 0 && E2.methodSpec().scale.sum_range.join() === '10,100', 'The method page data says the score runs from 0');
+}
+
+// ---- saves stay on the phone; another device needs a one-time code ----
+{
+  const SY = await import('../../src/recipes/sync.js');
+  const sent = [];
+  const sEnv = { ...env, __sms: async (mobile, code) => { sent.push({ mobile, code }); } };
+  const noSms = await throwsMsg(() => SY.startSync(env, { mobile: '9812345678' }));
+  ok(/not switched on/.test(noSms), 'Without an SMS provider, syncing says it is not switched on (and nothing is sent)');
+  ok(/10-digit/.test(await throwsMsg(() => SY.startSync(sEnv, { mobile: '123' }))), 'A bad number gets no code');
+  const st = await SY.startSync(sEnv, { mobile: '+91 98123 45678' });
+  ok(st.sent && sent.length === 1 && sent[0].mobile === '9812345678' && /^\d{6}$/.test(sent[0].code) && !JSON.stringify(st).includes(sent[0].code), 'A six-digit code goes to the number by SMS and is never returned to the page');
+  const card = (id, name) => ({ id, name, mins: 30, score: 80, diet: 'veg', occ: ['dinner'] });
+  ok(/not right/.test(await throwsMsg(() => SY.verifySync(sEnv, { mobile: '9812345678', code: '000000', saved: { 7: card(7, 'Dal') } }))), 'A wrong code is refused');
+  const v = await SY.verifySync(sEnv, { mobile: '9812345678', code: sent[0].code, saved: { 7: card(7, 'Dal Fry'), 9: card(9, 'Khichdi') }, plan: { 'Monday-dinner': 7, 'Tuesday-dinner': 999 } });
+  ok(/^kpy_/.test(v.token) && Object.keys(v.saved).length === 2 && v.plan['Monday-dinner'] === 7 && !('Tuesday-dinner' in v.plan) && v.mobile_hint === '••••••5678', 'The right code returns a token and the merged lists (a plan entry for an unsaved recipe is dropped), showing only the last four digits');
+  ok(/expired|not right/.test(await throwsMsg(() => SY.verifySync(sEnv, { mobile: '9812345678', code: sent[0].code }))), 'A code works once');
+  const authed = (path, body) => routeRecipes(new Request('https://w' + path, { method: 'POST', headers: { origin: 'https://www.kidposhan.in', authorization: 'Bearer ' + v.token }, body: JSON.stringify(body || {}) }), sEnv, ctx);
+  const loaded = await (await authed('/api/kp/sync/load')).json();
+  ok(Object.keys(loaded.saved).length === 2, 'With the token, the saved list comes back on another device');
+  const noTok = await routeRecipes(new Request('https://w/api/kp/sync/load', { method: 'POST', headers: { origin: 'https://www.kidposhan.in' }, body: '{}' }), sEnv, ctx);
+  const fakeTok = await routeRecipes(new Request('https://w/api/kp/sync/load', { method: 'POST', headers: { origin: 'https://www.kidposhan.in', authorization: 'Bearer kpy_notarealtoken' }, body: '{}' }), sEnv, ctx);
+  ok(noTok.status === 401 && fakeTok.status === 401, 'Nobody can read a list by typing a number: no token or a made-up token gets nothing');
+  const visitorTok = (await joinVisitor(env, { name: 'Someone', mobile: '9812345678' })).token;
+  const asVisitor = await routeRecipes(new Request('https://w/api/kp/sync/load', { method: 'POST', headers: { origin: 'https://www.kidposhan.in', authorization: 'Bearer ' + visitorTok }, body: '{}' }), sEnv, ctx);
+  ok(asVisitor.status === 401, 'Joining with the same (unverified) number does not open the saved list');
+  await authed('/api/kp/sync/save', { saved: { 7: card(7, 'Dal Fry') }, plan: {} });
+  ok(Object.keys((await (await authed('/api/kp/sync/load')).json()).saved).length === 1, 'Changes made on a device are saved under the verified number');
+  for (let k = 0; k < 4; k++) await SY.startSync(sEnv, { mobile: '9700000001' }).catch(() => {});
+  ok(/Too many codes/.test(await throwsMsg(() => SY.startSync(sEnv, { mobile: '9700000001' }))), 'Only three codes an hour go to one number');
+  const nj = await joinVisitor(env, { name: 'No Email', mobile: '9811111111' });
+  ok(!!nj.token, 'Joining needs a name and a mobile number only: no email');
+}
+
+// ---- tidier recipe pages and menus ----
+{
+  const C = await import('../../src/recipes/clean.js');
+  const got = C.cleanIngredients(['1 large onion (finely chopped, (about 1 cup))', 'water (', 'salt (optional)', 'salt (to taste)', '1/2-1 cup water ((to adjust the dal consistency))', '2 tablespoons oil ((or ghee))'].map((t) => ({ raw_text: t, name: t })));
+  ok(got.map((x) => x.name).join('|') === 'large onion (finely chopped, about 1 cup)|water|salt (to taste)|water (to adjust the dal consistency)|oil (or ghee)', 'Broken brackets are repaired and "salt" listed twice is shown once: ' + got.map((x) => x.name).join('|'));
+  ok(got.find((x) => /consistency/.test(x.name)).qty_text === '1/2-1 cup', 'A range keeps its unit: 1/2-1 cup');
+  const steps = ['Wash the dal 2-3 times.', 'Cook the dal.', 'Mash it.', 'Heat oil.', 'Add cumin.', 'Add tomato.', 'Mix.', 'Wash the dal 2-3 times until clear.', 'Press SAUTE.', 'Pressure cook.'];
+  ok(C.singleMethod(steps).length === 7, 'When the stovetop and Instant Pot methods are joined, only the first (stovetop) is kept');
+  ok(C.singleMethod([{ section: 'Instant Pot', text: 'a' }, { section: 'Stovetop', text: 'b' }, { section: 'Stovetop', text: 'c' }, { section: 'Instant Pot', text: 'd' }, { section: 'Instant Pot', text: 'e' }, { section: 'Stovetop', text: 'f' }]).every((s) => s.section === 'Stovetop'), 'Named methods: the stovetop one is preferred');
+  ok(C.creditName("Swasthi's Recipes - Baby food") === "Swasthi's Recipes" && C.creditName('Vege Home Cooking - Jain') === 'Vege Home Cooking' && C.creditName('Culinary Chaser / Instagram') === 'Culinary Chaser', 'Credits show the creator, not our internal label');
+  ok(!C.isRealMeal('Mirepoix') && !C.isRealMeal('Easy Green Bean Casserole Recipe') && !C.isRealMeal('Kids Garlic Bread') && C.isRealMeal('Dal Makhani') && !C.isRealMeal('Easy Halloumi Pasta') && !C.isRealMeal('Kids Garlic Bread'), 'A chopped-vegetable base and dishes that are not everyday meals (casserole, garlic bread, halloumi pasta) are not offered on any shelf, Indian, Asian or European');
+  ok(C.dishKey('Dhal Curry') === C.dishKey('Dal Curry Recipe') && C.dishKey('Dal Fry') !== C.dishKey('Dal Makhani'), 'The same dish from two sites counts once');
+  const did = mkRecipe('https://tidy.example/dalfry/', { status: 'approved', name: 'Tidy Dal Fry', score: 90 });
+  db.prepare('DELETE FROM kp_recipe_ingredients WHERE recipe_id = ?').run(did);
+  for (const [n, t, k] of [[1, '1-2 green chili (finely chopped)', 'green_chilli'], [2, 'salt (optional)', 'salt'], [3, 'salt (to taste)', 'salt']]) db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, quantity, unit, name, ingredient_key, is_pantry) VALUES (?,?,?,?,?,?,?,0)').run(did, n, t, null, null, t, k);
+  db.prepare("UPDATE kp_recipes SET kp_steps_json = ? WHERE id = ?").run(JSON.stringify(steps), did);
+  const dd = await recipeDetail(env, did, { age: 60 });
+  ok(dd.ingredients.length === 2 && dd.method.length === 7 && /chilli/i.test(dd.kid_note) && (await recipeDetail(env, did, { age: 132 })).kid_note === null, 'The recipe page shows clean ingredients, one method, and a chilli note for young children only');
+  const twin1 = mkRecipe('https://tidy.example/tw1/', { status: 'approved', name: 'Dhal Curry', score: 80 }), twin2 = mkRecipe('https://tidy.example/tw2/', { status: 'approved', name: 'Dal Curry Recipe', score: 85 });
+  let both = 0; for (let k = 0; k < 6; k++) { const r = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&season=all&limit=40&shuffle=1'), env, ctx)).json()).results.map((x) => x.id); if (r.includes(twin1) && r.includes(twin2)) both++; }
+  ok(both === 0, 'The same dish never appears twice in one list');
+}
+
+console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
+process.exit(fail ? 1 : 0);

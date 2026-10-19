@@ -47,7 +47,7 @@ export async function listProducts(env, { age = '', category = '', min = 0, sort
   for (const p of dedupePacks(results)) {
     const nutrition = JSON.parse(p.nutrition_json || 'null') || {}, ingredients = JSON.parse(p.ingredients_json || '[]'), k = kindByKey(p.kind);
     if (age && !offeredFor(p.kind, nutrition, ingredients, age)) continue;
-    const sc = scorePack(nutrition, ingredients, p.name);
+    const sc = scorePack(nutrition, ingredients, p.name, p.kind);
     if (sc.status !== 'exact') continue;
     const b = sc.detail.bands[a.band];
     all.push({ id: p.id, kind: p.kind, category: k?.category || 'Other', kind_label: k?.label || p.kind, name: p.name, brand: p.brand, pack_size: p.pack_size,
@@ -72,14 +72,15 @@ export async function productDetail(env, id, { age = '' } = {}) {
   if (!p) return null;
   const nutrition = JSON.parse(p.nutrition_json || 'null') || {}, ingredients = JSON.parse(p.ingredients_json || '[]'), k = kindByKey(p.kind);
   const a = age ? ageInfo(age) : ageInfo('4-6y');
-  const sc = scorePack(nutrition, ingredients, p.name);
+  const sc = scorePack(nutrition, ingredients, p.name, p.kind);
   if (sc.status !== 'exact') return null;
   const b = sc.detail.bands[a.band];
   return {
     id: p.id, name: p.name, brand: p.brand, pack_size: p.pack_size, retailer: p.retailer, url: p.product_url, ...packShots(p),
     category: k?.category || 'Other', kind_label: k?.label || p.kind, score: b.total, band: b.tier, capped: b.capped, age: a.id, age_label: a.label, score_band: a.band,
-    scores_by_age: Object.fromEntries(AGE_BANDS.map((x) => [x.id, sc.detail.bands[x.band].total])),
-    offered_for: agesFor(p.kind, nutrition, ingredients), nutrition_per_100g: nutrition, ingredients, basis: 'per 100 g, from the pack label',
+    // under 12 months a product that is not a plain baby-suitable food gets no number: it is simply not for under 1
+    scores_by_age: Object.fromEntries(AGE_BANDS.map((x) => [x.id, offeredFor(p.kind, nutrition, ingredients, x.id) ? sc.detail.bands[x.band].total : null])),
+    offered_for: agesFor(p.kind, nutrition, ingredients), nutrition_per_100g: nutrition, ingredients, basis: sc.detail.basis,
     metrics: b.metrics, label_source: p.label_source || null,
   };
 }

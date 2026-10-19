@@ -1,4 +1,4 @@
-// Visitors of the recipe pages: they give a name and a mobile number (no OTP), then can rate, add remarks (shown only after the
+// Visitors of the recipe pages: they give a name and a mobile number (no OTP; no email is asked for), then can rate, add remarks (shown only after the
 // admin approves them) and claim the optional UPI "support the author" payment (confirmed by the admin).
 // The number is NOT verified: anyone can type any number. That is acceptable here because remarks are moderated, the public never sees
 // numbers, and one number can rate a recipe only once. Visitors live in their own tables (kp_visitors), apart from the main app's accounts.
@@ -33,14 +33,14 @@ export async function joinVisitor(env, { name, mobile, email } = {}) {
   const n = cleanName(name);
   if (n.length < 2) throw new UserError('Please enter your name.');
   const m = normaliseMobile(mobile);
-  const em = normaliseEmail(email);
+  let em = null; try { if (email) em = normaliseEmail(email); } catch { em = null; }      // optional, never required
   const t = now();
   const hour = await env.DB.prepare('SELECT count(*) n FROM kp_visitor_sessions WHERE created_at > ?').bind(t - 3600).first();
   if (hour.n >= 300) throw new UserError('Too many people are joining right now. Please try again in a little while.', 429);     // abuse guard
   const mine = await env.DB.prepare('SELECT count(*) n FROM kp_visitor_sessions s JOIN kp_visitors v ON v.id = s.visitor_id WHERE v.mobile = ? AND s.created_at > ?').bind(m, t - 3600).first();
   if (mine.n >= 10) throw new UserError('Too many tries for this number. Please try later.', 429);
   let v = await env.DB.prepare('SELECT id FROM kp_visitors WHERE mobile = ?').bind(m).first();
-  if (v) await env.DB.prepare('UPDATE kp_visitors SET name = ?, email = ? WHERE id = ?').bind(n, em, v.id).run();
+  if (v) await env.DB.prepare('UPDATE kp_visitors SET name = ?, email = COALESCE(?, email) WHERE id = ?').bind(n, em, v.id).run();
   else { v = { id: rid('vis') }; await env.DB.prepare('INSERT INTO kp_visitors (id, mobile, name, email, created_at) VALUES (?,?,?,?,?)').bind(v.id, m, n, em, t).run(); }
   const token = rid('kps') + crypto.randomUUID().replace(/-/g, '');
   await env.DB.prepare('INSERT INTO kp_visitor_sessions (id, visitor_id, expires_at, created_at) VALUES (?,?,?,?)').bind(token, v.id, t + SESSION_DAYS * 86400, t).run();

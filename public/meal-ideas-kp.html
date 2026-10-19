@@ -427,6 +427,43 @@ body.lb-open{overflow:hidden}
 .rscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px}
 .mtotal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
 .mtotal b{font:800 24px/1 var(--display)}
+/* ===== sync, notes, toast ===== */
+.syncbox{margin:22px 18px 0;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px}
+.syncbox h3{margin:0 0 4px;font-size:18px}.syncbox p{margin:4px 0 10px;font-size:14px;color:var(--muted)}
+.syncbox form{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.syncbox input{flex:1 1 170px;min-width:0;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+.syncbox .ok{color:var(--leaf);font-weight:600}
+.kidnote{background:#FBEFC9;color:#5d4200;border-radius:10px;padding:9px 13px;font-size:14.5px;margin:12px 0}
+#kptoast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+#kptoast.on{opacity:1}
+/* ===== several choices in a row ===== */
+.multi-tag{font-style:normal;font-weight:600;font-size:12px;color:var(--leaf);background:var(--leaf-2);border-radius:999px;padding:2px 9px;margin-left:6px;white-space:nowrap}
+.frow .chip::before{content:"";display:inline-block;width:15px;height:15px;margin-right:8px;vertical-align:-2px;border:1.8px solid currentColor;border-radius:4px;box-sizing:border-box;opacity:.65}
+.frow .chip[aria-pressed="true"]::before{content:"✓";text-align:center;font-size:12px;line-height:12px;font-weight:800;background:var(--bg);color:var(--ink);border-color:var(--bg);opacity:1}
+/* ===== save (heart), shuffle, weekly plan ===== */
+.multi-hint{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.dishwrap{position:relative;flex:0 0 min(72vw,270px);scroll-snap-align:start;display:flex}
+.dishwrap .dish{flex:1 1 auto;width:100%}
+@media(min-width:760px){.dishwrap{flex-basis:236px}}
+.heart{position:absolute;left:10px;top:10px;z-index:4;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:var(--chilli);font-size:21px;line-height:1;cursor:pointer;box-shadow:0 3px 10px -3px rgba(0,0,0,.4)}
+.heart[aria-pressed="true"]{background:var(--chilli);color:#fff}
+.heart:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.title-row .heart{position:static;width:46px;height:46px;border:1.5px solid var(--line);box-shadow:none;background:var(--paper);justify-self:end}
+.title-row .heart[aria-pressed="true"]{border-color:var(--chilli)}
+.shuffle-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 18px 0;font-size:14px;color:var(--muted)}
+.shuffle-row .kbtn{padding:9px 16px}
+.savedbar{display:flex;justify-content:flex-end;margin:10px 18px 0}
+.savedbar a{font-weight:700;font-size:14px;color:var(--chilli);text-decoration:none;border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;background:var(--paper)}
+.dtag.jainf{background:var(--leaf-2);color:var(--leaf)}
+.meta .ma{display:inline-block;margin-left:6px;font-size:12px;font-weight:600;background:#FBEFC9;color:#6b4a00;border-radius:6px;padding:0 6px}
+.badge .cap{display:block;font:700 7px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;margin-top:1px;opacity:.9}
+.saved-grid{display:flex;flex-wrap:wrap;gap:14px;padding:4px 18px 10px}
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:12px 18px 0}
+.pday{background:var(--paper);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px}
+.pday h3{margin:0 0 8px;font-size:17px}
+.pslot{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:center;margin-top:6px;font-size:13px;color:var(--muted)}
+.pslot select{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;color:var(--ink);min-width:0}
+.plan-tools{display:flex;gap:10px;flex-wrap:wrap;margin:14px 18px 40px}
+@media print{.site-nav,.nb-mobile,.tray,.plan-tools,.savedbar,footer,.saved-grid,.kps-btn{display:none!important}}
 /* ===== ratings, remarks, support ===== */
 .stars{display:inline-block;letter-spacing:2px;background:linear-gradient(90deg,var(--gold) var(--p,0%),#DCD2BC var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;line-height:1}
 .dish .rate{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
@@ -478,6 +515,7 @@ body.lb-open{overflow:hidden}
     <a href="https://www.kidposhan.in/#metrics">Methodology</a>
     <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
     <a href="#/" class="on">Meal Ideas</a>
+    <a href="#/saved">Saved<span data-savedcount></span></a>
     <a href="https://www.kidposhan.in/products.html">Products</a>
     <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
   </div>
@@ -489,6 +527,7 @@ body.lb-open{overflow:hidden}
   <a href="https://www.kidposhan.in/#metrics">Methodology</a>
   <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
   <a href="#/">Meal Ideas</a>
+  <a href="#/saved">Saved<span data-savedcount></span></a>
   <a href="https://www.kidposhan.in/products.html">Products</a>
     <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
 </div>
@@ -564,8 +603,9 @@ const DIETS={veg:['veg','jain'],jain:['jain'],nonveg:['nonveg','egg','veg','jain
 const RELATED={breakfast:['snack_4pm','dinner'],lunchbox:['lunch','snack_4pm'],lunch:['lunchbox','dinner'],snack_4pm:['breakfast','lunchbox'],dinner:['lunch','breakfast']};
 const DIET_LABEL={veg:'Veg',jain:'Jain',egg:'Egg',nonveg:'Non-veg'};
 // A vegetable dish that uses mayonnaise also appears under Non-veg (mayonnaise can contain egg). There it is labelled "With mayonnaise", not "Veg".
-const mayoInNonveg=(diet,mayo)=>S.pref==='nonveg'&&!!mayo&&(diet==='veg'||diet==='jain');
-const dietLabel=(diet,mayo)=>mayoInNonveg(diet,mayo)?'With mayonnaise':(DIET_LABEL[diet]||'');
+const mayoInNonveg=(diet,mayo)=>(S.pref||[]).includes('nonveg')&&!(S.pref||[]).includes('veg')&&!(S.pref||[]).includes('jain')&&!!mayo&&(diet==='veg'||diet==='jain');
+// Jain is a kind of Veg, so under Veg a Jain dish reads "Veg · Jain-friendly" (not just "Jain", which looks like a mistake).
+const dietLabel=(diet,mayo)=>mayoInNonveg(diet,mayo)?'With mayonnaise':((S.pref||[]).includes('veg')&&diet==='jain')?'Veg · Jain-friendly':(DIET_LABEL[diet]||'');
 const RETAILERS=[
  {id:'blinkit',label:'Blinkit',kind:'Quick delivery',url:q=>`https://blinkit.com/s/?q=${q}`},
  {id:'instamart',label:'Instamart',kind:'Quick delivery',url:q=>`https://www.swiggy.com/instamart/search?query=${q}`},
@@ -575,7 +615,9 @@ const RETAILERS=[
 ];
 const lab=(arr,v)=>(arr.find(a=>a[0]===v)||[])[1]||v;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ageTxt=m=>m<12?`${m} months+`:`${Math.floor(m/12)} years+`;
+const ageTxt=m=>{if(m<12)return `${m} months+`;const y=Math.floor(m/12);return `${y} ${y===1?'year':'years'}+`};
+// Over four hours is mostly soaking, fermenting or chilling, not cooking: say so instead of showing 930 min.
+const timeTxt=(m,ma,long)=>!m?'':ma?(long?`Make ahead: about ${Math.round(m/60)} h in all, mostly soaking, fermenting or chilling`:`Make ahead · ~${Math.round(m/60)} h`):`${m} min`;
 const CHECK='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /* ===== illustrations: drawn per dish shape and main ingredient, used when there's no licensed photo ===== */
@@ -623,25 +665,27 @@ function packArt(p){
 
 /* ===== tiered search (mirrors GET /api/kp/recipes) ===== */
 function demoSearch(q){
-  const base=RECIPES.filter(r=>DIETS[q.pref].includes(r.diet)&&r.min<=q.age&&r.max>=q.age);
-  const sOk=r=>q.season==='all'||r.sea.includes(q.season)||r.sea.includes('all');
-  const tiers=[['exact',r=>r.occ.includes(q.occ)&&sOk(r)],['any_season',r=>r.occ.includes(q.occ)],['related',r=>r.occ.some(o=>RELATED[q.occ].includes(o))&&sOk(r)],['related',r=>r.occ.some(o=>RELATED[q.occ].includes(o))]];
+  const base=RECIPES.filter(r=>q.pref.some(pf=>DIETS[pf].includes(r.diet))&&q.age.every(a=>r.min<=a&&r.max>=a));
+  const sOk=r=>q.season.includes('all')||q.season.some(x=>r.sea.includes(x))||r.sea.includes('all');
+  const occHas=r=>r.occ.some(o=>q.occ.includes(o)), rel=[...new Set(q.occ.flatMap(o=>RELATED[o]))], relHas=r=>r.occ.some(o=>rel.includes(o));
+  const tiers=[['exact',r=>occHas(r)&&sOk(r)],['any_season',r=>occHas(r)],['related',r=>relHas(r)&&sOk(r)],['related',r=>relHas(r)]];
   const out=[],seen=new Set();
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
-async function search(q){
+const toCard=r=>({capped:!!r.capped,make_ahead:!!r.make_ahead,mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const drawParams=o=>o&&o.shuffle?`&shuffle=1${o.exclude&&o.exclude.length?`&exclude=${o.exclude.join(',')}`:''}`:'';
+async function search(q,o){
   if(!LIVE) return demoSearch(q).map(toCard);
-  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}${vidParam()}`);
+  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}${vidParam()}${drawParams(o)}`);
   if(!res.ok) throw new Error('Search failed. Try again.');
   return (await res.json()).results.map(toCard);
 }
 
 // The "More Asian recipes" / "European recipes" shelves: same filters, same Poshan Score ordering, never blocks the main list.
-async function searchWorld(q,world){
+async function searchWorld(q,world,o){
   try{
-    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age}&occasion=${q.occ}&season=${q.season}&pref=${q.pref}&world=${world}${vidParam()}`);
+    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}&world=${world}${vidParam()}${drawParams(o)}`);
     if(!res.ok) return [];
     return (await res.json()).results.map(toCard);
   }catch(e){ return [] }
@@ -680,7 +724,8 @@ const bandOf=v=>v>=80?'Excellent':v>=58?'Good':v>=40?'Fair':'Occasional';
 const nice=n=>{const t=String(n||'').split('|')[0].replace(/\(.*?\)/g,'').replace(/\brecipes?\b/ig,'').replace(/\s+/g,' ').trim();return t||String(n||'')};
 // A photo laid over the drawn illustration: if the photo fails to load (hot-link blocked, deleted), the illustration is simply what shows.
 const photoImg=(src,alt,credit,hero)=>!src?'':`<img src="${esc(src)}" alt="${esc(alt||'')}" loading="${hero?'eager':'lazy'}" decoding="async" referrerpolicy="no-referrer" onload="${hero?'heroFit(this)':'tinyPhoto(this,200)'}" onerror="this.parentNode.querySelectorAll('.credit-chip').forEach(c=>c.remove());this.remove()">${credit?`<span class="credit-chip">Photo: ${esc(credit)}</span>`:''}`;
-const badgeHTML=(v,kind)=>v==null||v===''?'':`<span class="badge" data-band="${bandOf(+v)}" title="${kind==='estimated'?'Poshan Score, estimated from ingredients':'Poshan Score'}">${esc(v)}<small>Poshan</small></span>`;
+// capped = one risk metric scored 3 or less: the number is the real total, but the rating is held at Fair
+const badgeHTML=(v,kind,capped)=>v==null||v===''?'':`<span class="badge" data-band="${capped?'Fair':bandOf(+v)}" title="${capped?'Poshan Score. Held at Fair because one risk metric scored 3 or less. ':'Poshan Score'}${kind==='estimated'?' (estimated from ingredients)':''}">${esc(v)}<small>Poshan</small>${capped?'<span class="cap">capped</span>':''}</span>`;
 
 function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
 document.addEventListener('click',e=>{if(e.target.closest('#mobileMenu a'))document.getElementById('mobileMenu').classList.remove('open')});
@@ -760,14 +805,95 @@ function save(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}catch(e){return null}}
 function savePin(v){try{localStorage.setItem('kp_pincode',v)}catch(e){}}
 let S=JSON.parse(load('kp_menu')||'{}'); S.items=S.items||{}; // filters + last results + shopping states
-if(S.age&&!AGES.some(a=>a[0]===S.age)){S.age=AGES.reduce((b,a)=>Math.abs(a[0]-S.age)<Math.abs(b[0]-S.age)?a:b)[0];S.results=null;S.more=null}   // an age saved before the bands changed: nearest band, and search again
-const persist=()=>save('kp_menu',JSON.stringify(S));
+const asList=v=>Array.isArray(v)?v:(v==null||v===''?[]:[v]);
+for(const k of ['age','occ','season','pref']) S[k]=asList(S[k]);       // every filter holds a list: more than one choice is allowed
+if(S.age.some(a=>!AGES.some(x=>x[0]===a))){S.age=[...new Set(S.age.map(v=>AGES.reduce((b,a)=>Math.abs(a[0]-v)<Math.abs(b[0]-v)?a:b)[0]))];S.results=null;S.more=null}   // an age saved before the bands changed: nearest band, and search again
+// the last choices are remembered on this phone (not just for the session); the season is filled in from today's date
+const readChoices=()=>{try{return JSON.parse(localStorage.getItem('kp_choices')||'{}')||{}}catch(e){return {}}};
+{const rem=readChoices();for(const k of ['age','occ','season','pref']) if(!S[k].length) S[k]=asList(rem[k]);
+ const m=new Date().getMonth()+1; if(!S.season.length) S.season=[m>=3&&m<=6?'summer':m>=7&&m<=9?'monsoon':'winter'];}
+const persist=()=>{save('kp_menu',JSON.stringify(S));try{localStorage.setItem('kp_choices',JSON.stringify({age:S.age,occ:S.occ,season:S.season,pref:S.pref}))}catch(e){}};
 const app=document.getElementById('app');
 new MutationObserver(()=>reveal()).observe(app,{childList:true});
 
+/* ===== saved recipes and the weekly plan (kept in this browser; saving asks for name and mobile once) ===== */
+const SV_KEY='kp_saved', PLAN_KEY='kp_plan';
+const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||d}catch(e){return d}};
+const lsPut=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const getSaved=()=>lsGet(SV_KEY,{});
+const CARDS=new Map();
+function toast(t){let el=document.getElementById('kptoast');if(!el){el=document.createElement('div');el.id='kptoast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),2200)}
+/* sync to another device: only after the mobile number is confirmed with a one-time code */
+const SYNC_TOK='kp_sync_token',SYNC_AT='kp_sync_at',SYNC_HINT='kp_sync_hint';
+const syncTok=()=>{try{return localStorage.getItem(SYNC_TOK)||''}catch(e){return ''}};
+async function syncApi(path,body){
+  const t=syncTok(), h={'content-type':'application/json'}; if(t) h.authorization='Bearer '+t;
+  const res=await fetch(API+path,{method:'POST',headers:h,body:JSON.stringify(body||{})}), d=await res.json().catch(()=>({}));
+  if(!res.ok){ if(res.status===401&&t){try{localStorage.removeItem(SYNC_TOK)}catch(e){}} const e=new Error(d.error||'Something went wrong. Please try again.'); e.status=res.status; throw e }
+  return d;
+}
+let pushTimer=0;
+function syncPush(){ if(!LIVE||!syncTok()) return; clearTimeout(pushTimer); pushTimer=setTimeout(async()=>{try{const d=await syncApi('/api/kp/sync/save',{saved:getSaved(),plan:lsGet(PLAN_KEY,{})});localStorage.setItem(SYNC_AT,String(d.updated_at))}catch(e){}},800) }
+async function syncPull(){ if(!LIVE||!syncTok()) return;
+  try{ const d=await syncApi('/api/kp/sync/load'); if(String(d.updated_at)!==(localStorage.getItem(SYNC_AT)||'')){ lsPut(SV_KEY,d.saved); lsPut(PLAN_KEY,d.plan); localStorage.setItem(SYNC_AT,String(d.updated_at)); refreshSavedCount(); if(location.hash==='#/saved') renderSaved() } }catch(e){} }
+async function toggleSave(card){
+  const o=getSaved();
+  if(o[card.id]) delete o[card.id]; else o[card.id]={id:card.id,name:card.name,mins:card.mins,make_ahead:card.make_ahead,score:card.score,kind:card.kind,capped:card.capped,diet:card.diet,mayo:card.mayo,image:card.image,credit:card.credit,occ:card.occ,match:'saved'};
+  lsPut(SV_KEY,o); refreshSavedCount(); syncPush(); toast(o[card.id]?'Saved on this phone ♥':'Removed from saved'); return !!o[card.id];
+}
+function refreshSavedCount(){const n=Object.keys(getSaved()).length;document.querySelectorAll('[data-savedcount]').forEach(e=>e.textContent=n?` (${n})`:'')}
+const heartBtn=(card)=>{CARDS.set(card.id,card);const on=!!getSaved()[card.id];return `<button class="heart" type="button" data-heart="${card.id}" aria-pressed="${on}" aria-label="${on?'Remove from saved':'Save'} ${esc(nice(card.name))}">${on?'♥':'♡'}</button>`};
+document.addEventListener('click',async e=>{
+  const h=e.target.closest('[data-heart]'); if(!h) return;
+  e.preventDefault(); e.stopPropagation();
+  const card=CARDS.get(+h.dataset.heart); if(!card) return;
+  const on=await toggleSave(card); if(on===null) return;
+  document.querySelectorAll(`[data-heart="${card.id}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.textContent=on?'♥':'♡'});
+  if(location.hash==='#/saved') renderSaved();
+});
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], SLOTS=[['breakfast','Breakfast'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
+function renderSyncBox(){
+  const box=document.getElementById('syncBox'); if(!box||!LIVE) return;
+  const tok=syncTok();
+  if(tok){ let hint='';try{hint=localStorage.getItem(SYNC_HINT)||''}catch(e){}
+    box.innerHTML=`<h3>Synced</h3><p><span class="ok">✓</span> Your saved recipes and plan are kept for ${esc(hint||'your number')}, so you can open them on another phone or computer. <button class="kbtn alt" id="syncOff" type="button">Stop syncing</button></p>`;
+    document.getElementById('syncOff').onclick=async()=>{try{await syncApi('/api/kp/sync/logout')}catch(e){} try{localStorage.removeItem(SYNC_TOK);localStorage.removeItem(SYNC_AT)}catch(e){} renderSyncBox()};
+    return }
+  box.innerHTML=`<h3>Use your saved recipes on another device</h3><p>They are saved on this phone now, and nobody else can see them. To open them on another phone or computer, confirm your mobile number with a one-time code. We do not ask for an email.</p>
+    <form id="syncStart"><input name="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit mobile number" aria-label="Mobile number" required><button class="kbtn" type="submit">Send code</button></form>
+    <form id="syncVerify" hidden><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="Code from the SMS" required><button class="kbtn" type="submit">Confirm</button></form>
+    <p class="kpmsg" id="syncMsg" role="status"></p>`;
+  const msg=(t,k)=>{const m=document.getElementById('syncMsg');if(m){m.textContent=t||'';m.className='kpmsg '+(k||'')}};
+  let mobile='';
+  document.getElementById('syncStart').onsubmit=async e=>{e.preventDefault();const f=e.target;mobile=f.mobile.value;msg('Sending the code…');
+    try{await syncApi('/api/kp/sync/start',{mobile});msg('Code sent. It works for 10 minutes.','ok');document.getElementById('syncVerify').hidden=false;document.getElementById('syncVerify').code.focus()}catch(x){msg(x.message,'err')}};
+  document.getElementById('syncVerify').onsubmit=async e=>{e.preventDefault();msg('Checking…');
+    try{const d=await syncApi('/api/kp/sync/verify',{mobile,code:e.target.code.value,saved:getSaved(),plan:lsGet(PLAN_KEY,{})});
+      localStorage.setItem(SYNC_TOK,d.token);localStorage.setItem(SYNC_AT,String(d.updated_at));localStorage.setItem(SYNC_HINT,d.mobile_hint);lsPut(SV_KEY,d.saved);lsPut(PLAN_KEY,d.plan);refreshSavedCount();renderSaved()}catch(x){msg(x.message,'err')}};
+}
+function renderSaved(){
+  const sv=Object.values(getSaved()), plan=lsGet(PLAN_KEY,{});
+  for(const k of Object.keys(plan)) if(!getSaved()[plan[k]]) delete plan[k];
+  let html=`<section class="menu-hero pad compact"><div class="hero-copy"><div class="eyebrow">Your recipes</div><h1 class="ask small">Saved recipes</h1></div></section><div class="savedbar"><a href="#/">← Back to meal ideas</a></div>`;
+  if(!sv.length) html+='<p class="hint pad">Nothing saved yet. Tap the heart on any recipe to keep it here, then plan your week.</p><div class="syncbox" id="syncBox"></div>';
+  else{
+    html+=`<div class="syncbox" id="syncBox"></div><div class="shelf-head"><h2>${sv.length} saved</h2><span>Tap the heart again to remove</span></div><div class="saved-grid" role="list">${sv.map(dishCard).join('')}</div>
+    <div class="shelf-head"><h2>Weekly plan</h2><span>Pick a saved recipe for each meal</span></div><div class="plan">${DAYS.map(d=>`<div class="pday"><h3>${d}</h3>${SLOTS.map(([sl,sn])=>`<label class="pslot"><span>${sn}</span><select data-plan="${d}-${sl}" aria-label="${d} ${sn}"><option value="">Not planned</option>${sv.map(r=>`<option value="${r.id}" ${plan[d+'-'+sl]==r.id?'selected':''}>${esc(nice(r.name))}</option>`).join('')}</select></label>`).join('')}</div>`).join('')}</div>
+    <div class="plan-tools"><button class="kbtn" id="planCopy">Copy the plan</button><button class="kbtn alt" id="planPrint">Print</button><button class="kbtn alt" id="planClear">Clear the plan</button><span id="planMsg" role="status" class="kpmsg"></span></div>`;
+  }
+  app.innerHTML=html; refreshSavedCount();
+  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash='#/r/'+b.dataset.open});
+  app.querySelectorAll('[data-plan]').forEach(sel=>sel.onchange=()=>{const pl=lsGet(PLAN_KEY,{});if(sel.value)pl[sel.dataset.plan]=+sel.value;else delete pl[sel.dataset.plan];lsPut(PLAN_KEY,pl);syncPush()});
+  const say=t=>{const m=document.getElementById('planMsg');if(m)m.textContent=t};
+  const cp=document.getElementById('planCopy'); if(cp) cp.onclick=async()=>{const pl=lsGet(PLAN_KEY,{}),saved=getSaved();const lines=['KidPoshan weekly plan'];for(const d of DAYS){const row=SLOTS.map(([sl,sn])=>pl[d+'-'+sl]&&saved[pl[d+'-'+sl]]?sn+': '+nice(saved[pl[d+'-'+sl]].name):'').filter(Boolean);if(row.length)lines.push(d+' - '+row.join('; '))}try{await navigator.clipboard.writeText(lines.join('\n'));say('Copied')}catch(e){say('Copy is not allowed here')}};
+  const pr=document.getElementById('planPrint'); if(pr) pr.onclick=()=>window.print();
+  const cl=document.getElementById('planClear'); if(cl) cl.onclick=()=>{lsPut(PLAN_KEY,{});syncPush();renderSaved()};
+  renderSyncBox();
+}
+
 /* ===== menu page ===== */
 function chipRow(name,label,arr,cur){
-  return `<div class="frow"><span id="l-${name}">${label}</span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${String(cur)===String(v)}">${l}</button>`).join('')}</div></div>`;
+  return `<div class="frow"><span id="l-${name}">${label} <em class="multi-tag">choose one or more</em></span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${(cur||[]).map(String).includes(String(v))}">${l}</button>`).join('')}</div></div>`;
 }
 let menuPackKey='',menuPackHTML='';
 async function loadMenuPacks(){
@@ -786,21 +912,22 @@ async function loadMenuPacks(){
     if(document.getElementById('menuPacks')===box) box.innerHTML=menuPackHTML;
   }catch(e){}
 }
-function dishCard(x){ return `<button class="dish" role="listitem" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins||'?'} minutes">
-            <div class="art">${dishArt(x.artSrc)}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind)}</div>
-            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${x.mins?x.mins+' min':''}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>` }
+function dishCard(x){ return `<div class="dishwrap" role="listitem"><button class="dish" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins?timeTxt(x.mins,x.make_ahead):'time not given'}">
+            <div class="art">${dishArt(x.artSrc||{id:x.id,name:x.name,ings:[]})}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind,x.capped)}</div>
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${esc(timeTxt(x.mins,x.make_ahead))}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>${heartBtn(x)}</div>` }
 function renderMenu(){
-  const ready=S.age&&S.occ&&S.season&&S.pref, showFilters=!S.results||S.editing;
+  const ready=S.age.length&&S.occ.length&&S.season.length&&S.pref.length, showFilters=!S.results||S.editing;
   let html=`<section class="menu-hero pad ${S.results&&!S.editing?'compact':''}"><div class="hero-copy"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
     <h1 class="ask ${S.results&&!S.editing?'small':''}">What's on the plate today?</h1>
     ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
   if(showFilters){
     html+=`<section class="filters" aria-label="Filters">
       ${chipRow('age',"Child's age",AGES,S.age)}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
-      <button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick all four to continue'}</button></section>`;
+      <p class="multi-hint">You can pick more than one in each row. For ages, we show recipes that suit every child you pick. For meals, seasons and food type, recipes that suit any of them.</p><button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick at least one in each row to continue'}</button></section>`;
   } else {
-    html+=`<div class="summary"><p>${lab(PREF,S.pref)}, ${lab(OCC,S.occ)}, ${lab(AGES,S.age)}, ${lab(SEA,S.season).toLowerCase()}</p><button id="edit">Change</button></div>`;
+    html+=`<div class="summary"><p>${S.pref.map(v=>lab(PREF,v)).join(' + ')}, ${S.occ.map(v=>lab(OCC,v)).join(' + ')}, ${S.age.map(v=>lab(AGES,v)).join(' + ')}, ${S.season.map(v=>lab(SEA,v).toLowerCase()).join(' + ')}</p><button id="edit">Change</button></div>`;
   }
+  html=`<div class="savedbar"><a href="#/saved">♥ Saved<span data-savedcount></span></a></div>`+html;
   if(S.error) html+=`<p class="note">${esc(S.error)}</p>`;
   if(S.results&&!S.editing){
     const r=S.results;
@@ -809,6 +936,7 @@ function renderMenu(){
     if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`+moreHTML;
     else{
       if(r.length<20) html+=`<p class="note">${r.length} recipes suit this age and preference so far. More are being added.</p>`;
+      html+=`<div class="shuffle-row"><button class="kbtn alt" id="shuffle" type="button">⟲ Shuffle ideas</button><span>A random pick from recipes scoring 58 or more. Press Shuffle for a new set.</span></div>`;
       html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Excellent">80+ Excellent</span><span class="lg" data-band="Good">58–79 Good</span><span class="lg" data-band="Fair">40–57 Fair</span><span class="lg" data-band="Occasional">Below 40 Occasional</span></div>`;
       for(const [m,t] of [['exact','Best for today'],['any_season','Good any season'],['related','More ideas to try']]){
         const g=r.filter(x=>x.match===m); if(!g.length) continue;
@@ -821,13 +949,24 @@ function renderMenu(){
   }
   app.innerHTML=html;
   loadMenuPacks();
-  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S[b.dataset.f]=b.dataset.f==='age'?+b.dataset.v:b.dataset.v;persist();renderMenu();
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const f=b.dataset.f,v=f==='age'?+b.dataset.v:b.dataset.v,cur=S[f]||[];
+    let next=cur.includes(v)?cur.filter(x=>x!==v):[...cur,v];
+    if(f==='season'){ if(v==='all') next=cur.includes('all')?[]:['all']; else next=next.filter(x=>x!=='all') }   // "All seasons" stands alone
+    S[f]=next;persist();renderMenu();
     const nb=app.querySelector(`.chip[data-f="${b.dataset.f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
   const go=document.getElementById('go'); if(go) go.onclick=async()=>{go.disabled=true;go.textContent='Finding meals…';S.error=null;
     try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};S.results=await search(q);
       if(LIVE){const [asia,europe]=await Promise.all([searchWorld(q,'asia'),searchWorld(q,'europe')]);S.more={asia,europe}} else S.more={};
       S.editing=false}catch(e){S.error=e.message}
     persist();renderMenu();window.scrollTo(0,0)};
+  // Shuffle: a new random draw that avoids what is on screen
+  const sh=document.getElementById('shuffle'); if(sh) sh.onclick=async()=>{sh.disabled=true;sh.textContent='Shuffling…';
+    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};
+      const ex=g=>({shuffle:true,exclude:(g||[]).map(x=>x.id)});
+      const [main,asia,europe]=await Promise.all([search(q,ex(S.results)),LIVE?searchWorld(q,'asia',ex((S.more||{}).asia)):[],LIVE?searchWorld(q,'europe',ex((S.more||{}).europe)):[]]);
+      S.results=main;S.more={asia,europe}}catch(e){S.error=e.message}
+    persist();renderMenu()};
+  refreshSavedCount();
   const ed=document.getElementById('edit'); if(ed) ed.onclick=()=>{S.editing=true;persist();renderMenu()};
   app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash='#/r/'+b.dataset.open});
 }
@@ -848,12 +987,11 @@ function joinForm(onDone){
   const f=document.createElement('form'); f.className='kpjoin'; f.noValidate=true;
   f.innerHTML=`<label>Your name<input name="name" type="text" autocomplete="name" maxlength="40" placeholder="Your name" required></label>
     <label>Mobile number<input name="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit mobile number" required></label>
-    <label>Email<input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
     <button class="kbtn" type="submit">Submit</button>
-    <p class="kpmsg" role="status"></p><p class="kpfine">We use these to know who rated or wrote a remark. Your mobile number and email are never shown on the site. <a href="/privacy" target="_blank" rel="noopener">Privacy</a></p>`;
+    <p class="kpmsg" role="status"></p><p class="kpfine">We use these to know who rated or wrote a remark. Your mobile number is never shown on the site. <a href="/privacy" target="_blank" rel="noopener">Privacy</a></p>`;
   const msg=(t,k)=>{const m=f.querySelector('.kpmsg');m.textContent=t||'';m.className='kpmsg '+(k||'')};
   f.onsubmit=async e=>{ e.preventDefault(); const btn=f.querySelector('button'); btn.disabled=true; msg('One moment…');
-    try{ const d=await vapi('/api/kp/auth/join',{method:'POST',body:{name:f.name.value,mobile:f.mobile.value,email:f.email.value}}); setTok(d.token); msg('Thank you, '+d.name+'!','ok'); onDone&&onDone(d) }
+    try{ const d=await vapi('/api/kp/auth/join',{method:'POST',body:{name:f.name.value,mobile:f.mobile.value}}); setTok(d.token); msg('Thank you, '+d.name+'!','ok'); onDone&&onDone(d) }
     catch(x){ msg(x.message,'err'); btn.disabled=false } };
   return f;
 }
@@ -861,7 +999,7 @@ function joinForm(onDone){
 function askLogin(why){
   return new Promise((resolve,reject)=>{
     const prev=document.activeElement, bg=document.createElement('div'); bg.className='kpmodal-bg';
-    bg.innerHTML=`<div class="kpmodal" role="dialog" aria-modal="true" aria-labelledby="kpm-h"><button class="x" aria-label="Close">×</button><h2 id="kpm-h">Tell us who you are</h2><p>${esc(why||'Add your details once and you can rate and write remarks.')}</p></div>`;
+    bg.innerHTML=`<div class="kpmodal" role="dialog" aria-modal="true" aria-labelledby="kpm-h"><button class="x" aria-label="Close">×</button><h2 id="kpm-h">Tell us who you are</h2><p>${esc(why||'Add your details once and you can rate, write remarks and save recipes.')}</p></div>`;
     const box=bg.firstElementChild; document.body.appendChild(bg);
     const close=()=>{bg.remove();document.removeEventListener('keydown',onKey);prev&&prev.focus&&prev.focus()};
     const onKey=e=>{if(e.key==='Escape'){close();reject(new Error('closed'))}};
@@ -870,22 +1008,6 @@ function askLogin(why){
     bg.onclick=e=>{if(e.target===bg){close();reject(new Error('closed'))}};
     const f=joinForm(d=>{setTimeout(close,500);resolve(d)}); box.appendChild(f); f.name.focus();
   });
-}
-// Floating, see-through panel on the recipe page. It leaves by itself after 10 seconds unless the visitor starts filling it in;
-// once they do, it stays until they submit (or close it). Shown at most once per browser session, and never to someone already joined.
-function floatingJoin(){
-  if(!LIVE||getTok()||document.querySelector('.kpfloat')) return;
-  try{ if(sessionStorage.getItem('kp_float_shown')) return; sessionStorage.setItem('kp_float_shown','1') }catch(e){}
-  const el=document.createElement('aside'); el.className='kpfloat'; el.setAttribute('role','region'); el.setAttribute('aria-label','Join KidPoshan');
-  el.innerHTML='<button class="x" type="button" aria-label="Close">×</button><h2>Join KidPoshan</h2><p>Add your details to rate recipes and share remarks.</p><span class="bar" aria-hidden="true"></span>';
-  const gone=()=>{el.classList.add('out');setTimeout(()=>el.remove(),450)};
-  let timer=setTimeout(gone,10000);
-  const hold=()=>{clearTimeout(timer);el.classList.add('hold')};            // filling it in: wait for Submit
-  el.addEventListener('input',hold); el.addEventListener('focusin',hold);
-  el.querySelector('.x').onclick=()=>{clearTimeout(timer);gone()};
-  const f=joinForm(()=>{ clearTimeout(timer); el.classList.add('hold'); setTimeout(gone,2200);
-    const m=location.hash.match(/#\/r\/(\d+)/); if(m) loadSocial(+m[1]) });
-  el.appendChild(f); document.body.appendChild(el);
 }
 const starsHTML=avg=>`<span class="stars" style="--p:${Math.round((avg||0)/5*100)}%" aria-hidden="true">★★★★★</span>`;
 async function loadSocial(id){
@@ -941,18 +1063,19 @@ async function loadSupport(id){
 /* ===== the ten metrics ===== */
 const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
 function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
-function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>Total of the ten metrics</span><b>${ms.reduce((a,m)=>a+m.score,0)}</b></div>`}
+function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>The ten marks add up to ${ms.reduce((a,m)=>a+m.score,0)} (10 to 100)</span></div><div class="mtotal"><span>Poshan Score, stretched to run 0 to 100</span><b>${total!=null?Math.round(total):Math.round((ms.reduce((a,m)=>a+m.score,0)-10)/90*100)}</b></div>`}
 /* ===== recipe page ===== */
 async function getRecipe(id){
   if(!LIVE){const r=RECIPES.find(x=>x.id===id); if(!r) return null;
     return {...r,source:null,
       ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(i.n.split(',')[0]))}))})),
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
-  const qs=[S.pref?`pref=${S.pref}`:'',S.age?`age_months=${S.age}`:''].filter(Boolean).join('&');
+  const pf=S.pref||[], prefOne=(pf.includes('veg')||pf.includes('jain'))&&!pf.includes('nonveg')?(pf.includes('veg')?'veg':'jain'):(pf.length===1?pf[0]:'');
+  const qs=[prefOne?`pref=${prefOne}`:'',(S.age||[]).length?`age_months=${Math.min(...S.age)}`:''].filter(Boolean).join('&');
   const res=await fetch(`${API}/api/kp/recipes/${id}${qs?'?'+qs:''}`); if(!res.ok) return null; const d=await res.json();
-  return {id:d.id,name:d.name,mins:d.total_minutes,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
+  return {kid_note:d.kid_note||'',id:d.id,name:d.name,mins:d.total_minutes,make_ahead:!!d.make_ahead,band:d.score?.band,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
     source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',metrics:d.score?.metrics||null,capped:!!d.score?.capped,ageLabel:d.score?.age_band_label||'',
-    ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():'',raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
+    ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.qty_text||(i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():''),raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
     images:d.images||[], steps:d.method, ings_art:d.ingredients.map(i=>({k:i.ingredient_key}))};
 }
@@ -974,7 +1097,7 @@ async function renderRecipe(id){
   r.ings.forEach((ing,i)=>{const k=`${r.id}:${i}`;if(!S.items[k])S.items[k]={state:ing.pantry?'home':null,name:ing.name,key:ing.key,recipe:r.name,buy:ing.buy}});
   persist();
   const doneKey=`kp_steps_${r.id}`, done=new Set(JSON.parse(load(doneKey)||'[]'));
-  const facts=[r.mins?`${r.mins} min`:'',r.min?ageTxt(r.min):'',dietLabel(r.diet,r.mayo),...(r.occ||[]).map(o=>lab(OCC,o))].filter(Boolean);
+  const facts=[r.mins?timeTxt(r.mins,r.make_ahead,true):'',r.min?ageTxt(r.min):'',dietLabel(r.diet,r.mayo),...(r.occ||[]).map(o=>lab(OCC,o))].filter(Boolean);
   const ingHTML=r.ings.map((ing,i)=>{const k=`${r.id}:${i}`,st=S.items[k].state;
     return `<div class="ing-item ${st==='buy'?'buying':''}"><div class="ing-row"><span><b>${esc(ing.name)}</b><span class="q">${esc(ing.qty||ing.raw||'')}</span></span>
       <button class="tick home" data-k="${k}" data-s="home" aria-pressed="${st==='home'}" aria-label="${esc(ing.name)}: at home">${CHECK}</button>
@@ -996,9 +1119,10 @@ async function renderRecipe(id){
   }
   app.innerHTML=`<div class="hero">${art}<button class="back" id="back" aria-label="Back to meal ideas"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
    <article class="sheet pad">
-    <div class="title-row"><h1>${esc(nice(r.name))}</h1>${r.score?`<div class="score" data-band="${bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div>
-    ${r.score&&r.metrics?`<p class="credit">Poshan Score for ${esc(r.ageLabel)}, out of 100: ten metrics, each scored 1 to 10, ${esc(r.basis||'per serving')}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}${r.capped?' Capped at 57 because one risk metric scored 3 or less.':''}</p><details class="scoredet"><summary>How the score is worked out</summary>${metricsHTML(r.metrics)}<p class="credit" style="margin-top:10px">The ten metrics and every threshold are on the <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a> page. Change your child's age above and the score is worked out again for that age.</p></details>`:r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
+    <div class="title-row"><h1>${esc(nice(r.name))}</h1><div style="display:flex;gap:12px;align-items:flex-start">${heartBtn({id:r.id,name:r.name,mins:r.mins,make_ahead:r.make_ahead,score:r.score,kind:r.kind,capped:r.capped,diet:r.diet,mayo:r.mayo,image:r.image,credit:r.source?r.source.name:'',occ:r.occ})}${r.score?`<div class="score" data-band="${r.band||bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.capped?' · capped':''}${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div></div>
+    ${r.score&&r.metrics?`<p class="credit">Poshan Score for ${esc(r.ageLabel)}, out of 100: ten metrics, each scored 1 to 10, ${esc(r.basis||'per serving')}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}${r.capped?` Held at Fair, whatever the total, because one risk metric scored 3 or less. The ${r.score} is the real score, not clipped.`:''}</p><details class="scoredet"><summary>How the score is worked out</summary>${metricsHTML(r.metrics,r.score)}<p class="credit" style="margin-top:10px">The ten metrics and every threshold are on the <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a> page. Change your child's age above and the score is worked out again for that age.</p></details>`:r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
+    ${r.kid_note?`<p class="kidnote">${esc(r.kid_note)}</p>`:''}
     ${LIVE?'<div id="rateBox" class="ratebox"></div>':''}
     ${galleryHTML}
     <div class="cols"><div class="col-a">
@@ -1020,7 +1144,7 @@ async function renderRecipe(id){
   const toggleStep=el=>{const i=+el.dataset.step;done.has(i)?done.delete(i):done.add(i);save(doneKey,JSON.stringify([...done]));el.setAttribute('aria-pressed',done.has(i))};
   app.querySelectorAll('.step').forEach(el=>{el.onclick=()=>toggleStep(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStep(el)}}});
   renderTray();
-  if(LIVE){loadSocial(r.id);loadSupport(r.id);setTimeout(floatingJoin,1200)}
+  if(LIVE){loadSocial(r.id);loadSupport(r.id)}   // the sign-up form appears only when someone taps Rate it, Add a remark or Save
   if(!india){document.getElementById('packs')?.closest('section')?.remove();return}
   const packs=await packsFor(r), box=document.getElementById('packs'); if(!box) return;
   if(packs.hide){box.closest('section')?.remove();return}
@@ -1050,10 +1174,13 @@ function renderTray(){
   const c=document.getElementById('copy'); if(c) c.onclick=async()=>{try{await navigator.clipboard.writeText('KidPoshan shopping list\n'+list.map(i=>'- '+i.name).join('\n'));document.getElementById('copied').textContent='Copied'}catch(e){document.getElementById('copied').textContent='Copy not allowed here'}};
 }
 
-function route(){const m=location.hash.match(/^#\/r\/(\d+)/); if(m) renderRecipe(+m[1]); else {renderMenu();renderTray();} }
+function route(){const m=location.hash.match(/^#\/r\/(\d+)/); if(m) renderRecipe(+m[1]); else if(location.hash==='#/saved'){renderSaved();renderTray()} else {renderMenu();renderTray();} }
 window.addEventListener('hashchange',()=>{route();if(!location.hash.startsWith('#/r/'))window.scrollTo(0,0)});
+window.addEventListener('storage',refreshSavedCount);
+syncPull();
 route();
 </script>
 <script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
 </body>
 </html>

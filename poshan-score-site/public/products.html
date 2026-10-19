@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FDFBF6">
 <title>Products — Poshan Score by Kidposhan</title>
+<meta name="description" content="Packaged foods for kids scored out of 100 for your child&#39;s age: cereals, noodles, biscuits, ready mixes and more. See the sugar, salt and fibre behind each score.">
+<link rel="canonical" href="https://www.kidposhan.in/products">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="Products — Poshan Score by Kidposhan">
+<meta property="og:description" content="Packaged foods for kids scored out of 100 for your child&#39;s age: cereals, noodles, biscuits, ready mixes and more. See the sugar, salt and fibre behind each score.">
+<meta property="og:url" content="https://www.kidposhan.in/products">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Products — Poshan Score by Kidposhan">
+<meta name="twitter:description" content="Packaged foods for kids scored out of 100 for your child&#39;s age: cereals, noodles, biscuits, ready mixes and more. See the sugar, salt and fibre behind each score.">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
 <style>
 :root{
   --bg:#FDFBF6; --paper:#FFFFFF; --ink:#221A12; --muted:#6B5D4B; --line:#E7DFCE;
@@ -486,6 +499,7 @@ body.lb-open{overflow:hidden}
 .spin .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff}
 .spin .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:10px}
 .spin .back{transform:rotateY(180deg)}
+.badge .cap{display:block;font:700 7px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;margin-top:1px;opacity:.9}
 .spinbtn{position:absolute;left:10px;bottom:10px;z-index:3;border:0;border-radius:100px;padding:6px 12px;background:rgba(34,26,18,.82);color:#fff;font:600 12px/1 var(--body);cursor:pointer}
 .spinbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .pmodal .pimg{border-radius:14px;margin:10px 0 14px;max-width:340px}
@@ -495,7 +509,7 @@ body.lb-open{overflow:hidden}
 .pbody h3{font-size:17px;line-height:1.2;font-weight:500;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .pmeta{font-size:13px;color:var(--muted)}
 .pactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:12px}
-.pbuy,.pscore{font:600 13px/1 var(--body);border-radius:10px;padding:9px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--leaf)}
+.pbuy,.pscore{display:inline-block;font:600 13px/1 var(--body);border-radius:10px;padding:9px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--leaf)}
 .pbuy{background:var(--leaf);color:var(--paper)}
 .pscore{background:var(--paper);color:var(--leaf)}
 .pempty{margin:26px 18px;padding:22px;border:1.5px dashed var(--line);border-radius:18px;color:var(--muted)}
@@ -523,7 +537,7 @@ body.lb-open{overflow:hidden}
   </a>
   <div class="nb-links">
     <a href="index.html">Home</a>
-    <a href="index.html#metrics">Methodology</a>
+    <a href="age-metrics.html#ten-metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html" class="on">Products</a>
@@ -534,7 +548,7 @@ body.lb-open{overflow:hidden}
 </nav>
 <div class="nb-mobile" id="mobileMenu">
   <a href="index.html">Home</a>
-  <a href="index.html#metrics">Methodology</a>
+  <a href="age-metrics.html#ten-metrics">Methodology</a>
   <a href="age-metrics.html">Age &amp; Metrics</a>
   <a href="meal-ideas.html">Meal Ideas</a>
   <a href="products.html">Products</a>
@@ -544,7 +558,7 @@ body.lb-open{overflow:hidden}
   <section class="pintro pad">
     <div class="eyebrow">Ingredient-first · Scored for kids</div>
     <h1>Packaged foods, scored</h1>
-    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack (per 100 g). The score is made of ten metrics, each marked 1 to 10, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
+    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack, worked out for one realistic serving (the same way recipes are scored, so the two can be compared). The score is made of ten metrics, each marked 1 to 10, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
   </section>
   <section class="frow" style="margin-top:20px"><span>Child's age: the scores below are for this age</span><div class="scroller" id="ages" role="group" aria-label="Child's age"></div></section>
   <section class="pfilters" aria-label="Filters">
@@ -562,6 +576,7 @@ body.lb-open{overflow:hidden}
 </footer>
 
 <script>
+window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fibre-healthy","4":"4-organic-wisdom-instant-and-easy-to-make-ragi-dosa-mix-gluten","5":"5-satya-vijayam-greenvita-instant-ragi-dosa-mix-calcium-rich-h","13":"13-11-eleven-spices-veg-biryani-masala-authentic-indian-spice-m","16":"16-amma-s-special-idli-dosa-batter","43":"43-dryfii-ready-to-eat-palak-paratha-pack-of-10-pieces","45":"45-dryfii-ready-to-eat-laccha-paratha-pack-of-20-pieces","48":"48-protein-chef-whole-wheat-roti","50":"50-protein-chef-10-grains-protein-roti","52":"52-dryfii-ready-to-eat-chapati-pack-of-1-6-pieces-180g","53":"53-green-top-aloo-tikki","77":"77-24-carats-idli-mix-500g-instant-south-indian-idli-premix-for","80":"80-mtr-dosa-instant-mix-combo","81":"81-4uwell-multi-dal-dosa-mix-healthy-high-protein-instant-ready","82":"82-sankalp-by-sankalp-instant-dosa-mix-goodness-of-health-easy","83":"83-mtr-south-indian-instant-dosa-mix","85":"85-gladful-sprouted-protein-ragi-instant-dosa-mix-for-families","92":"92-parakh-instant-meal-combo-pack-dal-bhat-khichdi-poha-ready-t","113":"113-dryfii-dal-paratha-pack-of-1-5-pieces-300gm","118":"118-id-whole-wheat-chapati-10-pieces","120":"120-dryfii-ready-to-eat-chapati-with-jain-mix-veg-and-rice-india","123":"123-hyfun-aloo-tikki","135":"135-sollys-chatpata-makhana-roasted-in-olive-oil-protein-rich-fo","146":"146-happilo-daily-super-fitness-mix","147":"147-masterchow-whole-wheat-noodles","148":"148-kellogg-s-oats-rolled-oats","149":"149-yoga-bar-super-muesli-plain-0-sugar","150":"150-kellogg-s-muesli-with-millets-0-added-sugar","151":"151-yoga-bar-millet-muesli-nuts-and-seeds-crunch","152":"152-yoga-bar-super-muesli-dark-chocolate-cranberry","153":"153-kellogg-s-muesli-fruit-nut-and-seeds-12-in-1","154":"154-kissan-fresh-tomato-ketchup","155":"155-smith-and-jones-tomato-ketchup","156":"156-saffola-masala-oats-classic-masala","157":"157-tata-soulfull-masala-oats-desi-veggie","158":"158-dr-oetker-funfoods-veg-mayonnaise-de-lite","159":"159-kellogg-s-multigrain-chocos-more-chocolatey-no-maida","160":"160-kellogg-s-original-corn-flakes","161":"161-slurrp-farm-choco-crunch-breakfast-cereal-for-kids","162":"162-kellogg-s-almonds-and-honey-corn-flakes","163":"163-tata-soulfull-choco-fills-ragi-bites-cereal","164":"164-kellogg-s-special-k-original-cereal-with-whole-wheat","165":"165-bagrry-s-corn-flakes-plus-original-and-healthier-with-fibre"};   // the site build fills this in: product id -> the address of its own page
 const QS=new URLSearchParams(location.search);
 const API=QS.get('api')||'https://kidposhan-platform.mailus-pixiedust.workers.dev'; // products and scores come from the KidPoshan platform Worker
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -569,21 +584,21 @@ function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=docu
 const AGES=[['6-12m','6–12 months'],['1-3y','1–3 years'],['4-6y','4–6 years'],['7-9y','7–9 years'],['10-12y','10–12 years']];
 const AGE_LABEL=Object.fromEntries(AGES);
 // start on the age chosen on the Meal Ideas page, if any (same bands), otherwise 4-6 years
-function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
+function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=Array.isArray(k.age)?(k.age.length?Math.min(...k.age):0):+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
 const S={age:AGES.some(a=>a[0]===QS.get('age'))?QS.get('age'):savedAge(),cat:QS.get('category')||'',min:0,sort:'score'};
 const BOWL='<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#E3EEDF"/><g fill="none" stroke="#3F6B3C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 50h52a26 26 0 0 1-52 0z"/><path d="M40 40c0-5 5-6 5-11M52 40c0-5 5-6 5-11"/></g></svg>';
 /* front of the pack, with a tab that spins it to the back (nutrition and ingredients) */
 function shotHTML(front,back){
   const f=front?'<img src="'+esc(front)+'" alt="Front of the pack" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'';
   if(!back) return BOWL+f;
-  return '<div class="spin"><div class="in"><div class="face front">'+BOWL+f+'</div><div class="face back"><img src="'+esc(back)+'" alt="Back of the pack: nutrition and ingredients" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'.spin\').classList.add(\'noback\')"></div></div></div><button type="button" class="spinbtn" aria-label="Spin the pack to see the other side">⟳ Spin</button>';
+  return '<div class="spin"><div class="in"><div class="face front">'+BOWL+f+'</div><div class="face back"><img src="'+esc(back)+'" alt="Back of the pack: nutrition and ingredients" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'.spin\').classList.add(\'noback\')"></div></div></div><button type="button" class="spinbtn" aria-label="Spin the pack to see the other side">See back of pack</button>';
 }
-document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'⟳ Front':'⟳ Back'});
+document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'See front of pack':'See back of pack'});
 const retailerName=r=>r?String(r).replace(/^./,c=>c.toUpperCase()):'the seller';
 /* the ten metrics, each on a numbered 1-10 ruler */
 const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
 function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
-function metricsHTML(ms){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>Total of the ten metrics</span><b>${ms.reduce((a,m)=>a+m.score,0)}</b></div>`}
+function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>The ten marks add up to ${ms.reduce((a,m)=>a+m.score,0)} (10 to 100)</span></div><div class="mtotal"><span>Poshan Score, stretched to run 0 to 100</span><b>${total!=null?Math.round(total):Math.round((ms.reduce((a,m)=>a+m.score,0)-10)/90*100)}</b></div>`}
 
 document.getElementById('ages').innerHTML=AGES.map(([v,l])=>`<button type="button" class="chip" data-age="${v}" aria-pressed="${S.age===v}">${l}</button>`).join('');
 document.getElementById('ages').onclick=e=>{const b=e.target.closest('[data-age]');if(!b)return;S.age=b.dataset.age;document.querySelectorAll('#ages .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.age===S.age));load()};
@@ -597,9 +612,9 @@ async function load(){
   if(S.cat&&!d.categories.some(c=>c.name===S.cat)){ S.cat=''; return load() }   // a link asked for a category that has no products yet: show everything
   const sel=document.getElementById('f-cat'); sel.innerHTML='<option value="">All categories</option>'+d.categories.map(c=>`<option value="${esc(c.name)}" ${S.cat===c.name?'selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
   document.getElementById('count').textContent=`${d.total} product${d.total===1?'':'s'}, scored for ${d.age_label}`;
-  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}">${Math.round(p.score)}<small>Poshan</small></span></div>
+  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}" title="${p.capped?'Held at Fair because one risk metric scored 3 or less':'Poshan Score'}">${Math.round(p.score)}<small>Poshan</small>${p.capped?'<span class="cap">capped</span>':''}</span></div>
     <div class="pbody"><div class="pbrand">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="pmeta">${esc([p.pack_size,p.category].filter(Boolean).join(' · '))}</div>
-    <div class="pactions"><a class="pbuy" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a><button class="pscore" type="button" data-id="${p.id}">See the score</button></div></div></article>`).join('');
+    <div class="pactions"><a class="pbuy" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>${(window.KP_PRODUCT_PAGES||{})[p.id]?`<a class="pscore" href="/products/${(window.KP_PRODUCT_PAGES||{})[p.id]}">See the score</a>`:`<button class="pscore" type="button" data-id="${p.id}">See the score</button>`}</div></div></article>`).join('');
   document.getElementById('empty').innerHTML=d.total?'':(d.in_catalogue
     ?'<div class="pempty"><h3>Nothing matches these filters</h3><p>Widen the score range or clear the category or age to see more.</p></div>'
     :`<div class="pempty"><h3>${S.age==='6-12m'?'No products for 6–12 months yet':'The first products are on their way'}</h3><p>${S.age==='6-12m'?'Under 12 months we list only plain foods meant for babies, with almost no added sugar or salt. Try another age to see everything else.':'A product is listed only when its nutrition label has been read and checked. We search for new products every few hours, so this page fills up by itself.'}</p></div>`);
@@ -614,9 +629,9 @@ async function openDetail(id){
   bg.innerHTML=`<div class="pmodal" role="dialog" aria-modal="true" aria-labelledby="pm-h"><button class="x" aria-label="Close">×</button>
     <div class="pbrand">${esc(d.brand||'')}</div><h2 id="pm-h">${esc(d.name)}</h2><p class="pmeta">${esc([d.pack_size,d.kind_label].filter(Boolean).join(' · '))}</p>
     ${d.image_url||d.back_image_url?`<div class="pimg">${shotHTML(d.image_url,d.back_image_url)}</div>`:''}
-    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?'. Capped at 57 because one risk metric scored 3 or less.':''}</div></div></div>
-    <h4>The same product at each age</h4><div class="pages">${Object.entries(d.scores_by_age).map(([a,v])=>`<span>${esc(AGE_LABEL[a]||a)}: ${v}</span>`).join('')}</div>
-    <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics)}
+    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?`. Held at Fair, whatever the total, because one risk metric scored 3 or less. The ${Math.round(d.score)} is the real score, not clipped.`:''}</div></div></div>
+    <h4>The same product at each age</h4><div class="pages">${Object.entries(d.scores_by_age).map(([a,v])=>`<span>${esc(AGE_LABEL[a]||a)}: ${v==null?'Not for under 1':v}</span>`).join('')}</div>
+    <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics,d.score)}
     <h4>On the label (per 100 g)</h4><table class="ptab"><tr><td>Protein</td><td>${fmt(n.protein_g,'g')}</td></tr><tr><td>Fibre</td><td>${fmt(n.fibre_g,'g')}</td></tr><tr><td>Total sugars</td><td>${fmt(n.sugars_g,'g')}</td></tr><tr><td>Added sugar</td><td>${fmt(n.added_sugars_g,'g')}</td></tr><tr><td>Saturated fat</td><td>${fmt(n.saturated_fat_g,'g')}</td></tr><tr><td>Sodium</td><td>${fmt(n.sodium_mg,'mg')}</td></tr></table>
     ${d.ingredients.length?`<h4>Ingredients</h4><p style="font-size:14.5px">${esc(d.ingredients.join(', '))}</p>`:''}
     <p style="margin-top:16px"><a class="pbuy" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(d.retailer))}</a></p>
@@ -627,8 +642,9 @@ async function openDetail(id){
   document.addEventListener('keydown',onKey); bg.onclick=e=>{if(e.target===bg)close()}; bg.querySelector('.x').onclick=close;
   document.body.appendChild(bg); bg.querySelector('.x').focus();
 }
-load();
+load().then(()=>{const o=+QS.get('open');if(o)openDetail(o)});
 </script>
 <script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
 </body>
 </html>

@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Poshan Score — Know what's really on the plate</title>
+<meta name="description" content="Poshan Score rates kids&#39; food and recipes out of 100 for your child&#39;s age, from sugar, salt, saturated fat, fibre, protein and the ingredient list. Independent: no brand pays to be here.">
+<link rel="canonical" href="https://www.kidposhan.in/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="Poshan Score — Know what&#39;s really on the plate">
+<meta property="og:description" content="Poshan Score rates kids&#39; food and recipes out of 100 for your child&#39;s age, from sugar, salt, saturated fat, fibre, protein and the ingredient list. Independent: no brand pays to be here.">
+<meta property="og:url" content="https://www.kidposhan.in/">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Poshan Score — Know what&#39;s really on the plate">
+<meta name="twitter:description" content="Poshan Score rates kids&#39; food and recipes out of 100 for your child&#39;s age, from sugar, salt, saturated fat, fibre, protein and the ingredient list. Independent: no brand pays to be here.">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
 <style>
   :root{
     --bg:#FDFBF6;
@@ -266,6 +279,56 @@
     font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--clay);
   }
   footer b{ color:var(--ink-dim); }
+
+  /* ---- home: the question, the check box, today's section ---- */
+  .check-form{ display:flex; align-items:center; gap:8px; max-width:520px; width:100%; border:2px solid #3F6B3C; border-radius:16px; background:var(--card); padding:6px 6px 6px 14px; box-shadow:0 6px 18px -14px rgba(0,0,0,.45); }
+  .check-form svg{ width:20px; height:20px; color:#3F6B3C; flex-shrink:0; }
+  .check-form input{ flex:1; min-width:0; border:0; outline:0; background:none; font:inherit; font-size:16px; color:var(--ink); height:40px; }
+  .check-form button{ border:0; background:#3F6B3C; color:#fff; font:600 14.5px/1 var(--font-body); padding:12px 20px; border-radius:11px; cursor:pointer; }
+  .check-form:focus-within{ outline:3px solid rgba(63,107,60,.35); outline-offset:2px; }
+  .checking{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 0; font-size:13.5px; color:var(--ink-dim); }
+  .checking .chip{ border:1px solid var(--card-line); background:var(--card); border-radius:999px; padding:7px 14px; font:500 14px/1 var(--font-body); cursor:pointer; color:var(--ink); }
+  .checking .chip:hover{ border-color:var(--gold); }
+  .home-now{ max-width:1100px; margin:0 auto; padding:8px 20px 4px; }
+  .fvb{ display:grid; grid-template-columns:150px 1fr 1fr 1.3fr; gap:12px; align-items:center; background:#FBF1DA; border:1px solid #EBD9AE; border-radius:20px; padding:14px 16px; }
+  .fvb-tag{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
+  .fvb-front,.fvb-back{ border-radius:12px; padding:11px 13px; display:flex; flex-direction:column; gap:4px; min-height:74px; }
+  .fvb-front{ background:var(--card); border:1px solid var(--card-line); }
+  .fvb-back{ background:#3A2416; color:#fff; }
+  .fvb small{ font-size:12px; opacity:.7; }
+  .fvb-front b,.fvb-back b{ font:400 17px/1.25 var(--font-display); }
+  .fvb-text{ display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--ink-dim); padding-left:6px; }
+  .fvb-text a{ color:#3F6B3C; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .fvb-text a i{ font-style:normal; background:var(--gold); color:#2b1c05; border-radius:999px; padding:2px 9px; font-size:12.5px; font-weight:800; }
+  .fvb-text a i:empty{ display:none; }
+  .tf-head{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 12px; margin:34px 0 12px; }
+  .tf-head h2{ margin:0; font-family:var(--font-display); font-weight:400; font-size:clamp(32px,6.5vw,48px); line-height:1.06; letter-spacing:-0.01em; }
+  .tf-head h2 em{ font-style:italic; color:var(--gold); }
+  .tf-sub{ margin:-4px 0 14px; font-size:14px; color:var(--ink-dim); }
+  .tf-head select{ border:1px solid var(--card-line); background:var(--card); border-radius:999px; padding:8px 14px; font:600 13.5px/1 var(--font-body); color:var(--ink); }
+  .tf-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .tf-card{ background:var(--card); border:1px solid var(--card-line); border-radius:16px; overflow:hidden; text-decoration:none; color:inherit; display:block; }
+  .tf-card .ph{ aspect-ratio:16/9; background:#F2EDE0 center/cover no-repeat; }
+  .tf-card .tx{ padding:10px 14px 12px; display:grid; grid-template-columns:1fr auto; gap:2px 10px; align-items:center; }
+  .tf-card b{ font-size:14.5px; font-weight:600; line-height:1.25; grid-column:1/-1; }
+  .tf-card span{ font-size:12.5px; color:var(--ink-dim); }
+  .tf-card em{ font-style:normal; background:#3F6B3C; color:#fff; border-radius:999px; padding:3px 10px; font:700 12.5px/1 var(--font-body); }
+  .tf-card em[data-b="Good"]{ background:#4C9A74; } .tf-card em[data-b="Fair"]{ background:var(--gold); color:#2b1c05; } .tf-card em[data-b="Occasional"]{ background:#A6402A; }
+  .plan-btn{ display:inline-block; margin:18px 0 0; background:#3F6B3C; color:#fff; padding:14px 26px; border-radius:999px; font:600 15px/1 var(--font-body); text-decoration:none; box-shadow:0 10px 22px -14px rgba(63,107,60,.9); }
+  .stats3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:30px 0 0; }
+  .stat3{ background:var(--card); border:1px solid var(--card-line); border-radius:14px; padding:14px 18px; }
+  .stat3 b{ display:block; font:400 28px/1.15 var(--font-display); }
+  .stat3 span{ font-size:12.5px; color:var(--ink-dim); }
+  .home-note{ font-size:13.5px; color:var(--ink-dim); margin:14px 0 0; } .home-note a{ color:#3F6B3C; font-weight:600; text-decoration:none; }
+  @media(max-width:860px){ .fvb{ grid-template-columns:1fr 1fr; } .fvb-tag{ grid-column:1/-1; } .fvb-text{ grid-column:1/-1; padding-left:0; } }
+  @media(max-width:700px){
+    .tf-grid{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -20px; padding:2px 20px 10px; scrollbar-width:none; }
+    .tf-grid::-webkit-scrollbar{ display:none; }
+    .tf-card{ flex:0 0 72%; scroll-snap-align:start; }
+    .stats3{ grid-template-columns:1fr 1fr 1fr; gap:8px; } .stat3{ padding:11px 10px; } .stat3 b{ font-size:21px; }
+    .plan-btn{ display:block; text-align:center; }
+  }
+  @media(min-width:701px){ .tf-card:nth-child(n+4){ display:none; } }
 @media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
   @media(min-width:1180px){.nav-links{gap:22px}}
   .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
@@ -286,7 +349,7 @@
   </a>
   <div class="nav-links">
     <a href="index.html" aria-current="page">Home</a>
-    <a href="#metrics">Methodology</a>
+    <a href="age-metrics.html#ten-metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
@@ -299,7 +362,7 @@
 </nav>
 <div class="mobile-menu" id="mobileMenu">
     <a href="index.html" aria-current="page">Home</a>
-    <a href="#metrics">Methodology</a>
+    <a href="age-metrics.html#ten-metrics">Methodology</a>
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
@@ -309,15 +372,15 @@
 <header class="hero">
   <div class="hero-text">
     <div class="eyebrow">Govt-benchmarked &nbsp;·&nbsp; Ingredient-first</div>
-    <h1>Know what's really in the <em>food served on plate, dabba or tiffin box.</em></h1>
-    <p class="lede">
-      Every packaged kids' food, scored against <b>ICMR-NIN 2020 RDAs</b> and <b>FSSAI norms</b> —
-      sugar, additives, preservatives, hydrogenated fats, sodium and base-ingredient integrity,
-      laid out plainly. No brand skips the queue here, including ours.
-    </p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="products.html">See scored products →</a>
-      <a class="btn btn-ghost" href="meal-ideas.html">Find a meal idea</a>
+    <h1>Is this good for <em>my child?</em></h1>
+    <p class="lede">Type any kids' food. Get a straight answer for your child's age in 5 seconds.</p>
+    <form class="check-form" id="checkForm" role="search">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <input id="checkInput" type="search" placeholder="Chocos, oats, ragi mix…" autocomplete="off" aria-label="Search a food or recipe" enterkeyhint="search">
+      <button type="submit">Check</button>
+    </form>
+    <div class="checking"><span>Parents are checking:</span>
+      <button type="button" class="chip" data-q="Chocos">Chocos</button><button type="button" class="chip" data-q="Masala oats">Masala oats</button><button type="button" class="chip" data-q="Corn flakes">Corn flakes</button><button type="button" class="chip" data-q="Ragi dosa mix">Ragi dosa mix</button>
     </div>
   </div>
 
@@ -388,11 +451,32 @@
   </div>
 </header>
 
+<section class="home-now" aria-label="Today on Poshan Score">
+  <div class="fvb" aria-label="Front of pack versus back of pack">
+    <div class="fvb-tag">Front of pack vs back of pack</div>
+    <div class="fvb-front"><small>The front says</small><b id="fvbFront">“Multigrain. No maida.”</b></div>
+    <div class="fvb-back"><small>The back says</small><b id="fvbBack">27 g sugar in every 100 g</b></div>
+    <div class="fvb-text"><span id="fvbText">A chocolate breakfast cereal, read the honest way.</span><a id="fvbLink" href="products.html">See its score <i id="fvbScore"></i></a></div>
+  </div>
+
+  <div class="tf-head"><h2>Tomorrow's <em>tiffin ideas</em></h2><select id="tfAge" aria-label="Child's age"></select></div>
+  <p class="tf-sub">The best Poshan Score first, for your child's age.</p>
+  <div class="tf-grid" id="tfGrid" role="list" aria-live="polite"></div>
+  <a class="plan-btn" href="meal-ideas.html">Plan today's meals</a>
+
+  <div class="stats3" aria-label="What is scored">
+    <div class="stat3"><b id="nProducts">…</b><span>kids' foods scored</span></div>
+    <div class="stat3"><b>6 m–12 y</b><span>every score worked out for your child's age</span></div>
+    <div class="stat3"><b id="nBrands">0</b><span>brands paying to be here</span></div>
+  </div>
+  <p class="home-note">Scored against Indian government nutrition guidelines (ICMR-NIN, FSSAI). <a href="age-metrics.html">See how we score</a></p>
+</section>
+
 <section class="section" id="metrics">
   <div class="section-head">
     <div class="section-eyebrow">How we rate</div>
     <h2 class="section-title">Ten things we check, every time.</h2>
-    <p class="section-sub">The same rubric for every product on the shelf — theirs and ours. Ten metrics, each marked 1 to 10, adding up to a score out of 100 for your child's age: six numbers scored against age-band daily references, three declared/not-declared checks, and one composite. Full citations and thresholds on the <a href="age-metrics.html">Age &amp; Metrics</a> page.</p>
+    <p class="section-sub">The same rubric for every product on the shelf — theirs and ours. Ten metrics, each marked 1 to 10, stretched to a score from 0 to 100 for your child's age and one realistic serving. Six are numbers off the label, measured against the daily reference for that age. Three are checks on the ingredient list. The tenth is the worst of the sugar, sodium and saturated-fat marks. Full citations and thresholds on the <a href="age-metrics.html">Age &amp; Metrics</a> page.</p>
   </div>
   <div class="metrics-grid" id="metricsGrid">
     <div class="metric-card c-red"><div class="bar"></div><h4>Added Sugar</h4><p>Checked against a WHO-derived, age-wise free-sugar limit, not just "no added sugar" claims on the front.</p></div>
@@ -438,9 +522,60 @@
 </section>
 
 <footer>
-  Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification
+  Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification · No brand pays to be here
 </footer>
 
+<script>
+const API = 'https://kidposhan-platform.mailus-pixiedust.workers.dev';
+window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fibre-healthy","4":"4-organic-wisdom-instant-and-easy-to-make-ragi-dosa-mix-gluten","5":"5-satya-vijayam-greenvita-instant-ragi-dosa-mix-calcium-rich-h","13":"13-11-eleven-spices-veg-biryani-masala-authentic-indian-spice-m","16":"16-amma-s-special-idli-dosa-batter","43":"43-dryfii-ready-to-eat-palak-paratha-pack-of-10-pieces","45":"45-dryfii-ready-to-eat-laccha-paratha-pack-of-20-pieces","48":"48-protein-chef-whole-wheat-roti","50":"50-protein-chef-10-grains-protein-roti","52":"52-dryfii-ready-to-eat-chapati-pack-of-1-6-pieces-180g","53":"53-green-top-aloo-tikki","77":"77-24-carats-idli-mix-500g-instant-south-indian-idli-premix-for","80":"80-mtr-dosa-instant-mix-combo","81":"81-4uwell-multi-dal-dosa-mix-healthy-high-protein-instant-ready","82":"82-sankalp-by-sankalp-instant-dosa-mix-goodness-of-health-easy","83":"83-mtr-south-indian-instant-dosa-mix","85":"85-gladful-sprouted-protein-ragi-instant-dosa-mix-for-families","92":"92-parakh-instant-meal-combo-pack-dal-bhat-khichdi-poha-ready-t","113":"113-dryfii-dal-paratha-pack-of-1-5-pieces-300gm","118":"118-id-whole-wheat-chapati-10-pieces","120":"120-dryfii-ready-to-eat-chapati-with-jain-mix-veg-and-rice-india","123":"123-hyfun-aloo-tikki","135":"135-sollys-chatpata-makhana-roasted-in-olive-oil-protein-rich-fo","146":"146-happilo-daily-super-fitness-mix","147":"147-masterchow-whole-wheat-noodles","148":"148-kellogg-s-oats-rolled-oats","149":"149-yoga-bar-super-muesli-plain-0-sugar","150":"150-kellogg-s-muesli-with-millets-0-added-sugar","151":"151-yoga-bar-millet-muesli-nuts-and-seeds-crunch","152":"152-yoga-bar-super-muesli-dark-chocolate-cranberry","153":"153-kellogg-s-muesli-fruit-nut-and-seeds-12-in-1","154":"154-kissan-fresh-tomato-ketchup","155":"155-smith-and-jones-tomato-ketchup","156":"156-saffola-masala-oats-classic-masala","157":"157-tata-soulfull-masala-oats-desi-veggie","158":"158-dr-oetker-funfoods-veg-mayonnaise-de-lite","159":"159-kellogg-s-multigrain-chocos-more-chocolatey-no-maida","160":"160-kellogg-s-original-corn-flakes","161":"161-slurrp-farm-choco-crunch-breakfast-cereal-for-kids","162":"162-kellogg-s-almonds-and-honey-corn-flakes","163":"163-tata-soulfull-choco-fills-ragi-bites-cereal","164":"164-kellogg-s-special-k-original-cereal-with-whole-wheat","165":"165-bagrry-s-corn-flakes-plus-original-and-healthier-with-fibre"};   // the site build fills this in: product id -> the address of its own page
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nice = (n) => { const t = String(n || '').split('|')[0].replace(/\(.*?\)/g, '').replace(/\brecipes?\b/ig, '').replace(/\s+/g, ' ').trim(); return t || String(n || ''); };
+  const bandOf = (v, c) => (c ? 'Fair' : v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+  const openSearch = (q) => { if (window.kpSearch) window.kpSearch.open(q || '', null); else location.href = 'products.html'; };
+  $('checkForm').addEventListener('submit', (e) => { e.preventDefault(); openSearch($('checkInput').value); });
+  document.querySelectorAll('.checking .chip').forEach((b) => { b.onclick = () => openSearch(b.dataset.q); });
+
+  // the child's age: the one chosen on Meal Ideas, otherwise 4-6 years
+  const AGES = [[9, '6–12 months'], [24, '1–3 years'], [60, '4–6 years'], [96, '7–9 years'], [132, '10–12 years']];
+  let choices = {}; try { choices = JSON.parse(localStorage.getItem('kp_choices') || '{}') || {}; } catch (e) { choices = {}; }
+  const nearest = (m) => AGES.reduce((b, a) => (Math.abs(a[0] - m) < Math.abs(b[0] - m) ? a : b))[0];
+  let age = (choices.age && choices.age.length) ? nearest(Math.min.apply(null, choices.age)) : 60;
+  $('tfAge').innerHTML = AGES.map(([m, l]) => '<option value="' + m + '"' + (m === age ? ' selected' : '') + '>Age ' + l.replace(' years', '').replace(' months', ' mo') + '</option>').join('');
+  $('tfAge').onchange = (e) => { age = +e.target.value; try { choices.age = [age]; localStorage.setItem('kp_choices', JSON.stringify(choices)); } catch (x) {} tiffin(); };
+  const seasonNow = () => { const m = new Date().getMonth() + 1; return m >= 3 && m <= 6 ? 'summer' : m >= 7 && m <= 9 ? 'monsoon' : 'winter'; };
+
+  // tomorrow's tiffin ideas: real lunch-box recipes for that age, best scores first
+  function tiffin() {
+    const g = $('tfGrid'); g.innerHTML = '<div class="tf-card"><div class="ph"></div><div class="tx"><b>Loading…</b></div></div>';
+    const pref = (choices.pref && choices.pref.length) ? choices.pref.join(',') : 'veg';
+    fetch(API + '/api/kp/recipes?age_months=' + age + '&occasion=lunchbox&season=' + seasonNow() + '&pref=' + encodeURIComponent(pref))
+      .then((r) => { if (!r.ok) throw 0; return r.json(); })
+      .then((d) => { g.innerHTML = d.results.slice(0, 6).map((x) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx"><b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.poshan_score, x.capped) + '">' + Math.round(x.poshan_score) + '</em></div></a>').join('') || '<p class="home-note">No lunch-box ideas for this age yet. Try Meal Ideas.</p>'; })
+      .catch(() => { g.innerHTML = '<p class="home-note">Could not load the ideas just now. Open Meal Ideas instead.</p>'; });
+  }
+  tiffin();
+
+  fetch(API + '/api/kp/stats').then((r) => r.json()).then((d) => { $('nProducts').textContent = Number(d.products).toLocaleString('en-IN'); $('nBrands').textContent = d.brands_paying; }).catch(() => { $('nProducts').textContent = '40+'; });
+
+  // front of pack versus back of pack: a real product, read from its label
+  fetch(API + '/api/kp/search?q=chocos&age_months=60').then((r) => r.json()).then(async (s) => {
+    const p = (s.products || []).find((x) => /chocos/i.test(x.name)); if (!p) return;
+    const d = await (await fetch(API + '/api/kp/products/' + p.id + '?age=4-6y')).json();
+    const sugar = d.nutrition_per_100g && d.nutrition_per_100g.added_sugars_g;
+    const claims = (String(p.name).match(/multigrain|no[- ]maida|whole grain|high protein/ig) || []).map((w) => w.replace(/-/g, ' ')).map((w, i) => (i === 0 ? w.replace(/^./, (c) => c.toUpperCase()) : w.replace(/^./, (c) => c.toUpperCase())));
+    if (sugar != null) {
+      $('fvbBack').textContent = sugar + ' g sugar in every 100 g';
+      if (claims.length) $('fvbFront').textContent = '“' + claims.join('. ') + '.”';
+      $('fvbText').textContent = 'A chocolate breakfast cereal, read the honest way.';
+      $('fvbScore').textContent = Math.round(p.score);
+    }
+    const slug = (window.KP_PRODUCT_PAGES || {})[p.id];
+    $('fvbLink').href = slug ? 'products/' + slug : 'products.html?open=' + p.id;
+  }).catch(() => {});
+})();
+</script>
 <script>
   const io = new IntersectionObserver((entries)=>{
     entries.forEach(e=>{
@@ -476,5 +611,6 @@ document.querySelectorAll('#mobileMenu a').forEach(a => {
 });
 </script>
 <script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
 </body>
 </html>

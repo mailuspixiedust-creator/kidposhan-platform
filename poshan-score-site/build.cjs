@@ -16,7 +16,7 @@ for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
   if (name === 'browse.html' || name === 'cereals.html') continue;   // retired: both now redirect to /products
   let h = strip(fs.readFileSync(path.join(root, 'live-backup', name), 'utf8'));
   // The original pages each listed a slightly different set of pages (only the home page had "Methodology"). Every page now lists the same six (Browse and Cereal Aisle were retired: the Products page replaces them).
-  const PAGES = [['index.html', 'Home'], [name === 'index.html' ? '#metrics' : 'index.html#metrics', 'Methodology'], ['age-metrics.html', 'Age &amp; Metrics'], ['meal-ideas.html', 'Meal Ideas'], ['products.html', 'Products'], ['why-we-do-this.html', 'Why We Do This']];
+  const PAGES = [['index.html', 'Home'], ['age-metrics.html#ten-metrics', 'Methodology'], ['age-metrics.html', 'Age &amp; Metrics'], ['meal-ideas.html', 'Meal Ideas'], ['products.html', 'Products'], ['why-we-do-this.html', 'Why We Do This']];
   const menu = PAGES.map(([href, label]) => `<a href="${href}"${href === name ? ' aria-current="page"' : ''}>${label}</a>`).join('\n    ');
   let swapped = 0;
   h = h.replace(/(<div class="nav-links">)[\s\S]*?(<\/div>)/, (m, o, c) => { swapped++; return o + '\n    ' + menu + '\n  ' + c; });
@@ -51,7 +51,7 @@ for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
 const src = path.join(root, '..', 'public', 'meal-ideas-kp.html');
 let m = fs.readFileSync(src, 'utf8');
 const swap = (a, b) => { if (!m.includes(a)) throw new Error('meal page anchor missing: ' + a.slice(0, 60)); m = m.split(a).join(b); };
-swap('href="https://www.kidposhan.in/#metrics"', 'href="index.html#metrics"');
+swap('href="https://www.kidposhan.in/#metrics"', 'href="age-metrics.html#ten-metrics"');
 swap('href="https://www.kidposhan.in/age-metrics.html"', 'href="age-metrics.html"');
 swap('href="https://www.kidposhan.in/why-we-do-this.html"', 'href="why-we-do-this.html"');
 swap('href="https://www.kidposhan.in/"', 'href="index.html"');
@@ -64,7 +64,7 @@ fs.writeFileSync(path.join(out, 'meal-ideas.html'), m);
 // products.html from the platform's page (same look and menu as the Meal Ideas page; the products come from the platform Worker)
 let pr = fs.readFileSync(path.join(root, '..', 'public', 'products.html'), 'utf8');
 const swapP = (a, b) => { if (!pr.includes(a)) throw new Error('products page anchor missing: ' + a.slice(0, 60)); pr = pr.split(a).join(b); };
-swapP('href="https://www.kidposhan.in/#metrics"', 'href="index.html#metrics"');
+swapP('href="https://www.kidposhan.in/#metrics"', 'href="age-metrics.html#ten-metrics"');
 swapP('href="https://www.kidposhan.in/age-metrics.html"', 'href="age-metrics.html"');
 swapP('href="https://www.kidposhan.in/why-we-do-this.html"', 'href="why-we-do-this.html"');
 swapP('href="https://www.kidposhan.in/meal-ideas.html"', 'href="meal-ideas.html"');
@@ -80,13 +80,14 @@ fs.rmSync(path.join(out, 'cereals.html'), { force: true });
 fs.writeFileSync(path.join(out, '_redirects'), '/browse.html /products 301\n/browse /products 301\n/cereals.html /products?category=Breakfast%20and%20cereals 301\n/cereals /products?category=Breakfast%20and%20cereals 301\n');
 // /privacy: the privacy policy (also the address Google asks for)
 fs.copyFileSync(path.join(root, '..', 'public', 'privacy.html'), path.join(out, 'privacy.html'));
-// the small "Visitors" count at the bottom right of every page
+// the quiet visit count (not shown on the page) and the one search box in every page's header
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-visits.js'), path.join(out, 'kp-visits.js'));
+fs.copyFileSync(path.join(root, '..', 'public', 'kp-search.js'), path.join(out, 'kp-search.js'));
 for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html'))) {
   let h = fs.readFileSync(path.join(out, f), 'utf8');
-  if (h.includes('kp-visits.js')) continue;
-  if (!h.includes('</body>')) throw new Error(f + ': no </body> to add the visitor count before');
-  fs.writeFileSync(path.join(out, f), h.replace('</body>', '<script src="/kp-visits.js" defer></script>\n</body>'));
+  if (!h.includes('</body>')) throw new Error(f + ': no </body> to add the scripts before');
+  for (const src of ['kp-visits.js', 'kp-search.js']) if (!h.includes(src)) h = h.replace('</body>', `<script src="/${src}" defer></script>\n</body>`);
+  fs.writeFileSync(path.join(out, f), h);
 }
 
 fs.writeFileSync(path.join(root, 'wrangler.toml'), `# Same Worker that serves www.kidposhan.in: static pages only (no script, no bindings).
@@ -97,3 +98,5 @@ compatibility_date = "2026-09-03"
 directory = "./public"
 `);
 console.log('built:', fs.readdirSync(out).join(', '));
+// descriptions, share card, sitemap, robots.txt and a page for every scored product (reads the platform's data)
+require('./build-seo.cjs').run(out).catch((e) => { console.error(e); process.exitCode = 1; });

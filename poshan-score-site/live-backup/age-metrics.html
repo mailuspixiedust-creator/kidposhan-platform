@@ -350,22 +350,22 @@
 <header class="hero">
   <div class="hero-text">
     <div class="eyebrow">Age-banded rubric &nbsp;·&nbsp; How to read it</div>
-    <h1>Ten metrics, each marked 1 to 10, adding up to 100.</h1>
+    <h1>Ten metrics, each marked 1 to 10, stretched to a score from 0 to 100.</h1>
     <p class="lede">
-      Every product and every recipe gets <b>one score out of 100</b>. It is the sum of ten metrics, and each
+      Every product and every recipe gets <b>one score from 0 to 100</b>. The ten marks add up to between 10 and 100, and that is stretched so the worst possible is 0 and a perfect product is exactly 100. Each
       metric is marked from <b>1 (worst) to 10 (best)</b> on a ruler you can see below. Six of them are numbers off
       the label, measured as a share of the child's daily reference for their age band:
       <b>added sugar, sodium, saturated fat, trans fat, fibre and protein</b>. Fibre and protein are
       <b>credit</b> metrics (more is better); the others are <b>risk</b> metrics (less is better). Three more are
       checks that do not change with age: <b>preservatives, artificial additives and base-ingredient integrity</b>.
       The tenth is <b>HFSS</b>, the worst of the sugar, sodium and saturated-fat marks. A product that scores 3 or less on
-      any one risk metric cannot score above 57. The same method is used on the Products and Meal Ideas pages.
+      any one risk metric is held at <b>Fair</b>: the total still shows the real sum, with a "capped" badge. Packs and recipes are scored the same way, per realistic serving, so they can be compared. The same method is used on the Products and Meal Ideas pages.
       Every number below is cited, and the sources are listed at the bottom of this page.
     </p>
   </div>
 
   <div class="hero-visual">
-    <!-- packages sorting into Excellent / Good / Avoid -->
+    <!-- packages sorting into Excellent / Good / Occasional -->
     <div class="sort-scene" aria-hidden="true">
       <div class="sort-belt"></div>
       <div class="pkg pkg-a"></div>
@@ -374,7 +374,7 @@
       <div class="sort-bins">
         <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">Excellent</div></div>
         <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">Good</div></div>
-        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Avoid</div></div>
+        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Occasional</div></div>
       </div>
     </div>
 
@@ -433,18 +433,30 @@
   <div class="section-eyebrow">Step 1</div>
   <h2>Pick an age band</h2>
   <p class="intro">
-    Four bands, matched to how Indian pediatric nutrition data is actually published. Tap a band —
+    Four bands, matched to how Indian pediatric nutrition data is actually published, plus 6–12 months. Tap a band —
     every reference number on this page recalculates around it.
   </p>
 
   <div class="age-tabs" id="ageTabs">
-    <button class="age-tab active" data-age="1-3">1–3 years</button>
+    <button class="age-tab active" data-age="6-12m">6–12 months</button>
+    <button class="age-tab" data-age="1-3">1–3 years</button>
     <button class="age-tab" data-age="4-6">4–6 years</button>
     <button class="age-tab" data-age="7-9">7–9 years</button>
     <button class="age-tab" data-age="10-12">10–12 years</button>
   </div>
 
-  <div class="age-panel active" data-age="1-3">
+  <div class="age-panel active" data-age="6-12m">
+    <p class="intro" style="margin-bottom:12px">Under 12 months there is no published reference band, so the <b>1–3 years</b> reference numbers are used. Only plain foods meant for babies are scored: a product with added sugar or salt is shown as “Not for under 1”, not as a number.</p>
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,060 <small>kcal/day</small></div><div class="src">1–3 years reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">13 / 26 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,200 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Saturated fat</div><div class="value">~12 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">19 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="1-3">
     <div class="refcard-grid">
       <div class="refcard"><div class="label">Reference energy</div><div class="value">1,060 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
       <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">13 / 26 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
@@ -498,8 +510,8 @@
 
   <div class="metrics-intro-row">
     <p class="intro">
-      Each metric below shows its 1 to 10 ruler and exactly what earns each mark. Add the ten marks and you have the
-      score out of 100. This is why we do not trust the front of the pack: watch what is printed there against what is
+      Each metric below shows its 1 to 10 ruler and exactly what earns each mark. Add the ten marks (10 to 100), take away 10 and divide by 90 to
+      get the score from 0 to 100. This is why we do not trust the front of the pack: watch what is printed there against what is
       actually on the back.
     </p>
     <div class="flip-stage" aria-hidden="true">
@@ -583,9 +595,9 @@
     let cells=''; for(let i=1;i<=10;i++){ const cls=i>=8?'hi':i>=4?'mid':'lo'; cells+='<div class="rc '+cls+'">'+i+'<small>'+(by[i]?esc(by[i]):'')+'</small></div>' }
     const note=m.steps.length&&typeof m.steps[0].score!=='number'?'<p><b>'+esc(m.steps[0].score)+':</b> '+esc(m.steps[0].rule)+'</p>':'';
     return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" role="img" aria-label="Scale from 1 to 10 for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>1 = worst</span><span>10 = best</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
-  }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' caps the total at '+d.cap.score+'.</b> '+esc(d.bases.pack)+' '+esc(d.bases.meal)+'</p>';
+  }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' '+esc(d.cap.effect)+'.</b> '+esc(d.bases.serving)+'</p>';
   const ex=d.sodium_example;
-  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that costs against each age band\'s daily sodium reference, and the 1 to 10 mark it earns:';
+  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that serving costs against each age band\'s daily sodium reference, and the 1 to 10 mark it earns:';
   document.getElementById('exTitle').textContent=ex.mg+' mg sodium, '+ex.what;
   document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score<=3?'flag-high':a.score<=6?'flag-mid':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium mark: '+a.score+' / 10</b></div></div>').join('');
 })();

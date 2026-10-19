@@ -486,6 +486,7 @@ body.lb-open{overflow:hidden}
 .spin .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff}
 .spin .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:10px}
 .spin .back{transform:rotateY(180deg)}
+.badge .cap{display:block;font:700 7px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;margin-top:1px;opacity:.9}
 .spinbtn{position:absolute;left:10px;bottom:10px;z-index:3;border:0;border-radius:100px;padding:6px 12px;background:rgba(34,26,18,.82);color:#fff;font:600 12px/1 var(--body);cursor:pointer}
 .spinbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .pmodal .pimg{border-radius:14px;margin:10px 0 14px;max-width:340px}
@@ -495,7 +496,7 @@ body.lb-open{overflow:hidden}
 .pbody h3{font-size:17px;line-height:1.2;font-weight:500;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .pmeta{font-size:13px;color:var(--muted)}
 .pactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:12px}
-.pbuy,.pscore{font:600 13px/1 var(--body);border-radius:10px;padding:9px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--leaf)}
+.pbuy,.pscore{display:inline-block;font:600 13px/1 var(--body);border-radius:10px;padding:9px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--leaf)}
 .pbuy{background:var(--leaf);color:var(--paper)}
 .pscore{background:var(--paper);color:var(--leaf)}
 .pempty{margin:26px 18px;padding:22px;border:1.5px dashed var(--line);border-radius:18px;color:var(--muted)}
@@ -544,7 +545,7 @@ body.lb-open{overflow:hidden}
   <section class="pintro pad">
     <div class="eyebrow">Ingredient-first · Scored for kids</div>
     <h1>Packaged foods, scored</h1>
-    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack (per 100 g). The score is made of ten metrics, each marked 1 to 10, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
+    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack, worked out for one realistic serving (the same way recipes are scored, so the two can be compared). The score is made of ten metrics, each marked 1 to 10, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
   </section>
   <section class="frow" style="margin-top:20px"><span>Child's age: the scores below are for this age</span><div class="scroller" id="ages" role="group" aria-label="Child's age"></div></section>
   <section class="pfilters" aria-label="Filters">
@@ -562,6 +563,7 @@ body.lb-open{overflow:hidden}
 </footer>
 
 <script>
+window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};   // the site build fills this in: product id -> the address of its own page
 const QS=new URLSearchParams(location.search);
 const API=QS.get('api')||'';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -569,21 +571,21 @@ function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=docu
 const AGES=[['6-12m','6–12 months'],['1-3y','1–3 years'],['4-6y','4–6 years'],['7-9y','7–9 years'],['10-12y','10–12 years']];
 const AGE_LABEL=Object.fromEntries(AGES);
 // start on the age chosen on the Meal Ideas page, if any (same bands), otherwise 4-6 years
-function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
+function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=Array.isArray(k.age)?(k.age.length?Math.min(...k.age):0):+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
 const S={age:AGES.some(a=>a[0]===QS.get('age'))?QS.get('age'):savedAge(),cat:QS.get('category')||'',min:0,sort:'score'};
 const BOWL='<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#E3EEDF"/><g fill="none" stroke="#3F6B3C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 50h52a26 26 0 0 1-52 0z"/><path d="M40 40c0-5 5-6 5-11M52 40c0-5 5-6 5-11"/></g></svg>';
 /* front of the pack, with a tab that spins it to the back (nutrition and ingredients) */
 function shotHTML(front,back){
   const f=front?'<img src="'+esc(front)+'" alt="Front of the pack" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'';
   if(!back) return BOWL+f;
-  return '<div class="spin"><div class="in"><div class="face front">'+BOWL+f+'</div><div class="face back"><img src="'+esc(back)+'" alt="Back of the pack: nutrition and ingredients" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'.spin\').classList.add(\'noback\')"></div></div></div><button type="button" class="spinbtn" aria-label="Spin the pack to see the other side">⟳ Spin</button>';
+  return '<div class="spin"><div class="in"><div class="face front">'+BOWL+f+'</div><div class="face back"><img src="'+esc(back)+'" alt="Back of the pack: nutrition and ingredients" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'.spin\').classList.add(\'noback\')"></div></div></div><button type="button" class="spinbtn" aria-label="Spin the pack to see the other side">See back of pack</button>';
 }
-document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'⟳ Front':'⟳ Back'});
+document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'See front of pack':'See back of pack'});
 const retailerName=r=>r?String(r).replace(/^./,c=>c.toUpperCase()):'the seller';
 /* the ten metrics, each on a numbered 1-10 ruler */
 const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
 function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
-function metricsHTML(ms){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>Total of the ten metrics</span><b>${ms.reduce((a,m)=>a+m.score,0)}</b></div>`}
+function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>The ten marks add up to ${ms.reduce((a,m)=>a+m.score,0)} (10 to 100)</span></div><div class="mtotal"><span>Poshan Score, stretched to run 0 to 100</span><b>${total!=null?Math.round(total):Math.round((ms.reduce((a,m)=>a+m.score,0)-10)/90*100)}</b></div>`}
 
 document.getElementById('ages').innerHTML=AGES.map(([v,l])=>`<button type="button" class="chip" data-age="${v}" aria-pressed="${S.age===v}">${l}</button>`).join('');
 document.getElementById('ages').onclick=e=>{const b=e.target.closest('[data-age]');if(!b)return;S.age=b.dataset.age;document.querySelectorAll('#ages .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.age===S.age));load()};
@@ -597,9 +599,9 @@ async function load(){
   if(S.cat&&!d.categories.some(c=>c.name===S.cat)){ S.cat=''; return load() }   // a link asked for a category that has no products yet: show everything
   const sel=document.getElementById('f-cat'); sel.innerHTML='<option value="">All categories</option>'+d.categories.map(c=>`<option value="${esc(c.name)}" ${S.cat===c.name?'selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
   document.getElementById('count').textContent=`${d.total} product${d.total===1?'':'s'}, scored for ${d.age_label}`;
-  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}">${Math.round(p.score)}<small>Poshan</small></span></div>
+  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}" title="${p.capped?'Held at Fair because one risk metric scored 3 or less':'Poshan Score'}">${Math.round(p.score)}<small>Poshan</small>${p.capped?'<span class="cap">capped</span>':''}</span></div>
     <div class="pbody"><div class="pbrand">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="pmeta">${esc([p.pack_size,p.category].filter(Boolean).join(' · '))}</div>
-    <div class="pactions"><a class="pbuy" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a><button class="pscore" type="button" data-id="${p.id}">See the score</button></div></div></article>`).join('');
+    <div class="pactions"><a class="pbuy" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>${(window.KP_PRODUCT_PAGES||{})[p.id]?`<a class="pscore" href="/products/${(window.KP_PRODUCT_PAGES||{})[p.id]}">See the score</a>`:`<button class="pscore" type="button" data-id="${p.id}">See the score</button>`}</div></div></article>`).join('');
   document.getElementById('empty').innerHTML=d.total?'':(d.in_catalogue
     ?'<div class="pempty"><h3>Nothing matches these filters</h3><p>Widen the score range or clear the category or age to see more.</p></div>'
     :`<div class="pempty"><h3>${S.age==='6-12m'?'No products for 6–12 months yet':'The first products are on their way'}</h3><p>${S.age==='6-12m'?'Under 12 months we list only plain foods meant for babies, with almost no added sugar or salt. Try another age to see everything else.':'A product is listed only when its nutrition label has been read and checked. We search for new products every few hours, so this page fills up by itself.'}</p></div>`);
@@ -614,9 +616,9 @@ async function openDetail(id){
   bg.innerHTML=`<div class="pmodal" role="dialog" aria-modal="true" aria-labelledby="pm-h"><button class="x" aria-label="Close">×</button>
     <div class="pbrand">${esc(d.brand||'')}</div><h2 id="pm-h">${esc(d.name)}</h2><p class="pmeta">${esc([d.pack_size,d.kind_label].filter(Boolean).join(' · '))}</p>
     ${d.image_url||d.back_image_url?`<div class="pimg">${shotHTML(d.image_url,d.back_image_url)}</div>`:''}
-    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?'. Capped at 57 because one risk metric scored 3 or less.':''}</div></div></div>
-    <h4>The same product at each age</h4><div class="pages">${Object.entries(d.scores_by_age).map(([a,v])=>`<span>${esc(AGE_LABEL[a]||a)}: ${v}</span>`).join('')}</div>
-    <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics)}
+    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?`. Held at Fair, whatever the total, because one risk metric scored 3 or less. The ${Math.round(d.score)} is the real score, not clipped.`:''}</div></div></div>
+    <h4>The same product at each age</h4><div class="pages">${Object.entries(d.scores_by_age).map(([a,v])=>`<span>${esc(AGE_LABEL[a]||a)}: ${v==null?'Not for under 1':v}</span>`).join('')}</div>
+    <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics,d.score)}
     <h4>On the label (per 100 g)</h4><table class="ptab"><tr><td>Protein</td><td>${fmt(n.protein_g,'g')}</td></tr><tr><td>Fibre</td><td>${fmt(n.fibre_g,'g')}</td></tr><tr><td>Total sugars</td><td>${fmt(n.sugars_g,'g')}</td></tr><tr><td>Added sugar</td><td>${fmt(n.added_sugars_g,'g')}</td></tr><tr><td>Saturated fat</td><td>${fmt(n.saturated_fat_g,'g')}</td></tr><tr><td>Sodium</td><td>${fmt(n.sodium_mg,'mg')}</td></tr></table>
     ${d.ingredients.length?`<h4>Ingredients</h4><p style="font-size:14.5px">${esc(d.ingredients.join(', '))}</p>`:''}
     <p style="margin-top:16px"><a class="pbuy" href="${esc(d.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(d.retailer))}</a></p>
@@ -627,8 +629,9 @@ async function openDetail(id){
   document.addEventListener('keydown',onKey); bg.onclick=e=>{if(e.target===bg)close()}; bg.querySelector('.x').onclick=close;
   document.body.appendChild(bg); bg.querySelector('.x').focus();
 }
-load();
+load().then(()=>{const o=+QS.get('open');if(o)openDetail(o)});
 </script>
 <script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
 </body>
 </html>
