@@ -27,6 +27,7 @@ import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
 import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
 import { searchAll, siteStats, cooksShelf } from './search.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
+import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
 import { setPhone, outreachSettings, updateOutreachSettings, autoOutreach, findContactEmails, sendTest, setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
@@ -52,8 +53,8 @@ export function withCors(request, res) {
 // Visitor endpoints (login, rate, remark, support). Called from the main site too, so they answer CORS preflights for the allowed origins.
 async function routeVisitors(request, env, url, path) {
   const m = path.match(/^\/api\/kp\/recipes\/(\d+)\/(social|rate|remarks|support)$/);
-  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/');
-  if (!m && !isAuth && !isPay && !isVisit && !isSync) return null;
+  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/'), isPv = path === '/api/kp/pv' || path === '/api/kp/pv/time';
+  if (!m && !isAuth && !isPay && !isVisit && !isSync && !isPv) return null;
   const origin = request.headers.get('origin');
   if (request.method === 'OPTIONS') {
     if (!origin || !ALLOWED_ORIGIN.test(origin)) return new Response(null, { status: 403 });
@@ -65,6 +66,12 @@ async function routeVisitors(request, env, url, path) {
     const user = await userFromRequest(request, env);
     const need = () => { if (!user) throw new UserError('Please log in with your mobile number first.', 401); return user; };
     // Saved recipes on another device: a one-time code to the mobile number first (verified), nothing is stored under an unverified number
+    // A page view: the page, the country and city Cloudflare saw (no IP kept), and later how long the page was on screen
+    if (isPv && request.method === 'POST') {
+      if (path === '/api/kp/pv/time') return reply(await recordSeconds(env, body));
+      const cf = request.cf || {};
+      return reply(await recordPageview(env, body, { ua: request.headers.get('user-agent') || '', country: cf.country || request.headers.get('cf-ipcountry'), region: cf.region, city: cf.city, cf }));
+    }
     if (isSync && request.method === 'POST') {
       if (path === '/api/kp/sync/start') return reply(await startSync(env, body));
       if (path === '/api/kp/sync/verify') return reply(await verifySync(env, body));
@@ -194,6 +201,8 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/tavily' && request.method === 'GET') return json(await tavilyUsage(env));
     if (path === '/api/kp/admin/coverage' && request.method === 'GET') return json(await coverageReport(env, { pref: url.searchParams.get('pref') || 'veg', world: url.searchParams.get('world') || 'india' }));
     if (path === '/api/kp/admin/visitors' && request.method === 'GET') return json(await listVisitors(env));
+    // GET /api/kp/admin/traffic?days=30&path=/products : visitors per page, where from, and the average time on the page
+    if (path === '/api/kp/admin/traffic' && request.method === 'GET') return json(await trafficReport(env, { days: url.searchParams.get('days'), path: url.searchParams.get('path') || null }));
     // ---- visitors: remarks to approve, support payments to confirm ----
     if (path === '/api/kp/admin/remarks' && request.method === 'GET') return json(await listRemarks(env, { status: url.searchParams.get('status') || 'pending' }));
     m = path.match(/^\/api\/kp\/admin\/remarks\/(\d+)$/);
@@ -319,6 +328,7 @@ export async function scheduledRecipes(env, cron) {
   }
   try { console.log('gap', JSON.stringify(await fillOneGap(env))); } catch (e) { console.error('gap', e); }          // look for recipes where a combination has fewer than 20
   try { console.log('seen', JSON.stringify(await pruneSeen(env))); } catch (e) { console.error('seen', e); }
+  try { console.log('views', JSON.stringify(await pruneViews(env))); } catch (e) { console.error('views', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(

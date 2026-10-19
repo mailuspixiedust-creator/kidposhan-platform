@@ -65,6 +65,7 @@ db.exec(fs.readFileSync('migrations/0026_score_by_age.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0027_pack_gallery.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0028_cap_flags.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0029_sync_and_misses.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0030_pageviews.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1172,6 +1173,37 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(['Aunty Asha', 'Chef Ravi', 'The Millet Table'].every((c) => names.includes(c)) && new Set(names).size === names.length, 'The shelf has one recipe from each of several different cooks, credited by the creator\'s name only: ' + names.join(', '));
   const http = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
   ok(http.status === 200 && Array.isArray((await http.json()).cooks), 'The home page can ask for the cooks shelf');
+}
+
+
+// ---- traffic for the admin page ----
+{
+  const TR = await import('../../src/recipes/traffic.js');
+  ok(TR.normalizePath('/Products/') === '/products' && TR.normalizePath('/index.html') === '/' && TR.normalizePath('/meal-ideas/recipe/12') === '/meal-ideas/recipe/12' && TR.normalizePath('http://evil') === null && TR.normalizePath('/a b') === null, 'Page addresses are tidied, and odd ones are refused');
+  ok(TR.isBot('Mozilla/5.0 (compatible; Googlebot/2.1)') && TR.isBot('') && TR.isBot('Lighthouse') && TR.isBot('Mozilla/5.0 HeadlessChrome') && !TR.isBot('Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36'), 'Crawlers, headless browsers and empty agents are bots; a phone browser is not');
+  const human = 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36';
+  const hit = (path, vid, extra = {}) => routeRecipes(new Request('https://w/api/kp/pv', { method: 'POST', headers: { origin: 'https://www.kidposhan.in', 'user-agent': extra.ua ?? human, 'cf-ipcountry': extra.country ?? 'IN', 'content-type': 'text/plain' }, body: JSON.stringify({ vid, path }) }), env, ctx);
+  const a = await (await hit('/products', 'aaaaaaaaaaaaaaaa01', { country: 'IN' })).json();
+  const b = await (await hit('/products', 'bbbbbbbbbbbbbbbb02', { country: 'US' })).json();
+  await hit('/products', 'aaaaaaaaaaaaaaaa01', { country: 'IN' });
+  await hit('/', 'aaaaaaaaaaaaaaaa01', { country: 'IN' });
+  const botHit = await (await hit('/products', 'cccccccccccccccc03', { ua: 'Googlebot/2.1' })).json();
+  ok(a.ok && a.id && a.tok && b.id && botHit.bot === true && !botHit.id, 'A visit returns the ids needed to report its time; a bot visit is noted but gets none');
+  const timeHit = (id, tok, seconds) => routeRecipes(new Request('https://w/api/kp/pv/time', { method: 'POST', headers: { origin: 'https://www.kidposhan.in', 'content-type': 'text/plain' }, body: JSON.stringify({ id, tok, seconds }) }), env, ctx);
+  await timeHit(a.id, a.tok, 60); await timeHit(b.id, b.tok, 30);
+  await timeHit(b.id, 'wrongtoken', 9999);
+  await timeHit(a.id, a.tok, 99999);
+  const rep = await TR.trafficReport(env, { days: 30 });
+  const prod = rep.pages.find((p) => p.path === '/products');
+  ok(rep.totals.visitors === 2 && rep.totals.views === 4 && rep.totals.bots_excluded === 1 && prod.views === 3 && prod.visitors === 2, 'Real visitors and views are counted per page, and the bot is left out: ' + JSON.stringify(rep.totals));
+  ok(prod.avg_seconds === Math.round((1800 + 30) / 2), 'Average time is per page, the time is capped at 30 minutes, and a wrong secret cannot change it: ' + prod.avg_seconds);
+  ok(rep.countries.find((c) => c.country === 'IN').visitors === 1 && rep.countries.find((c) => c.country === 'US').visitors === 1, 'Visitors are counted by country');
+  const only = await TR.trafficReport(env, { days: 30, path: '/' });
+  ok(only.countries.length === 1 && only.countries[0].country === 'IN' && only.cities.length === 1, 'The locations table can be limited to one page');
+  const adm = await routeRecipes(new Request('https://w/api/kp/admin/traffic?days=7'), { ...env, ADMIN_TOKEN: 't' }, ctx);
+  const adm2 = await routeRecipes(new Request('https://w/api/kp/admin/traffic?days=7', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx);
+  ok(adm.status === 401 && adm2.status === 200 && (await adm2.json()).totals.visitors === 2, 'The traffic report needs the admin token');
+  ok(!JSON.stringify(db.prepare('SELECT * FROM kp_pageviews').all()).includes('1.2.3'), 'No IP address is kept');
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
