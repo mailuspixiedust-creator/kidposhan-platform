@@ -24,11 +24,13 @@ import { UserError, joinVisitor, listVisitors, userFromRequest, logout, setName,
 import { tavilyUsage } from './tavily.js';
 import { recordVisit, visitCount } from './visits.js';
 import { coverageReport, fillOneGap, pruneSeen } from './coverage.js';
-import { listProducts, productDetail, approveScored, AGE_BANDS } from './products.js';
+import { listProducts, productDetail, approveScored, isAgeId } from './products.js';
 import { searchAll, siteStats, cooksShelf } from './search.js';
 import { importOffNext, importOffJob, offBrandJob } from './openfood.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
+import { submitReport, listReports, resolveReport, thankPending, betaStats, BetaError } from './beta.js';
+import { scanLookup, scanSubmit, scanRetake, scanPhoto, readScansPending, pruneScans, whoHash, ScanError } from './scan.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
 import { setPhone, outreachSettings, updateOutreachSettings, autoOutreach, findContactEmails, sendTest, setContactEmail, previewMessage, sendOutreach, checkReplies, listOutreach, markOutreach } from './outreach.js';
@@ -54,8 +56,8 @@ export function withCors(request, res) {
 // Visitor endpoints (login, rate, remark, support). Called from the main site too, so they answer CORS preflights for the allowed origins.
 async function routeVisitors(request, env, url, path) {
   const m = path.match(/^\/api\/kp\/recipes\/(\d+)\/(social|rate|remarks|support)$/);
-  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/'), isPv = path === '/api/kp/pv' || path === '/api/kp/pv/time';
-  if (!m && !isAuth && !isPay && !isVisit && !isSync && !isPv) return null;
+  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/'), isPv = path === '/api/kp/pv' || path === '/api/kp/pv/time', isScan = path === '/api/kp/scan/lookup' || path === '/api/kp/scan/submit', isReport = path === '/api/kp/report';
+  if (!m && !isAuth && !isPay && !isVisit && !isSync && !isPv && !isScan && !isReport) return null;
   const origin = request.headers.get('origin');
   if (request.method === 'OPTIONS') {
     if (!origin || !ALLOWED_ORIGIN.test(origin)) return new Response(null, { status: 403 });
@@ -72,6 +74,13 @@ async function routeVisitors(request, env, url, path) {
       if (path === '/api/kp/pv/time') return reply(await recordSeconds(env, body));
       const cf = request.cf || {};
       return reply(await recordPageview(env, body, { ua: request.headers.get('user-agent') || '', country: cf.country || request.headers.get('cf-ipcountry'), region: cf.region, city: cf.city, cf }));
+    }
+    // The scanner: look a barcode up, or send a pack's photos to be read and scored
+    if (isReport && request.method === 'POST') return reply(await submitReport(env, body, { who: await whoHash(request) }));
+    if (isScan) {
+      const who = await whoHash(request), age = url.searchParams.get('age') || body.age || '';
+      if (path === '/api/kp/scan/lookup' && request.method === 'GET') return reply(await scanLookup(env, url.searchParams.get('code'), { age, who, kind: url.searchParams.get('kind') || '', fix: url.searchParams.get('fix') === '1' }));
+      if (path === '/api/kp/scan/submit' && request.method === 'POST') return reply(body.retake ? await scanRetake(env, body, { who, origin: url.origin, age }) : await scanSubmit(env, body, { who, origin: url.origin, age }));
     }
     if (isSync && request.method === 'POST') {
       if (path === '/api/kp/sync/start') return reply(await startSync(env, body));
@@ -100,7 +109,7 @@ async function routeVisitors(request, env, url, path) {
     }
     return reply({ error: 'Not found' }, 404);
   } catch (e) {
-    if (e instanceof UserError) return reply({ error: e.message }, e.status);
+    if (e instanceof UserError || e instanceof ScanError || e instanceof BetaError) return reply({ error: e.message }, e.status);
     console.error('visitors', e);
     return reply({ error: 'Something went wrong. Please try again.' }, 500);
   }
@@ -120,7 +129,7 @@ export async function routeRecipes(request, env, ctx) {
   // The Products page: GET /api/kp/products?age=3-5y&category=Snacks&min=58&sort=score|name, and one product with its score workings
   if (request.method === 'GET' && path === '/api/kp/products') {
     const sp = url.searchParams;
-    const res = await listProducts(env, { age: AGE_BANDS.some((b) => b.id === sp.get('age')) ? sp.get('age') : '', category: sp.get('category') || '', min: +sp.get('min') || 0, sort: sp.get('sort') === 'name' ? 'name' : 'score', limit: +sp.get('limit') || 60 });
+    const res = await listProducts(env, { age: isAgeId(sp.get('age')) ? sp.get('age') : '', category: sp.get('category') || '', min: +sp.get('min') || 0, sort: sp.get('sort') === 'name' ? 'name' : 'score', limit: +sp.get('limit') || 60 });
     return withCors(request, new Response(JSON.stringify(res), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
   }
   // The landing page's "from various cooks and cookbooks": one good recipe from each of several creators
@@ -132,21 +141,23 @@ export async function routeRecipes(request, env, ctx) {
   }
   // The landing page's numbers
   if (request.method === 'GET' && path === '/api/kp/stats') {
-    return withCors(request, new Response(JSON.stringify(await siteStats(env)), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }));
+    return withCors(request, new Response(JSON.stringify({ ...(await siteStats(env)), beta: await betaStats(env) }), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }));
   }
   // One search box for the whole site: GET /api/kp/search?q=saffola
   if (request.method === 'GET' && path === '/api/kp/search') {
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
-    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 144 ? ageQ : null });
+    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 1200 ? ageQ : null });
     return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }));
   }
   // The scoring method itself, written from the same tables the engine uses: the Age & Metrics page shows exactly this
   if (request.method === 'GET' && path === '/api/kp/score-method') {
     return withCors(request, new Response(JSON.stringify(methodSpec()), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
   }
+  const photoM = path.match(/^\/api\/kp\/scan\/photo\/(\d+)\/(front|back|ingredients)$/);
+  if (request.method === 'GET' && photoM) return (await scanPhoto(env, +photoM[1], photoM[2])) || json({ error: 'No photo' }, 404);
   const prodM = path.match(/^\/api\/kp\/products\/(\d+)$/);
   if (request.method === 'GET' && prodM) {
-    const d = await productDetail(env, +prodM[1], { age: AGE_BANDS.some((b) => b.id === url.searchParams.get('age')) ? url.searchParams.get('age') : '' });
+    const d = await productDetail(env, +prodM[1], { age: isAgeId(url.searchParams.get('age')) ? url.searchParams.get('age') : '' });
     return withCors(request, d ? new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }) : json({ error: 'Product not found' }, 404));
   }
 
@@ -208,6 +219,9 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/coverage' && request.method === 'GET') return json(await coverageReport(env, { pref: url.searchParams.get('pref') || 'veg', world: url.searchParams.get('world') || 'india' }));
     if (path === '/api/kp/admin/visitors' && request.method === 'GET') return json(await listVisitors(env));
     // GET /api/kp/admin/traffic?days=30&path=/products : visitors per page, where from, and the average time on the page
+    if (path === '/api/kp/admin/reports' && request.method === 'GET') return json(await listReports(env, { status: url.searchParams.get('status') || 'open' }));
+    const repM = path.match(/^\/api\/kp\/admin\/reports\/(\d+)$/);
+    if (repM && request.method === 'POST') return json(await resolveReport(env, +repM[1], (await request.json().catch(() => ({}))).status));
     if (path === '/api/kp/admin/traffic' && request.method === 'GET') return json(await trafficReport(env, { days: url.searchParams.get('days'), path: url.searchParams.get('path') || null }));
     // ---- visitors: remarks to approve, support payments to confirm ----
     if (path === '/api/kp/admin/remarks' && request.method === 'GET') return json(await listRemarks(env, { status: url.searchParams.get('status') || 'pending' }));
@@ -336,6 +350,22 @@ export async function scheduledRecipes(env, cron) {
   try { console.log('gap', JSON.stringify(await fillOneGap(env))); } catch (e) { console.error('gap', e); }          // look for recipes where a combination has fewer than 20
   try { console.log('seen', JSON.stringify(await pruneSeen(env))); } catch (e) { console.error('seen', e); }
   try { console.log('views', JSON.stringify(await pruneViews(env))); } catch (e) { console.error('views', e); }
+  // once: the score became ten yes/no checks on ICMR-NIN limits with a snack line, so every stored score is worked out again (packs at once, recipes a batch at a time)
+  try { const done = await env.DB.prepare("SELECT 1 x FROM kp_ready_research WHERE kind = 'rescore:binary-v1'").first(); if (!done) { console.log('rescore', JSON.stringify(await rescoreAllPacks(env))); await env.DB.prepare("INSERT INTO kp_ready_research (kind, last_run_at, found, runs) VALUES ('rescore:binary-v1', datetime('now'), 0, 999)").run(); } } catch (e) { console.error('rescore', e); }
+  try {
+    const mark = await env.DB.prepare("SELECT found, runs FROM kp_ready_research WHERE kind = 'rescore:nin-bands-v1-recipes'").first();
+    if (!mark || mark.runs < 999) {
+      const last = mark ? mark.found : 0;
+      const { results } = await env.DB.prepare('SELECT id FROM kp_recipes WHERE id > ? ORDER BY id LIMIT 40').bind(last).all();
+      for (const r of results) await scoreRecipe(env, r.id, { keepApproval: true });
+      const upto = results.length ? results[results.length - 1].id : last, finished = results.length < 40;
+      if (mark) await env.DB.prepare("UPDATE kp_ready_research SET found = ?, runs = ?, last_run_at = datetime('now') WHERE kind = 'rescore:nin-bands-v1-recipes'").bind(upto, finished ? 999 : 1).run();
+      else await env.DB.prepare("INSERT INTO kp_ready_research (kind, last_run_at, found, runs) VALUES ('rescore:nin-bands-v1-recipes', datetime('now'), ?, ?)").bind(upto, finished ? 999 : 1).run();
+      console.log('rescore-recipes', upto, finished);
+    }
+  } catch (e) { console.error('rescore-recipes', e); }
+  try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
+  try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(

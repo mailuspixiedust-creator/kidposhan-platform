@@ -77,19 +77,68 @@ export const CATALOGUE_KINDS = [
   { kind: 'yoghurt', label: 'Yoghurt and curd', category: 'Dairy', query: 'yoghurt curd kids', product: /yogh?urt|curd|dahi/i },
   { kind: 'cheese', label: 'Cheese', category: 'Dairy', query: 'cheese slices spread kids', product: /cheese/i },
   { kind: 'paneer', label: 'Paneer', category: 'Dairy', query: 'paneer packaged fresh', product: /paneer/i },
+  { kind: 'instant_soup', label: 'Instant soups', category: 'Soups', query: 'instant soup mix kids vegetable', product: /soup/i },
 ];
-export const ALL_KINDS = [...READY_KINDS.map((k) => ({ ...k, category: READY_CATEGORY[k.kind] || 'Ready mixes' })), ...CATALOGUE_KINDS];
+// Kinds a parent can choose when scanning a pack. They are for scoring packs sent in (the right serving size), not for the research rotation.
+// `words` are what people call the food, so a search for "toffee" or "custard" finds it.
+const K = (kind, label, category, words, extra = {}) => ({ kind, label, category, words, scanOnly: true, query: '', product: /$^/, ...extra });
+export const MORE_KINDS = [
+  K('custard_powder', 'Custard powder', 'Desserts and baking', 'custard vanilla custard pudding powder'),
+  K('dessert_mix', 'Jelly, pudding and dessert mix', 'Desserts and baking', 'jelly crystals pudding blancmange dessert mix flan'),
+  K('corn_flour', 'Corn flour and starch', 'Desserts and baking', 'cornflour cornstarch arrowroot starch thickener'),
+  K('cake_pastry', 'Cakes, muffins and pastries', 'Desserts and baking', 'cake cupcake muffin brownie pastry swiss roll doughnut'),
+  K('sweets_mithai', 'Indian sweets', 'Sweets and confectionery', 'mithai laddoo laddu barfi gulab jamun halwa jalebi rasgulla soan papdi peda sweets'),
+  K('chocolate', 'Chocolate', 'Sweets and confectionery', 'chocolate cocoa dairy milk bar kitkat candy bar'),
+  K('candy_toffee', 'Candy, toffee and chewing gum', 'Sweets and confectionery', 'candy toffee lollipop mint gum bubble gum jelly sweets eclairs'),
+  K('ice_cream', 'Ice cream and frozen desserts', 'Sweets and confectionery', 'ice cream kulfi popsicle ice lolly frozen dessert'),
+  K('semolina', 'Suji, rava and sooji', 'Atta, flours and grains', 'suji rava sooji semolina upma rava'),
+  K('besan', 'Besan and pulse flours', 'Atta, flours and grains', 'besan gram flour chickpea flour sattu'),
+  K('white_rice', 'Rice (white, basmati)', 'Atta, flours and grains', 'rice basmati sona masoori raw rice'),
+  K('dal_pulses', 'Dals, pulses and legumes', 'Atta, flours and grains', 'dal toor moong masoor chana rajma lentils chickpeas beans legumes'),
+  K('poha_flakes', 'Poha, puffed rice and flakes', 'Atta, flours and grains', 'poha flattened rice puffed rice murmura rice flakes'),
+  K('vermicelli_pasta', 'Pasta, macaroni and vermicelli (dry)', 'Noodles and pasta', 'pasta macaroni spaghetti vermicelli semiya sevai penne fusilli'),
+  K('nuts_seeds', 'Nuts and seeds', 'Snacks', 'almonds badam cashew kaju walnut pistachio peanuts sunflower pumpkin chia flax seeds nuts'),
+  K('papad', 'Papad and fryums', 'Snacks', 'papad papadum fryums appalam'),
+  K('sweeteners', 'Sugar, jaggery and honey', 'Spreads and sauces', 'sugar jaggery gur honey syrup sweetener'),
+  K('pickle_chutney', 'Pickles and chutneys', 'Spreads and sauces', 'pickle achar chutney'),
+  K('dips_dressings', 'Dips and salad dressings', 'Spreads and sauces', 'dip dressing hummus salsa'),
+  K('tomato_puree', 'Tomato puree and pasta sauce', 'Spreads and sauces', 'tomato puree paste passata pasta sauce'),
+  K('coconut_milk', 'Coconut milk and cream', 'Spreads and sauces', 'coconut milk cream powder'),
+  K('soft_drink', 'Soft drinks and soda', 'Drinks', 'cola soda aerated carbonated soft drink sparkling pepsi'),
+  K('drink_mix', 'Drink mixes, squash and glucose', 'Drinks', 'squash syrup rasna tang glucon-d glucose ors electrolyte drink mix sharbat'),
+  K('plain_milk', 'Packaged milk', 'Dairy', 'milk toned full cream tetra pack uht'),
+  K('milk_powder', 'Milk powder and creamer', 'Dairy', 'milk powder dairy whitener creamer'),
+  K('condensed_milk', 'Condensed milk', 'Dairy', 'condensed milk milkmaid sweetened'),
+  K('plant_milk', 'Soy, almond and oat milk', 'Dairy', 'soy milk almond milk oat milk plant based milk'),
+  K('butter', 'Butter and margarine', 'Dairy', 'butter margarine table butter'),
+  K('tofu_soya', 'Tofu and soya chunks', 'Dairy', 'tofu soya chunks nuggets meal maker'),
+  K('frozen_snacks', 'Frozen snacks', 'Frozen and ready meals', 'frozen nuggets french fries tikki samosa spring roll paratha frozen'),
+  K('ready_meals', 'Ready-to-eat meals', 'Frozen and ready meals', 'ready to eat heat and eat meal biryani curry dal makhani rajma ready meal'),
+  K('baby_puree', 'Baby food purees', 'Baby foods', 'baby puree fruit puree pouch infant food', { infantOk: true }),
+];
+export const ALL_KINDS = [...READY_KINDS.map((k) => ({ ...k, category: READY_CATEGORY[k.kind] || 'Ready mixes' })), ...CATALOGUE_KINDS, ...MORE_KINDS];
 export const kindByKey = (k) => ALL_KINDS.find((x) => x.kind === k) || null;
 export const kindForDish = (name) => READY_KINDS.find((k) => k.dish.test(String(name || '').split('|')[0])) || null;
 
 // A realistic serving in grams (millilitres for drinks), by kind of product. The label is per 100 g and is scaled to this.
 export const SERVING_G = {
-  rolled_oats: 40, muesli: 40, breakfast_cereal: 30, millet_porridge: 40, ragi_flour: 30, whole_wheat_atta: 50, multigrain_atta: 50, millet_flours: 40, dalia: 40, brown_rice: 60,
-  baby_cereal: 25, instant_noodles: 70, peanut_butter: 15, nut_butter: 15, choco_spread: 15, jam: 15, ketchup: 15, mayonnaise: 15, kids_biscuits: 25, millet_cookies: 25, rusk_toast: 20,
-  whole_wheat_bread: 60, chips: 25, namkeen: 25, roasted_snacks: 25, snack_bars: 40, dried_fruit: 25, health_drink: 20, fruit_juice: 200, flavoured_milk: 200, yoghurt: 100, cheese: 20, paneer: 60,
-  ragi_dosa_mix: 50, dosa_batter: 100, dosa_mix: 50, idli_mix: 50, upma_mix: 60, poha_mix: 60, khichdi_mix: 60, sambar_mix: 20, rasam_mix: 20, dhokla_mix: 50, chilla_mix: 50, pancake_mix: 50, cake_mix: 40,
-  millet_pasta: 80, noodles: 70, paratha: 70, chapati: 60, khakhra: 30, cutlet: 60, pulao_mix: 60, kheer_mix: 30, halwa_mix: 30, popcorn_makhana: 20,
+  rolled_oats: 40, muesli: 40, breakfast_cereal: 40, millet_porridge: 40, ragi_flour: 30, whole_wheat_atta: 50, multigrain_atta: 50, millet_flours: 40, dalia: 40, brown_rice: 45,
+  baby_cereal: 25, instant_noodles: 70, peanut_butter: 32, nut_butter: 32, choco_spread: 15, jam: 20, ketchup: 15, mayonnaise: 15, kids_biscuits: 30, millet_cookies: 30, rusk_toast: 20,
+  whole_wheat_bread: 50, chips: 30, namkeen: 30, roasted_snacks: 30, snack_bars: 40, dried_fruit: 40, health_drink: 20, fruit_juice: 240, flavoured_milk: 240, yoghurt: 170, cheese: 30, paneer: 60, instant_soup: 15,
+  custard_powder: 10, dessert_mix: 20, corn_flour: 10, cake_pastry: 55, sweets_mithai: 40, chocolate: 30, candy_toffee: 15, ice_cream: 85, semolina: 40, besan: 30, white_rice: 45,
+  dal_pulses: 40, poha_flakes: 40, vermicelli_pasta: 55, nuts_seeds: 30, papad: 15, sweeteners: 10, pickle_chutney: 15, dips_dressings: 30, tomato_puree: 60, coconut_milk: 60,
+  soft_drink: 250, drink_mix: 20, plain_milk: 240, milk_powder: 25, condensed_milk: 20, plant_milk: 240, butter: 14, tofu_soya: 40, frozen_snacks: 80, ready_meals: 140, baby_puree: 80,
+  ragi_dosa_mix: 50, dosa_batter: 100, dosa_mix: 50, idli_mix: 50, upma_mix: 60, poha_mix: 60, khichdi_mix: 60, sambar_mix: 20, rasam_mix: 20, dhokla_mix: 50, chilla_mix: 50, pancake_mix: 40, cake_mix: 40,
+  millet_pasta: 55, noodles: 70, paratha: 70, chapati: 60, khakhra: 30, cutlet: 60, pulao_mix: 60, kheer_mix: 30, halwa_mix: 30, popcorn_makhana: 30,
 };
+// Where each default comes from. 'racc' = the US FDA "reference amount customarily consumed" (21 CFR 101.12), a published figure for how much of
+// that food is eaten at one time. Every other kind is our own estimate of a typical serving. A serving printed on the pack always wins over both.
+// Snacks, sweets and sweet drinks: a smaller part of the child's day than a meal, so one serving may take less of the day's sugar, sodium and
+// saturated fat before it fails (15% instead of 30%). Everything else is treated as part of a meal.
+export const SNACK_KINDS = new Set(['kids_biscuits', 'millet_cookies', 'rusk_toast', 'chips', 'namkeen', 'roasted_snacks', 'snack_bars', 'dried_fruit', 'popcorn_makhana', 'chocolate', 'candy_toffee',
+  'ice_cream', 'cake_pastry', 'sweets_mithai', 'papad', 'choco_spread', 'jam', 'sweeteners', 'condensed_milk', 'soft_drink', 'fruit_juice', 'flavoured_milk', 'drink_mix', 'health_drink',
+  'custard_powder', 'dessert_mix', 'cake_mix', 'kheer_mix', 'halwa_mix']);
+export const SERVING_BASIS = new Set(["kids_biscuits","millet_cookies","breakfast_cereal","chips","namkeen","roasted_snacks","popcorn_makhana","dried_fruit","nuts_seeds","fruit_juice","flavoured_milk","plain_milk","plant_milk","yoghurt","cheese","butter","jam","peanut_butter","nut_butter","dips_dressings","vermicelli_pasta","millet_pasta","white_rice","brown_rice","ice_cream","chocolate","candy_toffee","cake_pastry","whole_wheat_bread","tomato_puree","ready_meals","pancake_mix","snack_bars","rolled_oats","millet_porridge","ketchup","mayonnaise","instant_soup"]);
 export const servingFor = (kind) => SERVING_G[kind] || 50;
 
 const num = (v) => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
@@ -103,12 +152,17 @@ export function scorePack(nutrition, ingredients, name = '', kind = '') {
   if (missing.length) return { status: 'pending', score: null, missing };
   const list = Array.isArray(ingredients) ? ingredients : String(ingredients || '').split(',').map((x) => x.trim()).filter(Boolean);
   // The label is per 100 g; the score is for one realistic serving of this kind of food.
-  const serving_g = num(n.serving_g) || servingFor(kind), k = serving_g / 100;
+  // The serving size printed on the pack (a plausible 5 to 400 g) wins; otherwise a typical serving of this kind of food, said to be an estimate.
+  // A printed serving that is wildly off for this kind of food (a quarter of a typical serving, or four times it) is usually the prepared quantity
+  // or the whole pack misread, so it is not used until the owner has looked at it.
+  const dflt = servingFor(kind), p0 = num(n.serving_g);
+  const printed = p0 != null && p0 >= 5 && p0 <= 400 && p0 >= dflt * 0.25 && p0 <= dflt * 4 ? p0 : null;
+  const serving_g = printed || dflt, k = serving_g / 100;
   const per = (v) => (num(v) == null ? null : Math.round(num(v) * k * 100) / 100);
-  const inputs = { basis: 'meal', serving_g, protein: per(need.protein_g), fibre: per(need.fibre_g), addedSugar: per(need.added_sugars_g), satFat: per(need.saturated_fat_g), sodium: per(need.sodium_mg), ingredients: list, name, flags: n.flags || null };
+  const inputs = { basis: 'meal', snack: SNACK_KINDS.has(kind), serving_g, protein: per(need.protein_g), fibre: per(need.fibre_g), addedSugar: per(need.added_sugars_g), satFat: per(need.saturated_fat_g), sodium: per(need.sodium_mg), ingredients: list, name, flags: n.flags || null };
   const out = scoreAllBands(inputs);
   const ref = out.bands[REFERENCE_BAND];
-  return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: `per serving of ${serving_g} g, from the pack label (per 100 g)`, serving_g, reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
+  return { status: 'exact', score: out.reference, band: ref.tier, detail: { version: SCORE_VERSION, basis: printed ? `per serving of ${serving_g} g (the serving printed on the pack), from the pack label (per 100 g)` : `per serving of ${serving_g} g (the pack prints no serving, so this is a typical serving of this kind of food: ${SERVING_BASIS.has(kind) ? 'the US FDA reference amount' : 'our estimate'}), from the pack label (per 100 g)`, serving_g, serving_source: printed ? 'pack' : SERVING_BASIS.has(kind) ? 'reference' : 'estimated', reference_band: REFERENCE_BAND, inputs, bands: out.bands } };
 }
 
 const retailerOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; } catch { return null; } };
@@ -171,7 +225,7 @@ export async function researchNextKind(env, { onlyNeeded = false } = {}) {
   const brand = PRIORITY_BRANDS.find((b) => !last.has('brand:' + b.key));
   if (brand && !onlyNeeded) return { brand: brand.key, ...(await researchKind(env, brand.kind, { key: brand.key, query: brand.query, match: brand.match })) };
   const needed = await neededKinds(env);
-  const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : ALL_KINDS;   // dish packs for published recipes first, then the whole Products catalogue in turn
+  const pool = onlyNeeded ? READY_KINDS.filter((k) => needed.has(k.kind) && !last.has(k.kind)) : ALL_KINDS.filter((k) => !k.scanOnly);   // dish packs for published recipes first, then the whole Products catalogue in turn
   if (!pool.length) return { skipped: 'every pack type for your published recipes has already been searched' };
   const next = [...pool].sort((a, b) =>
     (needed.has(b.kind) - needed.has(a.kind)) || String(last.get(a.kind) || '').localeCompare(String(last.get(b.kind) || '')))[0];
@@ -210,7 +264,7 @@ export async function packsForRecipe(env, recipeId) {
       ORDER BY kidposhan_score IS NULL, kidposhan_score DESC, id`
   ).bind(k.kind).all();
   const results = dedupePacks(all).slice(0, 2);          // a recipe page shows the two best packs, not a wall of them
-  const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+  const band = (v) => (v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use');
   return {
     kind: k.kind, label: k.label,
     packs: results.map((p) => ({ id: p.id, name: p.name, brand: p.brand, pack_size: p.pack_size, image_url: p.image_url, retailer: p.retailer, url: p.product_url,
@@ -235,7 +289,7 @@ export async function packsForRecipes(env, ids, { limit = 16 } = {}) {
     `SELECT id, kind, name, brand, pack_size, image_url, retailer, product_url, kidposhan_score, score_status FROM kp_ready_products
       WHERE status = 'approved' AND kind IN (${kinds.map(() => '?').join(',')})`
   ).bind(...kinds).all();
-  const band = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+  const band = (v) => (v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use');
   const items = dedupePacks(packs).map((p) => ({ id: p.id, kind: p.kind, label: dishesByKind.get(p.kind).label, name: p.name, brand: p.brand, pack_size: p.pack_size, image_url: p.image_url,
     retailer: p.retailer, url: p.product_url, for: dishesByKind.get(p.kind).dishes,
     score: p.score_status === 'exact' && p.kidposhan_score != null ? { value: p.kidposhan_score, band: band(p.kidposhan_score) } : null }));

@@ -8,7 +8,7 @@
 // poshan_score holds the score for the reference band (4-6 years); score_13 / score_46 / score_79 / score_1012 hold each band's score.
 // The source site's own star rating never feeds the score.
 
-import { scoreAllBands, REFERENCE_BAND, SCORE_COLUMN, SCORE_VERSION } from './score2.js';
+import { scoreAllBands, REFERENCE_BAND, SCORE_COLUMN, SCORE_VERSION, ALL_BANDS } from './score2.js';
 const CAP_COLUMN = { '1-3': 'cap_13', '4-6': 'cap_46', '7-9': 'cap_79', '10-12': 'cap_1012' };
 import { estimateNutrition, servingsFrom, isDeepFried } from './nutrients.js';
 import { parseIngredientLine } from './normalize.js';
@@ -70,7 +70,7 @@ export async function reparseIngredients(env, id) {
 }
 
 // Reads the recipe, scores it, stores the result. An owner's score approval is cleared when the number changes.
-export async function scoreRecipe(env, id) {
+export async function scoreRecipe(env, id, opts = {}) {
   const row = await env.DB.prepare('SELECT id, name, servings, nutrition_json, poshan_score, score_status FROM kp_recipes WHERE id = ?').bind(id).first();
   if (!row) return null;
   const { results: ings } = await env.DB.prepare(
@@ -81,7 +81,7 @@ export async function scoreRecipe(env, id) {
   const changed = r.score !== row.poshan_score || r.status !== row.score_status;
   await env.DB.prepare(
     `UPDATE kp_recipes SET poshan_score = ?, score_status = ?, score_breakdown_json = ?, score_13 = ?, score_46 = ?, score_79 = ?, score_1012 = ?,
-       cap_13 = ?, cap_46 = ?, cap_79 = ?, cap_1012 = ?${changed ? ', score_approved = 0' : ''} WHERE id = ?`
+       cap_13 = ?, cap_46 = ?, cap_79 = ?, cap_1012 = ?${changed && !opts.keepApproval ? ', score_approved = 0' : ''} WHERE id = ?`
   ).bind(r.score, r.status, JSON.stringify(detail), ...['1-3', '4-6', '7-9', '10-12'].map((k) => r.bands?.[k]?.total ?? null), ...['1-3', '4-6', '7-9', '10-12'].map((k) => (r.bands?.[k]?.capped ? 1 : 0)), id).run();
   return { id, status: r.status, score: r.score };
 }
@@ -90,6 +90,11 @@ export async function scoreRecipe(env, id) {
 export const VISIBLE_SCORE_SQL = "CASE WHEN r.score_hidden = 0 THEN r.poshan_score END";
 
 // SQL fragment for one age band: the score parents are allowed to see for that band (falls back to the reference score).
-// 1 when a risk metric (sugar, sodium, saturated fat, trans fat) held this recipe's rating at Fair for the band.
-export const capSqlFor = (bandId) => `COALESCE(r.${CAP_COLUMN[bandId] || 'cap_46'}, 0)`;
-export const scoreSqlFor = (bandId) => `CASE WHEN r.score_hidden = 0 THEN COALESCE(r.${SCORE_COLUMN[bandId] || 'poshan_score'}, r.poshan_score) END`;
+// 1 when a risk metric (sugar, sodium, saturated fat, trans fat) held this recipe's rating at OK for the band.
+// The four child bands have their own columns. Every other ICMR-NIN group (13-15, 16-18, adults, boys and girls, men and women by work) is read from the
+// per-band scores stored in the recipe's breakdown. The id is checked against the list of bands before it goes into the SQL.
+const jsonPath = (bandId, key) => `json_extract(r.score_breakdown_json, '$.bands."${bandId}".${key}')`;
+const known = (bandId) => ALL_BANDS.some((b) => b.id === bandId);
+export const capSqlFor = (bandId) => (CAP_COLUMN[bandId] ? `COALESCE(r.${CAP_COLUMN[bandId]}, 0)` : known(bandId) ? `COALESCE(${jsonPath(bandId, 'capped')}, 0)` : 'COALESCE(r.cap_46, 0)');
+export const bandScoreSql = (bandId) => `COALESCE(${SCORE_COLUMN[bandId] ? 'r.' + SCORE_COLUMN[bandId] : known(bandId) ? jsonPath(bandId, 'total') : 'r.poshan_score'}, r.poshan_score)`;
+export const scoreSqlFor = (bandId) => `CASE WHEN r.score_hidden = 0 THEN ${bandScoreSql(bandId)} END`;

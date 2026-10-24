@@ -192,6 +192,7 @@ const demo={
 
 let reviewedFilter='all', unreviewedCount=0;
 let trf={days:30,path:null,data:null};
+let rep={status:'open',data:null};
 let tav=null, joined={total:0,visitors:[]}, cov=null, covBusy=false;
 let vis={remarks:[],rCounts:{},payments:[],totals:{},rStatus:'pending',pStatus:'claimed'}, auth={sources:[],tally:{},msg:'',settings:{auto:false,daily_cap:10,sent_last_24h:0,gmail_connected:false}};
 let packs=[], packStatus='candidate', packKinds=[], packCounts={}, packMsg='';
@@ -236,7 +237,7 @@ function render(){
     document.getElementById('login').onsubmit=e=>{e.preventDefault();token=document.getElementById('tok').value.trim();sessionStorage.setItem('kp_admin',token);load()};
     return;
   }
-  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['traffic','Traffic'],['authors','Authors']];
+  const tabs=[['approved','Live'],['pending','Held'],['rejected','Rejected'],['packs','Packs'],['sites','Sites'],['visitors','Visitors'],['traffic','Traffic'],['reports','Reports'],['authors','Authors']];
   app.innerHTML=`<h1>Recipe review</h1>
     <p class="sub">Recipes that pass the automatic checks go live by themselves. Review them here afterwards: pull one back, edit its steps or ingredients, or tick "Reviewed by me". Recipes that failed a check are held with the reason shown.</p>
     ${DEMO?'<p class="banner">Demo with sample entries. On kidposhan.in this screen loads the real queue.</p>':''}
@@ -248,6 +249,7 @@ function render(){
   if(tab==='sites'){renderSites(list);return}
   if(tab==='visitors'){renderVisitors(list);return}
   if(tab==='traffic'){renderTraffic(list);return}
+  if(tab==='reports'){renderReports(list);return}
   if(tab==='authors'){renderAuthors(list);return}
   list.innerHTML=items.length?items.map(cardHTML).join('')+(items.length<total?`<button class="btn undo more" id="more">Show more (${total-items.length} left)</button>`:''):
     `<p class="empty">${tab==='pending'?'Nothing is held. Recipes that pass the checks go live by themselves; any that fail appear here with the reason.':'Nothing here yet.'}</p>`;
@@ -392,6 +394,16 @@ const ago=t=>{if(!t)return '';const d=Math.floor((Date.now()/1000-t)/86400);retu
 const COUNTRY=(()=>{try{return new Intl.DisplayNames(['en'],{type:'region'})}catch(e){return null}})();
 const cname=c=>c==='??'||!c?'Unknown':(COUNTRY&&COUNTRY.of(c))||c;
 const mmss=sec=>sec==null?'not measured':(sec>=60?Math.floor(sec/60)+' min '+String(sec%60).padStart(2,'0')+' s':sec+' s');
+function renderReports(list){
+  const d=rep.data; if(!d){list.innerHTML='<p class="empty">Loading…</p>';return}
+  const why={name:'The name is different',numbers:'The numbers do not match',photo:'The photo is wrong',other:'Something else'};
+  list.innerHTML=`<div class="vhead"><h2>Reports from parents</h2><div class="filters" role="group" aria-label="Status">${['open','done'].map(s=>`<button class="fchip" data-rs="${s}" aria-pressed="${rep.status===s}">${s==='open'?'Open':'Done'}</button>`).join('')}</div></div>
+   ${d.reports.length?d.reports.map(r=>`<div class="vcard"><b>${esc(why[r.reason]||r.reason)}</b> · <a href="/products?open=${r.product_id}" target="_blank" rel="noopener">${esc(r.product_name||('pack '+(r.product_id||r.barcode)))}</a> <span class="sub">${esc(String(r.ts).slice(0,16))} ${r.product_status?'· '+esc(r.product_status):''}</span>
+     ${r.note?`<p style="margin:6px 0">${esc(r.note)}</p>`:''}${r.email?`<p class="sub">Reply to: ${esc(r.email)}</p>`:''}
+     <button class="btn undo" data-rid="${r.id}" data-to="${rep.status==='open'?'done':'open'}">${rep.status==='open'?'Mark done':'Reopen'}</button></div>`).join(''):'<p class="empty">Nothing here.</p>'}`;
+  list.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{rep.status=b.dataset.rs;load()});
+  list.querySelectorAll('[data-rid]').forEach(b=>b.onclick=async()=>{await api('/api/kp/admin/reports/'+b.dataset.rid,{method:'POST',body:JSON.stringify({status:b.dataset.to})});load()});
+}
 function renderTraffic(list){
   const d=trf.data; if(!d){list.innerHTML='<p class="empty">Loading…</p>';return}
   const T=d.totals, max=Math.max(1,...d.by_day.map(x=>x.views));
@@ -587,6 +599,8 @@ async function load(append=false){
     vis.remarks=rw.remarks;vis.rCounts=rw.counts;vis.payments=pw.payments;vis.totals=pw.totals;
     counts.visitors=(rw.counts.pending||0)+((pw.totals.claimed||{}).count||0)||'';
     if(tab==='visitors'){joined=await api('/api/kp/admin/visitors').catch(()=>joined)}
+    {const rr=await api('/api/kp/admin/reports?status=open').catch(()=>null);counts.reports=rr&&rr.reports.length||''}
+    if(tab==='reports'){rep.data=await api('/api/kp/admin/reports?status='+rep.status)}
     if(tab==='traffic'){trf.data=await api('/api/kp/admin/traffic?days='+trf.days+(trf.path?'&path='+encodeURIComponent(trf.path):''))}
     if(tab==='authors'){const o=await api('/api/kp/admin/outreach');auth.sources=o.sources;auth.tally=o.tally;auth.settings=await api('/api/kp/admin/outreach/settings').catch(()=>auth.settings);const rp=(auth.tally.replied_yes||0)+(auth.tally.replied_no||0)+(auth.tally.replied_other||0);counts.authors=rp||''}
     const pk=await api('/api/kp/admin/products?status='+packStatus+'&limit=30'); packs=pk.items; packCounts=pk.counts; packKinds=pk.kinds; counts.packs=pk.counts.candidate||'';

@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Age &amp; Metrics — Poshan Score</title>
-<meta name="description" content="How the Poshan Score works: ten metrics, each marked 1 to 10, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
+<meta name="description" content="How the Poshan Score works: ten yes-or-no checks, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
 <link rel="canonical" href="https://www.kidposhan.in/age-metrics">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Poshan Score by KidPoshan">
 <meta property="og:title" content="Age &amp;amp; Metrics — Poshan Score">
-<meta property="og:description" content="How the Poshan Score works: ten metrics, each marked 1 to 10, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
+<meta property="og:description" content="How the Poshan Score works: ten yes-or-no checks, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
 <meta property="og:url" content="https://www.kidposhan.in/age-metrics">
 <meta property="og:image" content="https://www.kidposhan.in/og-image.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Age &amp;amp; Metrics — Poshan Score">
-<meta name="twitter:description" content="How the Poshan Score works: ten metrics, each marked 1 to 10, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
+<meta name="twitter:description" content="How the Poshan Score works: ten yes-or-no checks, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed.">
 <meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
 <style>
   :root{
@@ -316,8 +316,8 @@
   .tier-card{ border-radius:12px; padding:12px 12px 10px; border:1px solid var(--line); background:var(--card); }
   .tier-card b{ display:block; font-family:var(--font-display); font-size:18px; }
   .tier-card span{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); }
-  .tier-card.t-Excellent{ border-top:5px solid var(--green); } .tier-card.t-Good{ border-top:5px solid #7BA05B; }
-  .tier-card.t-Fair{ border-top:5px solid #B5790A; } .tier-card.t-Occasional{ border-top:5px solid var(--red); }
+  .tier-card.t-Good{ border-top:5px solid var(--green); }
+  .tier-card.t-OK{ border-top:5px solid #B5790A; } .tier-card.t-Do-not-use{ border-top:5px solid var(--red); }
   @media(max-width:560px){ .tiers{ grid-template-columns:repeat(2,1fr); } }
   .m2{ display:grid; grid-template-columns:44px 1fr; gap:14px; padding:18px 0; border-top:1px solid var(--line); }
   .m2 .metric-badge{ width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--green); }
@@ -350,6 +350,7 @@
     <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
   <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
@@ -363,37 +364,37 @@
     <a href="age-metrics.html" aria-current="page">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
 
 <header class="hero">
   <div class="hero-text">
     <div class="eyebrow">Age-banded rubric &nbsp;·&nbsp; How to read it</div>
-    <h1>Ten metrics, each marked 1 to 10, stretched to a score from 0 to 100.</h1>
+    <h1>Ten yes-or-no checks. Each one passed is worth 10 points.</h1>
     <p class="lede">
-      Every product and every recipe gets <b>one score from 0 to 100</b>. The ten marks add up to between 10 and 100, and that is stretched so the worst possible is 0 and a perfect product is exactly 100. Each
-      metric is marked from <b>1 (worst) to 10 (best)</b> on a ruler you can see below. Six of them are numbers off
+      Every product and every recipe gets <b>one score from 0 to 100</b>. Each of the ten checks is a plain <b>yes (1) or no (0)</b>, and the score is the number passed times 10, so a product that passes everything scores exactly 100 and one that passes nothing scores 0. Six of them are numbers off
       the label, measured as a share of the child's daily reference for their age band:
       <b>added sugar, sodium, saturated fat, trans fat, fibre and protein</b>. Fibre and protein are
       <b>credit</b> metrics (more is better); the others are <b>risk</b> metrics (less is better). Three more are
       checks that do not change with age: <b>preservatives, artificial additives and base-ingredient integrity</b>.
-      The tenth is <b>HFSS</b>, the worst of the sugar, sodium and saturated-fat marks. A product that scores 3 or less on
-      any one risk metric is held at <b>Fair</b>: the total still shows the real sum, with a "capped" badge. Packs and recipes are scored the same way, per realistic serving, so they can be compared. The same method is used on the Products and Meal Ideas pages.
+      The tenth is <b>HFSS</b>, which fails if the sugar, sodium or saturated-fat check fails. A product that fails
+      any one risk check is held at <b>OK</b>: the score still shows the real count, with a "capped" badge. Packs and recipes are scored the same way, per realistic serving, so they can be compared. The same method is used on the Products and Meal Ideas pages.
       Every number below is cited, and the sources are listed at the bottom of this page.
     </p>
   </div>
 
   <div class="hero-visual">
-    <!-- packages sorting into Excellent / Good / Occasional -->
+    <!-- packages sorting into Good / OK / Do not use -->
     <div class="sort-scene" aria-hidden="true">
       <div class="sort-belt"></div>
       <div class="pkg pkg-a"></div>
       <div class="pkg pkg-b"></div>
       <div class="pkg pkg-c"></div>
       <div class="sort-bins">
-        <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">Excellent</div></div>
-        <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">Good</div></div>
-        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Occasional</div></div>
+        <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">Good</div></div>
+        <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">OK</div></div>
+        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Do not use</div></div>
       </div>
     </div>
 
@@ -462,58 +463,78 @@
     <button class="age-tab" data-age="4-6">4–6 years</button>
     <button class="age-tab" data-age="7-9">7–9 years</button>
     <button class="age-tab" data-age="10-12">10–12 years</button>
+    <button class="age-tab" data-age="13-15">13–15 years</button>
+    <button class="age-tab" data-age="16-18">16–18 years</button>
+    <button class="age-tab" data-age="adult">Adults</button>
   </div>
 
   <div class="age-panel active" data-age="6-12m">
     <p class="intro" style="margin-bottom:12px">Under 12 months there is no published reference band, so the <b>1–3 years</b> reference numbers are used. Only plain foods meant for babies are scored: a product with added sugar or salt is shown as “Not for under 1”, not as a number.</p>
     <div class="refcard-grid">
-      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,060 <small>kcal/day</small></div><div class="src">1–3 years reference [1]</div></div>
-      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">13 / 26 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
-      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,200 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,110 <small>kcal/day</small></div><div class="src">1–3 years reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">14 / 28 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,110 <small>mg/day</small></div><div class="src">ICMR-NIN adult limit, scaled by energy [4]</div></div>
       <div class="refcard"><div class="label">Saturated fat</div><div class="value">~12 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
-      <div class="refcard"><div class="label">Fiber</div><div class="value">19 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">15 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
       <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
     </div>
   </div>
   <div class="age-panel" data-age="1-3">
     <div class="refcard-grid">
-      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,060 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
-      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">13 / 26 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
-      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,200 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,110 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">14 / 28 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,110 <small>mg/day</small></div><div class="src">ICMR-NIN adult limit, scaled by energy [4]</div></div>
       <div class="refcard"><div class="label">Saturated fat</div><div class="value">~12 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
-      <div class="refcard"><div class="label">Fiber</div><div class="value">19 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">15 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
       <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
     </div>
   </div>
   <div class="age-panel" data-age="4-6">
     <div class="refcard-grid">
-      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,350 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,360 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
       <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">17 / 34 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
-      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,500 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,360 <small>mg/day</small></div><div class="src">ICMR-NIN adult limit, scaled by energy [4]</div></div>
       <div class="refcard"><div class="label">Saturated fat</div><div class="value">~15 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
-      <div class="refcard"><div class="label">Fiber</div><div class="value">25 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">20 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
       <div class="refcard"><div class="label">Protein</div><div class="value">16 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
     </div>
   </div>
   <div class="age-panel" data-age="7-9">
     <div class="refcard-grid">
-      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,690 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
-      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">21 / 42 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
-      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,800 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">1,700 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">21 / 43 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~1,700 <small>mg/day</small></div><div class="src">ICMR-NIN adult limit, scaled by energy [4]</div></div>
       <div class="refcard"><div class="label">Saturated fat</div><div class="value">~19 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
-      <div class="refcard"><div class="label">Fiber</div><div class="value">26 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">26 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
       <div class="refcard"><div class="label">Protein</div><div class="value">23 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
     </div>
   </div>
   <div class="age-panel" data-age="10-12">
     <div class="refcard-grid">
-      <div class="refcard"><div class="label">Reference energy</div><div class="value">2,150 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
+      <div class="refcard"><div class="label">Reference energy</div><div class="value">2,140 <small>kcal/day</small></div><div class="src">ICMR pediatric reference [1]</div></div>
       <div class="refcard"><div class="label">Added sugar (ideal / upper)</div><div class="value">27 / 54 <small>g/day</small></div><div class="src">WHO free-sugar guideline [2]</div></div>
-      <div class="refcard"><div class="label">Sodium</div><div class="value">~2,000 <small>mg/day</small></div><div class="src">NASEM/IOM DRI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Sodium</div><div class="value">~2,000 <small>mg/day</small></div><div class="src">ICMR-NIN adult limit, scaled by energy [4]</div></div>
       <div class="refcard"><div class="label">Saturated fat</div><div class="value">~24 <small>g/day</small></div><div class="src">WHO &lt;10% energy [3]</div></div>
-      <div class="refcard"><div class="label">Fiber</div><div class="value">31 <small>g/day</small></div><div class="src">NASEM/IOM AI proxy [4]</div></div>
+      <div class="refcard"><div class="label">Fiber</div><div class="value">31.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
       <div class="refcard"><div class="label">Protein</div><div class="value">32.5 <small>g/day</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
     </div>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Group</th><th>Energy kcal</th><th>Added sugar g (ideal / upper)</th><th>Sodium mg</th><th>Saturated fat g</th><th>Fibre g</th><th>Protein g</th></tr></thead><tbody><tr><td>10–12 years</td><td>2,140</td><td>27 / 54</td><td>2,000</td><td>24</td><td>31.5</td><td>32.5</td></tr><tr><td>Boys 10–12 years</td><td>2,220</td><td>28 / 56</td><td>2,000</td><td>25</td><td>33</td><td>32</td></tr><tr><td>Girls 10–12 years</td><td>2,060</td><td>26 / 52</td><td>2,000</td><td>23</td><td>30</td><td>33</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Energy, protein and fibre are the ICMR-NIN 2020 figures for each group (energy is NIN's estimated requirement). Added sugar is 5% of energy (upper 10%) and saturated fat 10% of energy (WHO). Sodium is the ICMR-NIN 2020 adult limit of 2,000 mg, scaled down by energy for younger children. The row without a sex is the average of the two.</p>
+  </div>
+  <div class="age-panel" data-age="13-15">
+    <p class="intro" style="margin-bottom:6px">From 13 years the ICMR-NIN 2020 table is by sex. On the Products and Scan pages, choose boys or girls to score for one of them; with neither chosen the average is used.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Group</th><th>Energy kcal</th><th>Added sugar g (ideal / upper)</th><th>Sodium mg</th><th>Saturated fat g</th><th>Fibre g</th><th>Protein g</th></tr></thead><tbody><tr><td>13–15 years</td><td>2,630</td><td>33 / 66</td><td>2,000</td><td>29</td><td>39.5</td><td>44</td></tr><tr><td>Boys 13–15 years</td><td>2,860</td><td>36 / 72</td><td>2,000</td><td>32</td><td>43</td><td>45</td></tr><tr><td>Girls 13–15 years</td><td>2,400</td><td>30 / 60</td><td>2,000</td><td>27</td><td>36</td><td>43</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Energy, protein and fibre are the ICMR-NIN 2020 figures for each group (energy is NIN's estimated requirement). Added sugar is 5% of energy (upper 10%) and saturated fat 10% of energy (WHO). Sodium is the ICMR-NIN 2020 adult limit of 2,000 mg, scaled down by energy for younger children. The row without a sex is the average of the two.</p>
+  </div>
+  <div class="age-panel" data-age="16-18">
+    <p class="intro" style="margin-bottom:6px">ICMR-NIN 2020 lists 16–18 years for boys and girls. Choose boys or girls on the Products and Scan pages.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Group</th><th>Energy kcal</th><th>Added sugar g (ideal / upper)</th><th>Sodium mg</th><th>Saturated fat g</th><th>Fibre g</th><th>Protein g</th></tr></thead><tbody><tr><td>16–18 years</td><td>2,910</td><td>36 / 73</td><td>2,000</td><td>32</td><td>44</td><td>50.5</td></tr><tr><td>Boys 16–18 years</td><td>3,320</td><td>42 / 83</td><td>2,000</td><td>37</td><td>50</td><td>55</td></tr><tr><td>Girls 16–18 years</td><td>2,500</td><td>31 / 63</td><td>2,000</td><td>28</td><td>38</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Energy, protein and fibre are the ICMR-NIN 2020 figures for each group (energy is NIN's estimated requirement). Added sugar is 5% of energy (upper 10%) and saturated fat 10% of energy (WHO). Sodium is the ICMR-NIN 2020 adult limit of 2,000 mg, scaled down by energy for younger children. The row without a sex is the average of the two.</p>
+  </div>
+  <div class="age-panel" data-age="adult">
+    <p class="intro" style="margin-bottom:6px">For adults ICMR-NIN 2020 gives men and women separately, each at sedentary, moderate and heavy work. Choose men or women, and the kind of work, on the Products and Scan pages; with neither chosen the average of men and women at sedentary work is used. Pregnant and lactating women are not scored yet.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Group</th><th>Energy kcal</th><th>Added sugar g (ideal / upper)</th><th>Sodium mg</th><th>Saturated fat g</th><th>Fibre g</th><th>Protein g</th></tr></thead><tbody><tr><td>Adults</td><td>1,885</td><td>24 / 47</td><td>2,000</td><td>21</td><td>27.5</td><td>50</td></tr><tr><td>Men, sedentary work</td><td>2,110</td><td>26 / 53</td><td>2,000</td><td>23</td><td>30</td><td>54</td></tr><tr><td>Men, moderate work</td><td>2,710</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>54</td></tr><tr><td>Men, heavy work</td><td>3,470</td><td>43 / 87</td><td>2,000</td><td>39</td><td>50</td><td>54</td></tr><tr><td>Women, sedentary work</td><td>1,660</td><td>21 / 42</td><td>2,000</td><td>18</td><td>25</td><td>46</td></tr><tr><td>Women, moderate work</td><td>2,130</td><td>27 / 53</td><td>2,000</td><td>24</td><td>30</td><td>46</td></tr><tr><td>Women, heavy work</td><td>2,720</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Energy, protein and fibre are the ICMR-NIN 2020 figures for each group (energy is NIN's estimated requirement). Added sugar is 5% of energy (upper 10%) and saturated fat 10% of energy (WHO). Sodium is the ICMR-NIN 2020 adult limit of 2,000 mg, scaled down by energy for younger children. The row without a sex is the average of the two.</p>
   </div>
 </section>
 
@@ -525,12 +546,11 @@
   <div class="bg-pkg bp4" aria-hidden="true"></div>
 
   <div class="section-eyebrow">Step 2</div>
-  <h2>The ten metrics, each on a scale of 1 to 10</h2>
+  <h2>The ten checks, each a yes or no</h2>
 
   <div class="metrics-intro-row">
     <p class="intro">
-      Each metric below shows its 1 to 10 ruler and exactly what earns each mark. Add the ten marks (10 to 100), take away 10 and divide by 90 to
-      get the score from 0 to 100. This is why we do not trust the front of the pack: watch what is printed there against what is
+      Each check below shows exactly what earns a yes and what earns a no. Count the yeses and multiply by 10 to get the score from 0 to 100. This is why we do not trust the front of the pack: watch what is printed there against what is
       actually on the back.
     </p>
     <div class="flip-stage" aria-hidden="true">
@@ -568,7 +588,7 @@
     <div class="example-grid" id="exGrid"></div>
   </div>
   <p class="intro" style="margin-top:18px;">
-    The same label gets a different mark at each age, so the total out of 100 changes too. Pick your child's age on the
+    The same label can pass at one age and fail at another, so the score out of 100 changes too. Pick your child's age on the
     <a href="products.html">Products page</a> and the whole catalogue is re-scored for that age.
   </p>
 </section>
@@ -581,7 +601,7 @@
     <li><b>[1] ICMR-NIN, "Nutrient Requirements for Indians — Recommended Dietary Allowances and Estimated Average Requirements," 2020.</b> Source for protein RDA by age and the pediatric energy reference figures used throughout.</li>
     <li><b>[2] WHO, "Guideline: Sugars intake for adults and children," 2015.</b> Free sugars should be under 10% of total energy, with additional benefit below 5% — converted to grams here at 4 kcal/g.</li>
     <li><b>[3] WHO saturated fat guidance</b> (WHO/FAO expert consultations on fats and fatty acids). Saturated fat under 10% of total energy — converted to grams here at 9 kcal/g.</li>
-    <li><b>[4] NASEM (National Academies of Sciences, Engineering, and Medicine) / Institute of Medicine, Dietary Reference Intakes.</b> Used as a proxy for pediatric sodium and fiber references, since ICMR-NIN 2020 does not publish an Indian-specific age-wise breakdown for either.</li>
+    <li><b>[4] NASEM (National Academies of Sciences, Engineering, and Medicine) / Institute of Medicine, Dietary Reference Intakes.</b> Cross-checked for sodium; ICMR-NIN 2020 gives an adult sodium limit of 2,000 mg a day and no child figure, so the child limits here scale that adult figure by each age band's energy (the WHO method). Fibre comes from ICMR-NIN 2020 directly.</li>
     <li><b>[5] FSSAI, Food Safety and Standards (Prohibition and Restrictions on Sales) Regulations.</b> Trans fat capped at ≤2% of total oils and fats in any food product, all ages, all categories.</li>
     <li><b>[6] FSSAI, Food Safety and Standards (Food Products Standards and Food Additives) Regulations, 2011.</b> Governs permitted preservatives (Class II) and additives (colours, flavour enhancers) by INS number.</li>
     <li><b>[7] FSSAI compliance affidavit, Supreme Court of India, W.P.(C) No. 437/2024 — 3S and Our Health Society vs Union of India, filed 29 August 2026.</b> Proposes a front-of-pack red hexagon warning for foods high in added saturated fat, added sugar, and/or salt (HFSS), with thresholds to be drawn from the <i>Dietary Guidelines for Indians, 2024</i> (ICMR-NIN). This is a live, pending proceeding — not yet a notified regulation.</li>
@@ -607,18 +627,18 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let d; try{ const r=await fetch(API+'/api/kp/score-method'); if(!r.ok) throw 0; d=await r.json() }
   catch(e){ document.getElementById('metricList').innerHTML='<p class="intro">The method could not be loaded just now. Please refresh the page.</p>'; return }
-  document.getElementById('tiers').innerHTML=d.tiers.map(t=>'<div class="tier-card t-'+esc(t.name)+'"><b>'+esc(t.name)+'</b><span>'+t.min+' to '+t.max+' out of 100</span></div>').join('');
+  document.getElementById('tiers').innerHTML=d.tiers.map(t=>'<div class="tier-card t-'+esc(t.name).replace(/ /g,'-')+'"><b>'+esc(t.name)+'</b><span>'+t.min+' to '+t.max+' out of 100</span></div>').join('');
   const kind={risk:'Risk metric: less is better',credit:'Credit metric: more is better',check:'Check: the same at every age',composite:'Composite: worst of metrics 1, 2 and 3'};
   document.getElementById('metricList').innerHTML=d.metrics.map(m=>{
     const by={}; m.steps.forEach(s=>{ if(typeof s.score==='number') by[s.score]=s.rule });
-    let cells=''; for(let i=1;i<=10;i++){ const cls=i>=8?'hi':i>=4?'mid':'lo'; cells+='<div class="rc '+cls+'">'+i+'<small>'+(by[i]?esc(by[i]):'')+'</small></div>' }
+    let cells=''; [[1,'Yes','hi'],[0,'No','lo']].forEach(function(c){ cells+='<div class="rc '+c[2]+'">'+c[1]+'<small>'+(by[c[0]]?esc(by[c[0]]):'')+'</small></div>' });
     const note=m.steps.length&&typeof m.steps[0].score!=='number'?'<p><b>'+esc(m.steps[0].score)+':</b> '+esc(m.steps[0].rule)+'</p>':'';
-    return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" role="img" aria-label="Scale from 1 to 10 for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>1 = worst</span><span>10 = best</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
+    return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="img" aria-label="Yes or no for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>No = 0 points</span><span>Yes = 10 points</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
   }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' '+esc(d.cap.effect)+'.</b> '+esc(d.bases.serving)+'</p>';
   const ex=d.sodium_example;
-  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that serving costs against each age band\'s daily sodium reference, and the 1 to 10 mark it earns:';
+  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that serving costs against each age band\'s daily sodium reference, and whether it passes the sodium check:';
   document.getElementById('exTitle').textContent=ex.mg+' mg sodium, '+ex.what;
-  document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score<=3?'flag-high':a.score<=6?'flag-mid':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium mark: '+a.score+' / 10</b></div></div>').join('');
+  document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score===0?'flag-high':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium check: '+(a.score?'Yes, passes':'No, fails')+'</b></div></div>').join('');
 })();
 </script>
 
@@ -666,6 +686,7 @@ document.querySelectorAll('#mobileMenu a').forEach(a => {
   a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
 });
 </script>
+<script src="/kp-meter.js" defer></script>
 <script src="/kp-visits.js" defer></script>
 <script src="/kp-search.js" defer></script>
 </body>

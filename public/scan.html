@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDFBF6">
+<title>Scan a pack — Poshan Score by Kidposhan</title>
+<style>
+:root{
+  --bg:#FDFBF6; --paper:#FFFFFF; --ink:#221A12; --muted:#6B5D4B; --line:#E7DFCE;
+  --leaf:#3F6B3C; --leaf-2:#E3EEDF; --turmeric:#E3A008; --turmeric-2:#F6E4BC; --chilli:#A6402A; --sky:#DCEAF0;
+  --gold:#B5790A; --clay:#8C7A64;
+  --display:'Iowan Old Style','Palatino Linotype','Book Antiqua',Georgia,serif;
+  --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --r-lg:22px; --r-md:14px;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--body)}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0}
+p{margin:0}
+button,input{font:inherit;color:inherit}
+a{color:var(--leaf)}
+:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px;border-radius:6px}
+.wrap{max-width:760px;margin:0 auto;padding:0 0 150px}
+.pad{padding-left:18px;padding-right:18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- menu page ---------- */
+.masthead{padding-top:22px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{font-family:var(--display);font-weight:800;font-size:20px;color:var(--leaf);letter-spacing:-.01em}
+.demo-tag{font-size:13px;color:var(--muted)}
+.ask.small{font-size:clamp(26px,7vw,34px);margin-top:8px}
+.ask{font-size:clamp(34px,9.5vw,52px);font-weight:800;letter-spacing:-.02em;margin-top:14px;max-width:12ch}
+.filters{margin-top:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.frow{min-width:0}
+.frow>span{display:block;font-weight:600;font-size:14px;color:var(--muted);padding:0 18px;margin-bottom:6px}
+.scroller{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.scroller::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 15px;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.go{margin:4px 18px 0;justify-self:stretch;background:var(--turmeric);color:#2B1D00;border:0;border-radius:16px;padding:14px;font-family:var(--display);font-weight:700;font-size:20px;cursor:pointer}
+.go:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+.summary{margin:18px 18px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:10px 12px 10px 16px}
+.summary p{font-weight:600;font-size:15px}
+.summary button{background:none;border:1.5px solid var(--line);border-radius:10px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:14px}
+.shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:26px 18px 10px}
+.shelf-head h2{font-size:23px;font-weight:700}
+.shelf-head span{font-size:14px;color:var(--muted)}
+.carousel{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 18px 10px;scroll-padding:0 18px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.carousel::-webkit-scrollbar{display:none}
+.dish{flex:0 0 min(62vw,236px);scroll-snap-align:start;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;border:0;padding:0;text-align:left;display:flex;flex-direction:column;box-shadow:0 1px 0 var(--line)}
+.dish .art{position:relative;aspect-ratio:1/1}
+.dish .art svg,.dish .art img{display:block;width:100%;height:100%;object-fit:cover}
+.badge{position:absolute;right:10px;top:10px;min-width:44px;height:44px;padding:0 6px;border-radius:999px;background:var(--paper);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:17px;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.badge small{display:block;font:600 9px/1 var(--body);color:var(--muted);margin-top:-3px}
+.dish .txt{padding:12px 14px 14px;display:grid;gap:2px}
+.dish h3{font-size:19px;font-weight:700}
+.dish .meta{font-size:14px;color:var(--muted)}
+.dtag{justify-self:start;margin-top:6px;font-size:12px;font-weight:600;padding:1px 8px;border-radius:6px}
+.dtag.veg,.dtag.jain{background:var(--leaf-2);color:var(--leaf)}
+.dtag.mayo{background:#FBEFC9;color:#6b4a00}
+.dtag.egg,.dtag.nonveg{background:color-mix(in srgb,var(--chilli) 14%,var(--paper));color:var(--chilli)}
+.note{margin:14px 18px 0;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
+.hint{margin:30px 18px 0;color:var(--muted)}
+
+/* ---------- recipe page ---------- */
+.hero{position:relative;aspect-ratio:5/4;max-height:58vh;width:100%;overflow:hidden}
+.hero svg,.hero img{width:100%;height:100%;display:block;object-fit:cover}
+.back{position:absolute;left:14px;top:calc(14px + env(safe-area-inset-top,0px));width:44px;height:44px;border-radius:50%;border:0;background:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.sheet{position:relative;margin-top:-26px;background:var(--bg);border-radius:26px 26px 0 0;padding-top:22px}
+.title-row{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
+.title-row h1{font-size:clamp(30px,8vw,42px);font-weight:800;letter-spacing:-.015em}
+.score{display:grid;justify-items:center;gap:0}
+.score b{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--turmeric-2);border:3px solid var(--turmeric);font-family:var(--display);font-weight:800;font-size:22px}
+.score span{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.facts span{background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:3px 12px;font-size:14px;font-weight:500}
+.credit{margin-top:12px;font-size:14px;color:var(--muted)}
+.section{margin-top:30px}
+.section>h2{font-size:25px;font-weight:700}
+.section>.lead{font-size:15px;color:var(--muted);margin-top:2px}
+.ing{margin-top:12px;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;border:1.5px solid var(--line)}
+.ing-head,.ing-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;align-items:center}
+.ing-head{font-size:13px;font-weight:600;color:var(--muted);padding:10px 14px 8px;border-bottom:1.5px solid var(--line)}
+.ing-head span:not(:first-child){text-align:center}
+.ing-item+.ing-item{border-top:1px solid var(--line)}
+.ing-row{padding:11px 14px}
+.ing-row b{font-weight:600}
+.ing-row .q{display:block;font-size:14px;color:var(--muted)}
+.tick{justify-self:center;width:30px;height:30px;border-radius:9px;border:2px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer}
+.tick[aria-pressed="true"].home{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.tick[aria-pressed="true"].buy{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.tick svg{width:16px;height:16px;opacity:0}
+.tick[aria-pressed="true"] svg{opacity:1}
+.ing-item.buying{background:var(--turmeric-2)}
+.stores{display:flex;gap:10px;overflow-x:auto;padding:0 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.stores::-webkit-scrollbar{display:none}
+.store{flex:0 0 132px;scroll-snap-align:start;background:var(--paper);border-radius:12px;padding:10px 12px;text-decoration:none;color:var(--ink);display:grid;gap:2px;border:1.5px solid var(--line)}
+.store b{font-family:var(--display);font-size:17px;font-weight:700}
+.store small{font-size:12px;color:var(--muted)}
+.store em{font-style:normal;font-weight:600;font-size:13px;color:var(--leaf);margin-top:4px}
+.steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px;counter-reset:s}
+.step{counter-increment:s;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-md);padding:14px 14px 14px 62px;position:relative;cursor:pointer;min-height:58px}
+.step::before{content:counter(s);position:absolute;left:14px;top:12px;width:34px;height:34px;border-radius:50%;background:var(--leaf-2);color:var(--leaf);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px}
+.step .sec{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px}
+.step[aria-pressed="true"]{opacity:.55}
+.step[aria-pressed="true"]::before{content:"✓";background:var(--leaf);color:var(--paper)}
+.step[aria-pressed="true"] .t{text-decoration:line-through}
+.method-out{margin-top:12px;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-md);padding:16px;display:grid;gap:10px}
+.method-out a{justify-self:start;background:var(--leaf);color:var(--paper);text-decoration:none;font-weight:600;border-radius:10px;padding:9px 16px}
+.packs{margin-top:12px;margin-left:-18px;margin-right:-18px}
+.pack{flex:0 0 min(58vw,210px);scroll-snap-align:start;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;border:1.5px solid var(--line);display:flex;flex-direction:column}
+.pack .art{aspect-ratio:5/4;position:relative}
+.pack .art svg,.pack .art img{width:100%;height:100%;display:block;object-fit:contain}
+.pack .txt{padding:10px 12px 12px;display:grid;gap:1px}
+.pack .brandname{font-size:12px;font-weight:600;color:var(--muted)}
+.pack h3{font-size:17px;font-weight:700}
+.pack .size{font-size:13px;color:var(--muted)}
+.pack .buys{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pack .buys a{font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;padding:4px 9px;background:var(--leaf-2);color:var(--leaf)}
+.pack .price{font-weight:700;font-size:15px;margin-top:4px}
+.pack .for{font-size:12px;color:var(--leaf);font-weight:600;margin-top:4px}
+.buy-card{flex-basis:min(74vw,290px)}
+.buy-head{background:var(--leaf-2);padding:12px 12px 10px;display:grid;gap:2px}
+.buy-card .buys{padding:10px 12px 12px;margin-top:0}
+.buy-card h3{font-size:18px}
+.empty-packs{margin-top:10px;color:var(--muted);font-size:15px}
+.plain-buy{margin:6px 0 0;padding-left:20px}.plain-buy li{margin:4px 0}.plain-buy small{color:var(--muted)}
+.buy-list{display:grid;padding:4px 10px 10px}
+.buy-list a{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 6px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14.5px;border-radius:8px}
+.buy-list a:last-child{border-bottom:0}.buy-list a:hover,.buy-list a:focus-visible{background:var(--leaf-2)}
+.buy-list a small{color:var(--muted);font-size:12px;white-space:nowrap;margin-left:auto}.buy-list a em{font-style:normal;font-weight:700;font-size:13px}
+
+/* ---------- shopping tray ---------- */
+.tray{position:fixed;left:0;right:0;bottom:0;z-index:5;transform:translateY(120%);transition:transform .28s ease}
+.tray.show{transform:none}
+.tray-in{max-width:760px;margin:0 auto 0;background:#15302B;color:#F4F7F5;border-radius:22px 22px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 24px rgba(0,0,0,.18)}
+.tray-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
+.tray-bar strong{font-family:var(--display);font-size:20px;font-weight:700}
+.tray-bar button{background:#E7A41C;color:#2B1D00;border:0;border-radius:12px;padding:8px 16px;font-weight:700;cursor:pointer}
+.tray-body{display:none;max-height:55vh;overflow:auto;padding:0 18px 16px}
+.tray.open .tray-body{display:block}
+.titem{padding:10px 0;border-top:1px solid rgba(255,255,255,.14)}
+.titem small{opacity:.7}
+.titem .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.titem a{color:#F4F7F5;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 11px;font-size:14px;text-decoration:none}
+.ttools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:14px}
+.ttools input{width:110px;padding:6px 10px;border-radius:8px;border:0;color:#15302B}
+.ttools button{background:transparent;color:#F4F7F5;border:1px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 12px;cursor:pointer}
+.tnote{opacity:.72;font-size:13px;margin-top:8px}
+
+@media (min-width:760px){.dish{flex-basis:236px}.pack{flex-basis:210px}.packs{margin-left:0;margin-right:0}.carousel.packs{padding-left:0}}
+@media (prefers-reduced-motion: reduce){.tray{transition:none}}
+
+/* ---------- visual polish ---------- */
+body{background:radial-gradient(1100px 420px at 50% -140px,var(--leaf-2),transparent 72%),var(--bg);background-repeat:no-repeat}
+.masthead .brand{display:inline-flex;align-items:center;gap:9px;font-size:22px}
+.masthead .brand::before{content:"";width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--leaf),var(--turmeric));box-shadow:0 3px 10px -3px rgba(20,48,43,.45)}
+.ask{letter-spacing:-.025em}
+.shelf-head{margin:30px 18px 12px}
+.shelf-head h2{position:relative;padding-left:14px}
+.shelf-head h2::before{content:"";position:absolute;left:0;top:.16em;bottom:.1em;width:5px;border-radius:4px;background:linear-gradient(var(--turmeric),var(--leaf))}
+.summary{box-shadow:0 6px 18px -12px rgba(20,48,43,.35)}
+
+/* photo + illustration layering (cards, packs, hero) */
+.art{position:relative;overflow:hidden}
+.art>svg,.art>img,.hero>svg,.hero>img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.art>img,.hero>img{object-fit:cover}
+.credit-chip{position:absolute;left:8px;bottom:8px;max-width:calc(100% - 16px);font-size:11px;font-weight:600;line-height:1.5;color:#fff;background:rgba(10,24,20,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);padding:1px 9px;border-radius:999px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+
+/* menu cards */
+.dish{flex-basis:min(72vw,270px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 14px 26px -16px rgba(20,48,43,.45);transition:transform .18s ease,box-shadow .18s ease}
+.dish:hover{transform:translateY(-3px);box-shadow:0 1px 2px rgba(20,48,43,.08),0 18px 30px -16px rgba(20,48,43,.55)}
+.dish .art{aspect-ratio:4/3;background:var(--leaf-2)}
+.dish .art::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(transparent,rgba(8,20,16,.38));pointer-events:none}
+.dish .credit-chip{z-index:1}
+.dish .txt{padding:13px 15px 15px}
+.dish h3{font-size:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Poshan Score badge, coloured by band */
+.badge{z-index:2;flex-direction:column;gap:0;min-width:48px;height:48px;line-height:1;box-shadow:0 4px 12px -3px rgba(0,0,0,.35);border:2.5px solid var(--paper)}
+.badge small{margin:1px 0 0;font:700 8px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:inherit;opacity:.85}
+.badge[data-band="Good"]{background:var(--leaf);color:var(--paper)}
+.badge[data-band="OK"]{background:var(--turmeric);color:#2B1D00}
+.badge[data-band="Do not use"]{background:var(--chilli);color:#fff}
+.score[data-band="Good"] b{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.score[data-band="OK"] b{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.score[data-band="Do not use"] b{background:var(--chilli);border-color:var(--chilli);color:#fff}
+.score b{box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
+
+/* recipe hero */
+.hero{aspect-ratio:4/3;max-height:56vh;background:var(--leaf-2)}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(transparent,rgba(8,20,16,.5));pointer-events:none}
+.hero .credit-chip{left:16px;bottom:42px;font-size:12px;z-index:2;padding:2px 11px}
+.hero .back{z-index:3}
+.hero .back svg{position:static;width:20px;height:20px}
+.sheet{box-shadow:0 -14px 30px -18px rgba(0,0,0,.4);padding-top:24px}
+.title-row h1{text-wrap:balance}
+.facts span{box-shadow:0 1px 0 rgba(20,48,43,.05)}
+
+/* pack cards */
+.pack{box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5);border-radius:20px}
+.pack .art{aspect-ratio:1/1;background:#fff}
+.pack .art>img{object-fit:contain;padding:10px}
+.pack .art>svg{background:var(--leaf-2)}
+.pack .txt{padding:12px 14px 14px;gap:2px;flex:1}
+.pack h3{font-size:16px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pack .buys{margin-top:auto;padding-top:10px}
+.pack .buys a{padding:6px 12px;font-size:13px}
+.pack .buys a:first-child{background:var(--leaf);color:var(--paper)}
+.buy-card .buys{padding:12px 12px 14px}
+.buy-card .buys a:first-child{background:var(--leaf-2);color:var(--leaf)}
+
+/* ---------- same look and structure as www.kidposhan.in ---------- */
+body{font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{font-family:var(--display)}
+.ask,.title-row h1,.shelf-head h2,.section>h2,.dish h3,.pack h3,.buy-card h3,.step .t{font-weight:500}
+.ask{font-weight:500;letter-spacing:-.015em;max-width:15ch}
+.title-row h1{font-weight:500}
+.shelf-head h2{font-size:24px}
+.section>h2{font-size:26px}
+.badge,.score b,.go,.tray-bar strong{font-family:var(--display);font-weight:700}
+
+/* nav, as on kidposhan.in */
+.site-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 20px;background:rgba(253,251,246,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nb-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.nb-mark{position:relative;width:22px;height:26px;flex-shrink:0}
+.nb-mark .tier{position:absolute;left:0;right:0;height:7px;border-radius:3px;border:1px solid rgba(34,26,18,.2)}
+.nb-mark .tier:nth-child(1){top:0;background:#5E8E5A}
+.nb-mark .tier:nth-child(2){top:6.5px;background:#E3A008}
+.nb-mark .tier:nth-child(3){top:13px;background:#BE4430}
+.nb-mark .tier:nth-child(4){top:19.5px;background:#3A2416}
+.nb-name{font-family:var(--display);font-size:19px;line-height:1.05;letter-spacing:-.01em;color:var(--ink)}
+.nb-name b{display:block;color:var(--gold);font-size:11.5px;font-family:var(--mono);font-weight:400;font-style:normal;letter-spacing:.14em;text-transform:uppercase;margin-top:1px}
+.nb-links{display:none;gap:24px;font-size:14.5px;color:var(--muted);flex:1;justify-content:center}
+.nb-links a{text-decoration:none;color:inherit;transition:color .2s ease;white-space:nowrap}
+.nb-links a:hover,.nb-links a.on{color:var(--gold)}
+.nb-links a.on{font-weight:600}
+@media(min-width:1180px){.nb-links{display:flex}}
+.nb-burger{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin-left:auto;border-radius:10px;border:1px solid var(--line);background:var(--paper);cursor:pointer;flex-shrink:0}
+.nb-burger svg{width:18px;height:18px;color:var(--ink)}
+@media(min-width:1180px){.nb-burger{display:none}}
+.nb-cta{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:100px;text-decoration:none;white-space:nowrap}
+@media(max-width:520px){.nb-cta{display:none}.nb-burger{margin-left:auto}}
+.nb-mobile{display:none;flex-direction:column;padding:4px 20px 14px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:39}
+.nb-mobile.open{display:flex}
+.nb-mobile a{padding:13px 6px;text-decoration:none;color:var(--ink);font-size:16px;border-bottom:1px solid var(--line)}
+.nb-mobile a:last-child{border-bottom:0}
+
+/* hero, as on kidposhan.in */
+.menu-hero{padding-top:34px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--gold);display:inline-block}
+.menu-hero .ask{margin-top:0}
+.lede{font-size:16.5px;line-height:1.65;color:var(--muted);max-width:46ch;margin:14px 0 4px}
+.go{background:var(--gold);color:#2b1c05;border-radius:100px;box-shadow:0 8px 24px -10px rgba(181,121,10,.55);font-size:18px}
+.go:disabled{background:var(--line);box-shadow:none}
+.chip{border-color:var(--line)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.lg{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 11px;border-radius:100px;color:#fff}
+.lg[data-band="Good"]{background:var(--leaf)}
+.lg[data-band="OK"]{background:var(--turmeric);color:#2B1D00}
+.lg[data-band="Do not use"]{background:var(--chilli)}
+.banner{margin:14px 18px;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
+
+/* ingredients: smaller type */
+.ing{margin-top:10px;border-radius:var(--r-md);border-color:var(--line)}
+.ing-head{font-size:11.5px;padding:8px 12px 6px;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono);font-weight:400}
+.ing-head,.ing-row{grid-template-columns:minmax(0,1fr) 52px 52px}
+.ing-row{padding:7px 12px}
+.ing-row b{font-weight:500;font-size:14px;line-height:1.3}
+.ing-row .q{font-size:12px;line-height:1.3}
+.tick{width:24px;height:24px;border-radius:7px}
+.tick svg{width:13px;height:13px}
+.section>.lead{font-size:13.5px}
+
+/* cards, as on kidposhan.in */
+.dish,.pack,.ing,.step,.facts span,.summary{border:1px solid var(--line)}
+.dish{border-radius:var(--r-lg)}
+.sheet{background:var(--bg)}
+.site-footer{text-align:center;padding:30px 20px 110px;font-family:var(--mono);font-size:11px;line-height:1.8;letter-spacing:.05em;color:var(--clay)}
+.site-footer b{color:var(--muted);font-weight:600}
+
+/* ---------- screen sizes: small phones to wide desktops ---------- */
+html{-webkit-text-size-adjust:100%}
+img,svg{max-width:100%}
+@media (max-width:360px){
+  .pad,.shelf-head,.summary,.note,.hint,.go{margin-left:14px;margin-right:14px}
+  .pad{padding-left:14px;padding-right:14px}
+  .carousel{padding-left:14px;padding-right:14px}
+  .dish{flex-basis:78vw}.pack{flex-basis:70vw}
+  .nb-name{font-size:17px}.title-row h1{font-size:28px}
+}
+@media (min-width:600px){
+  .dish{flex-basis:250px}.pack{flex-basis:220px}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .go{grid-column:1 / -1;justify-self:start;padding-left:36px;padding-right:36px}
+}
+@media (min-width:900px){
+  .wrap{max-width:960px}
+  .menu-hero{padding-top:48px}
+  .ask{font-size:clamp(44px,5vw,56px);max-width:18ch}
+  .lede{font-size:18px;max-width:56ch}
+  .hero{aspect-ratio:21/9;max-height:440px}
+  .sheet{border-radius:30px 30px 0 0;padding-top:30px}
+  .title-row h1{font-size:clamp(36px,4vw,48px)}
+}
+@media (min-width:1000px){
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:0 44px;align-items:start}
+  .step{padding-top:16px;padding-bottom:16px}
+}
+@media (min-width:1200px){
+  .wrap{max-width:1160px}
+  .dish{flex-basis:276px}.pack{flex-basis:236px}
+}
+@media (min-width:1600px){.wrap{max-width:1320px}}
+@media (hover:none){.dish:hover{transform:none}}
+
+/* ---------- decoration and motion ---------- */
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-12px) rotate(5deg)}}
+@keyframes tierIn{from{opacity:0;transform:translateY(-38px)}to{opacity:1;transform:none}}
+@keyframes steam{0%{opacity:0;transform:translateY(10px)}35%{opacity:.7}100%{opacity:0;transform:translateY(-16px)}}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1)}}
+@keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes kb{from{transform:scale(1.08)}to{transform:scale(1)}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* hero with the tiffin illustration */
+.wrap{overflow-x:clip}
+.menu-hero{position:relative;isolation:isolate}
+.menu-hero::before{content:"";position:absolute;z-index:-1;right:-70px;top:-40px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(227,160,8,.2),transparent 66%);pointer-events:none}
+.menu-hero::after{content:"";position:absolute;z-index:-1;left:-90px;bottom:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 60% 40%,rgba(63,107,60,.12),transparent 66%);pointer-events:none}
+.hero-art{display:block;width:min(78%,300px);height:auto;margin:14px auto 0;overflow:visible}
+.hero-art .tier,.hero-art .fl,.hero-art .steam,.hero-art .spark{transform-box:fill-box;transform-origin:center}
+.hero-art .tier{animation:tierIn .9s cubic-bezier(.2,.8,.2,1) both}
+.hero-art .t1{animation-delay:.55s}.hero-art .t2{animation-delay:.4s}.hero-art .t3{animation-delay:.25s}.hero-art .t4{animation-delay:.1s}
+.hero-art .steam{animation:steam 3.4s ease-in-out infinite}
+.hero-art .s2{animation-delay:1.1s}.hero-art .s3{animation-delay:2.2s}
+.hero-art .fl{animation:floaty 6s ease-in-out infinite}
+.hero-art .fl2{animation-duration:7.5s;animation-delay:-2s}.hero-art .fl3{animation-duration:6.5s;animation-delay:-4s}
+.hero-art .fl4{animation-duration:8s;animation-delay:-1s}.hero-art .fl5{animation-duration:9s;animation-delay:-3s}
+.hero-art .spark{animation:twinkle 2.8s ease-in-out infinite}
+.hero-art .sp2{animation-delay:.7s}.hero-art .sp3{animation-delay:1.4s}.hero-art .sp4{animation-delay:2.1s}
+@media (min-width:900px){
+  .menu-hero:not(.compact){display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;column-gap:32px}
+  .menu-hero:not(.compact) .hero-art{width:100%;max-width:440px;margin:0 0 0 auto}
+}
+.menu-hero.compact .hero-art{display:none}
+.eyebrow::before{transform-origin:left;animation:grow .8s .2s both;transform:scaleY(1)}
+
+/* filters: every option visible (the chips wrap instead of scrolling inside a narrow column) */
+.scroller{flex-wrap:wrap;overflow:visible;row-gap:8px}
+.frow>span{margin-bottom:8px}
+.chip{transition:transform .15s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}
+.chip:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 6px 14px -8px rgba(181,121,10,.6)}
+.chip[aria-pressed="true"]{animation:pop .32s ease}
+.go:not(:disabled){background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);background-size:220% 100%;animation:sheen 3.2s linear infinite;transition:transform .15s ease}
+.go:not(:disabled):hover{transform:translateY(-2px) scale(1.02)}
+
+/* cards and sections rise into view */
+.dish,.pack{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+.carousel>*:nth-child(2){animation-delay:.07s}.carousel>*:nth-child(3){animation-delay:.14s}.carousel>*:nth-child(4){animation-delay:.21s}
+.carousel>*:nth-child(5){animation-delay:.28s}.carousel>*:nth-child(6){animation-delay:.35s}.carousel>*:nth-child(7){animation-delay:.42s}.carousel>*:nth-child(n+8){animation-delay:.5s}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.shelf-head h2::before{transform-origin:top;animation:grow .7s .15s both}
+.hero>img{animation:kb 12s ease-out both}
+.badge{transition:transform .2s ease}.dish:hover .badge{transform:scale(1.1) rotate(-4deg)}
+.score b{animation:pop .7s .4s both}
+.legend .lg{animation:rise .5s both}.legend .lg:nth-child(2){animation-delay:.08s}.legend .lg:nth-child(3){animation-delay:.16s}.legend .lg:nth-child(4){animation-delay:.24s}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .reveal{opacity:1;transform:none}
+}
+.mayo-note{margin-top:6px;padding:8px 12px;border-radius:10px;background:var(--turmeric-2);color:var(--ink);font-size:14px}
+
+/* ---------- photo gallery, sharp hero, viewer ---------- */
+.gallery .count{font-family:var(--body);font-size:14px;font-weight:500;color:var(--muted);margin-left:6px}
+.gal{margin:8px -18px 0;padding:4px 18px 10px;gap:12px}
+.gal-item{flex:0 0 auto;width:min(46vw,210px);aspect-ratio:4/3;border:0;padding:0;border-radius:16px;overflow:hidden;background:var(--leaf-2);cursor:zoom-in;scroll-snap-align:start;box-shadow:0 1px 2px rgba(20,48,43,.1),0 12px 22px -16px rgba(20,48,43,.5)}
+.gal-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.gal-item:hover img{transform:scale(1.06)}
+@media (min-width:900px){.gal{margin-left:0;margin-right:0;padding-left:0;padding-right:0}.gal-item{width:230px}}
+/* a photo smaller than the hero is shown at its own size over a soft blurred copy of itself (never stretched, so it stays crisp) */
+.hero.lowres{background:#1d1a15}
+.hero.lowres::before{content:"";position:absolute;inset:-40px;background:var(--hero-bg) center/cover no-repeat;filter:blur(28px) saturate(1.15) brightness(.88);transform:scale(1.1)}
+.hero.lowres>svg{display:none}
+.hero.lowres>img{object-fit:contain;z-index:1}
+.hero.lowres::after{z-index:2}
+.hero.lowres .credit-chip,.hero.lowres .back{z-index:3}
+.lb{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:56px 12px 64px;background:rgba(12,9,5,.93)}
+.lb[hidden]{display:none}
+.lb-img{max-width:min(96vw,1280px);max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.lb button{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;width:46px;height:46px;border-radius:50%;font-size:28px;line-height:1;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(4px)}
+.lb button:hover{background:rgba(255,255,255,.28)}
+.lb-x{top:max(12px,env(safe-area-inset-top));right:14px}
+.lb-p{left:12px;top:50%;transform:translateY(-50%)}.lb-n{right:12px;top:50%;transform:translateY(-50%)}
+.lb-cap{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));text-align:center;color:#f1ece2;font-size:14px}
+.lb-cap a{color:#f6e4bc}
+body.lb-open{overflow:hidden}
+@media (max-width:600px){.lb-p,.lb-n{top:auto;bottom:56px;transform:none}.lb-p{left:calc(50% - 56px)}.lb-n{right:calc(50% - 56px)}.lb{padding-bottom:116px}}
+
+/* ===== the ten metrics, each on a numbered 1-10 ruler ===== */
+.scoredet{margin:10px 0 4px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:4px 16px 12px}
+.scoredet>summary{cursor:pointer;font-weight:700;padding:10px 0;list-style:none}
+.scoredet>summary::-webkit-details-marker{display:none}
+.scoredet>summary::after{content:"＋";float:right;color:var(--gold)}.scoredet[open]>summary::after{content:"－"}
+.mlist{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.mhead b{font-size:15px}.mscore{font:800 20px/1 var(--display)}.mscore.yes{color:var(--leaf)}.mscore.no{color:var(--chilli)}.mscore small{font:600 12px/1 var(--body);color:var(--muted)}
+.mread{font-size:13px;color:var(--muted);margin-top:2px}
+.ruler{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;margin-top:6px}
+.rc{height:22px;border-radius:5px;background:#EFEAD9;color:#8C7A64;font:600 11px/22px var(--body);text-align:center}
+.rc.on.hi{background:var(--leaf);color:#fff}.rc.on.mid{background:var(--turmeric);color:#2B1D00}.rc.on.lo{background:var(--chilli);color:#fff}
+.rc.cur{outline:2px solid var(--ink);outline-offset:1px;font-weight:800}
+.rscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px}
+.mtotal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
+.mtotal b{font:800 24px/1 var(--display)}
+/* ===== ratings, remarks, support ===== */
+.stars{display:inline-block;letter-spacing:2px;background:linear-gradient(90deg,var(--gold) var(--p,0%),#DCD2BC var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;line-height:1}
+.dish .rate{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.dish .rate .stars{font-size:13px;letter-spacing:1px;margin-right:4px}
+.ratebox{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:4px 0 14px}
+.ratebox .avg{display:flex;align-items:center;gap:8px}.ratebox .big{font-family:var(--display);font-size:30px;line-height:1}
+.ratebox .stars{font-size:20px}.ratebox .cnt{color:var(--muted);font-size:14px}
+.rate-me{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.rate-me .st{background:none;border:0;padding:2px 3px;font-size:26px;line-height:1;cursor:pointer;color:#CFC4AB;transition:transform .15s}
+.rate-me .st.on,.rate-me .st:hover,.rate-me .st:focus-visible{color:var(--gold)}.rate-me .st:hover{transform:scale(1.15)}
+.rmk{border-top:1px solid var(--line);padding:12px 0}.rmk b{display:block}.rmk time{color:var(--muted);font-size:12.5px}.rmk p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rmk-form textarea,.rmk-form input,.kpmodal input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
+.rmk-form textarea{min-height:84px;resize:vertical;margin-bottom:8px}.rmk-form input{margin-bottom:8px}
+.kbtn{display:inline-block;border:0;border-radius:99px;padding:11px 20px;background:var(--ink);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.kbtn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.kbtn[disabled]{opacity:.55;cursor:default}
+.support{background:linear-gradient(135deg,#FFF6DF,#FDFBF6);border:1px solid #EADBB0;border-radius:18px;padding:18px 20px}
+.support .upi{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.support code{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;overflow-wrap:anywhere}
+.support details{margin-top:8px}.support summary{cursor:pointer;color:var(--muted)}
+.kpmsg{margin:8px 0 0;font-size:14px;color:var(--muted)}.kpmsg.err{color:#A12A1D}.kpmsg.ok{color:#1c6a3a}
+.kpjoin{display:grid;gap:10px}.kpjoin label{display:grid;gap:4px;font-size:13.5px;color:var(--muted);font-weight:600}
+.kpjoin input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.85);font:inherit;font-weight:400;color:var(--ink)}
+.kpjoin .kbtn{justify-self:start}.kpfine{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.kpfloat{position:fixed;right:16px;bottom:34px;width:min(360px,calc(100vw - 32px));z-index:150;box-sizing:border-box;padding:16px 16px 18px;border-radius:18px;overflow:hidden;
+  background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(14px) saturate(1.25);backdrop-filter:blur(14px) saturate(1.25);border:1px solid rgba(231,223,206,.95);
+  box-shadow:0 12px 40px rgba(34,26,18,.22);animation:kpUp .45s ease both;transition:opacity .4s ease,transform .4s ease}
+.kpfloat.out{opacity:0;transform:translateY(14px);pointer-events:none}
+.kpfloat h2{margin:0 0 2px;font-size:19px}.kpfloat>p{margin:0 0 10px;font-size:14px;color:var(--muted)}
+.kpfloat .x{position:absolute;top:6px;right:10px;background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--muted)}
+.kpfloat .bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--gold);transform-origin:left;animation:kpBar 10s linear forwards}
+.kpfloat.hold .bar{display:none}
+@keyframes kpUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes kpBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (max-width:520px){.kpfloat{left:12px;right:12px;bottom:34px;width:auto}}
+@media (prefers-reduced-motion:reduce){.kpfloat{animation:none;transition:none}}
+.kpmodal-bg{position:fixed;inset:0;background:rgba(20,15,8,.55);display:grid;place-items:center;z-index:200;padding:16px}
+.kpmodal{background:var(--bg);border-radius:18px;padding:22px;width:min(420px,100%);box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}
+.kpmodal h2{margin:0 0 6px;font-size:22px}.kpmodal p{margin:0 0 12px;color:var(--muted);font-size:14.5px}.kpmodal .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kpmodal .x{position:absolute;top:8px;right:12px;background:none;border:0;font-size:26px;cursor:pointer;color:var(--muted)}
+
+/* ---------- Products page ---------- */
+.pintro{padding-top:26px}
+.pintro .eyebrow{font:600 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pintro h1{font-size:clamp(32px,8vw,46px);font-weight:600;letter-spacing:-.02em;margin-top:10px}
+.pintro p{color:var(--muted);margin-top:10px;max-width:60ch}
+.pfilters{display:flex;flex-wrap:wrap;gap:12px 18px;margin:18px 18px 4px;padding:14px 16px;background:var(--leaf-2);border:1px solid #CFE0CA;border-radius:18px}
+.pfilters label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:150px;flex:1 1 150px}
+.pfilters select{font:inherit;font-weight:500;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;width:100%}
+.pcount{margin:14px 18px 6px;font-size:14px;color:var(--muted)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;padding:6px 18px 0}
+.pcard{background:var(--paper);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5)}
+.pimg{position:relative;aspect-ratio:1/1;background:var(--leaf-2);overflow:hidden}
+.pimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:10px}
+.pimg svg{position:absolute;inset:0;width:100%;height:100%}
+.spin{perspective:900px}
+.spin .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.spin.flipped .in{transform:rotateY(180deg)}
+.spin .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff}
+.spin .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:10px}
+.spin .back{transform:rotateY(180deg)}
+.badge .cap{display:block;font:700 7px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;margin-top:1px;opacity:.9}
+.spinbtn{position:absolute;left:10px;bottom:10px;z-index:3;border:0;border-radius:100px;padding:6px 12px;background:rgba(34,26,18,.82);color:#fff;font:600 12px/1 var(--body);cursor:pointer}
+.spinbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.pmodal .pimg{border-radius:14px;margin:10px 0 14px;max-width:340px}
+.pimg .badge{position:absolute;right:10px;top:10px}
+.pbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:3px;flex:1}
+.pbrand{font-size:12.5px;font-weight:600;color:var(--muted)}
+.pbody h3{font-size:17px;line-height:1.2;font-weight:500;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pmeta{font-size:13px;color:var(--muted)}
+.pactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:12px}
+.pbuy,.pscore{display:inline-block;font:600 13px/1 var(--body);border-radius:10px;padding:9px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--leaf)}
+.pbuy{background:var(--leaf);color:var(--paper)}
+.pscore{background:var(--paper);color:var(--leaf)}
+.pempty{margin:26px 18px;padding:22px;border:1.5px dashed var(--line);border-radius:18px;color:var(--muted)}
+.pempty h3{color:var(--ink);font-size:20px;margin-bottom:6px}
+.pmodal-bg{position:fixed;inset:0;background:rgba(20,15,8,.55);display:grid;place-items:center;z-index:200;padding:16px}
+.pmodal{background:var(--bg);border-radius:20px;width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.pmodal .x{position:absolute;top:8px;right:12px;background:none;border:0;font-size:28px;cursor:pointer;color:var(--muted)}
+.pmodal h2{font-size:24px;font-weight:600;padding-right:28px}
+.pmodal h4{margin:18px 0 6px;font:700 13px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.psc{display:flex;align-items:center;gap:14px;margin:12px 0 4px}
+.psc b{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;font:800 24px/1 var(--display);color:#fff;background:var(--leaf)}
+.psc[data-band="OK"] b{background:var(--turmeric);color:#2B1D00}.psc[data-band="Do not use"] b{background:var(--chilli)}
+.ptab{width:100%;border-collapse:collapse;font-size:14.5px}
+.ptab td{padding:6px 0;border-bottom:1px solid var(--line)}.ptab td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.ptab .plus{color:var(--leaf);font-weight:600}.ptab .minus{color:var(--chilli);font-weight:600}
+.pages{display:flex;flex-wrap:wrap;gap:6px}.pages span{font-size:13px;background:var(--leaf-2);color:var(--leaf);border-radius:999px;padding:3px 11px;font-weight:600}
+.kpconfirm{border:1.5px dashed var(--turmeric);background:var(--turmeric-2);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:14.5px}.kpconfirm .pmrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.kpconfirm a.pscore{text-decoration:none}
+.pmore{margin:10px 0}.pmore>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--leaf);color:var(--leaf);background:var(--paper);font-weight:700;border-radius:12px;padding:12px 16px;font-size:15.5px}.pmore>summary::-webkit-details-marker{display:none}.pmore[open]>summary{background:var(--leaf-2)}
+.pmodal p.fine{font-size:12.5px;color:var(--muted);margin-top:10px}
+
+/* ---------- scan a pack ---------- */
+.scan-start{margin:22px 18px 0;display:grid;gap:12px}
+.scan-start .big{font-size:17px;padding:15px 18px;border-radius:14px;text-align:center;width:100%;cursor:pointer;border:1.5px solid var(--leaf);background:var(--leaf);color:var(--paper);font-weight:700}
+.scan-start .or{font-size:14px;color:var(--muted);text-align:center}
+.scan-start form{display:flex;gap:8px}
+.scan-start input[type=text],.sform input[type=text],.sform select{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 14px;font-size:16px}
+.scan-start form button{border:1.5px solid var(--leaf);background:var(--paper);color:var(--leaf);font-weight:700;border-radius:12px;padding:0 18px;cursor:pointer}
+.scan-start .link{background:none;border:0;color:var(--leaf);text-decoration:underline;font-size:14px;cursor:pointer;justify-self:center;padding:6px}
+.cam{position:relative;margin:16px 18px 0;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:4/3;max-height:60vh}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.cam .aim{position:absolute;inset:22% 10%;border:3px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none}
+.cam .hint{position:absolute;left:0;right:0;bottom:46px;text-align:center;color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.cam button{position:absolute;right:10px;bottom:10px;border:0;border-radius:10px;background:rgba(255,255,255,.92);color:var(--ink);padding:8px 14px;font-weight:600;cursor:pointer}
+.sc-msg{margin:18px 18px 0;padding:14px 16px;border-radius:14px;background:var(--turmeric-2);color:var(--ink);font-size:15px}
+.sc-msg.err{background:#F6DDD6}
+.sc-card{margin:20px 18px 0;background:var(--paper);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5)}
+.sc-top{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;padding:16px;align-items:center}
+.sc-top img{width:120px;height:120px;object-fit:contain;background:#fff;border-radius:12px;border:1px solid var(--line)}
+.sc-top .noimg{width:120px;height:120px;border-radius:12px;background:var(--leaf-2)}
+.sc-brand{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sc-name{font-family:var(--display);font-size:22px;line-height:1.15;margin:2px 0}
+.sc-meta{font-size:14px;color:var(--muted)}
+.sc-score{display:flex;align-items:baseline;gap:10px;margin-top:8px}
+.sc-score b{font-family:var(--display);font-size:42px;line-height:1}
+.sc-tier{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px;background:var(--leaf-2);color:var(--leaf)}
+.sc-tier.t-OK,.sc-tier.cap{background:var(--turmeric-2);color:var(--gold)}
+.sc-tier.t-Do-not-use{background:#F6DDD6;color:var(--chilli)}
+.sc-status{margin:0 16px 14px;padding:10px 12px;border-radius:12px;font-size:14px;background:var(--sky)}
+.sc-status.listed{background:var(--leaf-2)}
+.sc-sec{padding:4px 16px 16px}
+.sc-sec h3{font-size:18px;margin:10px 0 8px}
+.sc-ages{display:flex;flex-wrap:wrap;gap:6px}
+.sc-ages span{font-size:13px;border-radius:999px;padding:4px 11px;background:var(--leaf-2);color:var(--leaf);font-weight:600}
+.sc-ages span b{font-variant-numeric:tabular-nums}
+.sc-m{display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:2px 10px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.sc-m .n{font-weight:600;font-size:15px}.sc-m .r{grid-column:1;font-size:13px;color:var(--muted)}
+.sc-m .v{grid-column:2;grid-row:1 / span 2;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.sc-m .bar{grid-column:1 / span 2;height:6px;border-radius:99px;background:var(--line);overflow:hidden}.sc-m .bar i{display:block;height:100%;background:var(--leaf)}
+.sc-lab{width:100%;border-collapse:collapse;font-size:14px}.sc-lab td{padding:5px 0;border-top:1px solid var(--line)}.sc-lab td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.sc-note{font-size:13px;color:var(--muted);margin-top:8px}
+.sc-again{margin:16px 18px 0}
+.sc-again button,.sform .go{border:1.5px solid var(--leaf);background:var(--leaf);color:var(--paper);font-weight:700;border-radius:12px;padding:12px 18px;cursor:pointer;font-size:16px}
+.sc-again button.alt{background:var(--paper);color:var(--leaf)}
+.sform{margin:20px 18px 0;background:var(--paper);border-radius:20px;padding:18px;display:grid;gap:14px;box-shadow:0 1px 2px rgba(20,48,43,.07),0 14px 24px -18px rgba(20,48,43,.5)}
+.sform h2{font-size:22px}
+.sform label.f{display:grid;gap:5px;font-weight:600;font-size:14px;color:var(--muted)}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shot{position:relative;display:grid;place-items:center;text-align:center;aspect-ratio:3/4;border:2px dashed var(--line);border-radius:16px;background:var(--bg);cursor:pointer;overflow:hidden;font-weight:600;font-size:15px;padding:10px;color:var(--leaf)}
+.shot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shot.has{border-style:solid;border-color:var(--leaf)}
+.shot small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:4px}
+.shot .tick{position:absolute;right:8px;top:8px;background:var(--leaf);color:#fff;border-radius:99px;padding:2px 9px;font-size:12px}
+.sform .go[disabled]{opacity:.5;cursor:default}
+.sform .fine,.scan-fine{font-size:12.5px;color:var(--muted)}
+.scan-fine{margin:22px 18px 0}
+@media(max-width:420px){.sc-top{grid-template-columns:96px minmax(0,1fr)}.sc-top img,.sc-top .noimg{width:96px;height:96px}}
+/* ---------- guided steps ---------- */
+.wz{margin:18px 18px 0;display:grid;gap:14px}
+.wz>.sc-msg{margin:0}
+.wz h2{font-size:clamp(24px,6.5vw,30px)}
+.wz-prog{display:grid;gap:6px}
+.wz-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.wz-bar i{display:block;height:100%;background:var(--leaf);border-radius:99px}
+.wz-n{font-size:13px;font-weight:700;color:var(--leaf);letter-spacing:.04em;text-transform:uppercase}
+.wz-do{font-size:17px}
+.wz-ill{display:grid;place-items:center;background:var(--paper);border-radius:18px;padding:14px}.wz-ill .ill{width:min(220px,60%);height:auto}
+.wz-btn{display:inline-block;position:relative;overflow:hidden;text-align:center;border:1.5px solid var(--leaf);background:var(--leaf);color:var(--paper);font-weight:700;border-radius:14px;padding:14px 20px;cursor:pointer;font-size:17px;font-family:var(--body)}
+.wz-btn.alt{background:var(--paper);color:var(--leaf)}
+.wz-btn.big{padding:18px 20px;font-size:19px}
+.wz-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.wz-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wz-prev{background:#fff;border-radius:16px;padding:8px;border:1px solid var(--line);text-align:center}.wz-prev img{max-width:100%;max-height:48vh;border-radius:10px}
+.wz-foot{display:flex}
+.wz-back{border:0;background:none;color:var(--leaf);font:600 15px var(--body);cursor:pointer;padding:8px 0}
+.wz-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:center}.wz-thumbs img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#fff}
+.wz-thumbs .link{background:none;border:0;color:var(--leaf);text-decoration:underline;font-size:14px;cursor:pointer;padding:6px}
+.wz-form{margin:0;box-shadow:none;padding:0;background:none}
+.sc-msg.ok{background:var(--leaf-2)}
+.step1{padding:0 18px;margin-top:20px}
+.step1 .wz-prog{max-width:none}
+.scan-start[hidden],.cam[hidden],.wz[hidden]{display:none!important}
+
+/* ---------- live camera ---------- */
+.live{position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:66vh;width:100%}
+.live video{width:100%;height:100%;object-fit:cover;display:block}
+.lv-guide{position:absolute;inset:7%;border:3px dashed rgba(255,255,255,.9);border-radius:14px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+.lv-stat{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(0,0,0,.65);color:#fff;border-radius:10px;padding:9px 12px;font-size:15px;text-align:center}
+.lv-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}.lv-flash.go{animation:lvflash .25s ease-out}
+@keyframes lvflash{from{opacity:.9}to{opacity:0}}
+.cam .hint{bottom:56px;padding:0 14px}
+.cam .snap{right:auto;left:10px}
+.wz3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.wz3 .link{font-size:12px}
+
+.wzmode .pintro,.wzmode .frow{display:none}
+
+/* ---------- kind picker ---------- */
+.kp{display:grid;gap:10px}
+.kp-q{width:100%;border:1.5px solid var(--leaf);background:var(--paper);border-radius:12px;padding:14px;font-size:17px}
+.kp-res{display:grid;gap:6px}
+.krow{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit;color:inherit}
+.krow b{font-size:16px}.krow small{color:var(--muted);font-size:13px}
+.krow:hover,.kchip:hover{border-color:var(--leaf);background:var(--leaf-2)}
+.kp-none{padding:10px 2px;color:var(--muted);font-size:14px}
+.kp-h{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.kp-chips{display:flex;flex-wrap:wrap;gap:8px}
+.kchip{border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 14px;font:600 15px var(--body);color:var(--ink);cursor:pointer}
+.kp-all{margin-top:6px}.kp-all summary{cursor:pointer;color:var(--leaf);font-weight:600;font-size:14px;padding:6px 0}
+.kp-sel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--leaf-2);border-radius:12px;padding:12px 14px}
+.kp-sel .link{background:none;border:0;color:var(--leaf);text-decoration:underline;cursor:pointer;font-size:14px}
+.kp [hidden]{display:none!important}
+
+.sc-more{margin:6px 16px 16px}.sc-more>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--leaf);color:var(--leaf);background:var(--paper);font-weight:700;border-radius:12px;padding:13px 16px;font-size:16px}
+.sc-more>summary::-webkit-details-marker{display:none}.sc-more[open]>summary{background:var(--leaf-2)}
+.sc-more .sc-sec{padding-left:0;padding-right:0}
+
+.sc-confirm{border:1.5px dashed var(--turmeric);background:var(--turmeric-2);border-radius:14px;padding:14px 16px;display:grid;gap:8px}.sc-confirm p{margin:0;font-size:15px}
+
+.kconsent{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.4;margin:6px 0}.kconsent input{margin-top:3px;width:20px;height:20px;flex:0 0 auto}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="nb-brand" href="https://www.kidposhan.in/">
+    <div class="nb-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="nb-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nb-links">
+    <a href="https://www.kidposhan.in/">Home</a>
+    <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+    <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+    <a href="https://www.kidposhan.in/meal-ideas.html">Meal Ideas</a>
+    <a href="https://www.kidposhan.in/products.html">Products</a>
+    <a href="https://www.kidposhan.in/scan.html" class="on">Scan a pack</a>
+    <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+  </div>
+  <button class="nb-burger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <a class="nb-cta" href="https://www.kidposhan.in/products.html">See products</a>
+</nav>
+<div class="nb-mobile" id="mobileMenu">
+  <a href="https://www.kidposhan.in/">Home</a>
+  <a href="https://www.kidposhan.in/#metrics">Methodology</a>
+  <a href="https://www.kidposhan.in/age-metrics.html">Age &amp; Metrics</a>
+  <a href="https://www.kidposhan.in/meal-ideas.html">Meal Ideas</a>
+  <a href="https://www.kidposhan.in/products.html">Products</a>
+    <a href="https://www.kidposhan.in/scan.html" class="on">Scan a pack</a>
+    <a href="https://www.kidposhan.in/why-we-do-this.html">Why We Do This</a>
+</div>
+<main class="wrap" id="app">
+  <section class="pintro pad">
+    <div class="eyebrow">Point · Scan · Know</div>
+    <h1>Scan a pack</h1>
+    <p>Scan the barcode on any packaged food. If we know the pack you see its Poshan Score straight away. If we do not, photograph the front and the back of the pack and we score it for you, then add it for every parent once our team has checked it.</p>
+  </section>
+  <section class="frow" style="margin-top:20px"><span>Age: the score is for this age</span><div class="scroller" id="ages" role="group" aria-label="Age"></div></section>
+  <section class="frow" id="who" style="margin-top:10px"></section>
+
+  <div class="cam" id="cam" hidden>
+    <video id="vid" playsinline muted></video>
+    <div class="aim"></div>
+    <div class="hint" id="camstat" role="status">Starting the camera…</div>
+    <button type="button" id="camstop">Stop</button>
+    <button type="button" id="camsnap" class="snap">Read the barcode now</button>
+  </div>
+  <section class="scan-start" id="start">
+    <div class="wz-prog" aria-label="Step 1 of 4"><div class="wz-bar"><i style="width:25%"></i></div><div class="wz-n">Step 1 of 4: the barcode</div></div>
+    <button type="button" class="big" id="camstart">Scan the barcode with the camera</button>
+    <div class="or">or type the number printed under the barcode</div>
+    <form id="codeForm" autocomplete="off">
+      <input type="text" id="code" inputmode="numeric" maxlength="20" placeholder="for example 8901058000290" aria-label="Barcode number">
+      <button type="submit">Look up</button>
+    </form>
+    <label class="link" id="codePhotoLbl" style="text-align:center;cursor:pointer;color:var(--leaf);text-decoration:underline;font-size:14px">Take a photo of the barcode instead<input type="file" id="codePhoto" accept="image/*" capture="environment" hidden></label>
+  </section>
+  <div id="out" role="status" aria-live="polite"></div>
+  <p class="scan-fine">Photos you send are kept to score the pack. They may be shown with the pack on the Products page after our team has checked it, so please photograph only the pack, not people. We keep no name, number or address with a scan. See the <a href="https://www.kidposhan.in/privacy.html">privacy page</a>.</p>
+</main>
+
+<footer class="site-footer">
+  Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification<br>
+  Label data may come from <a href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> contributors (Open Database Licence) or from photos sent by parents and read by our label reader, and is checked before a pack is listed. The age guide is general and cautious. It is not medical advice.
+</footer>
+
+<script>
+const QS=new URLSearchParams(location.search);
+const API=QS.get('api')||'';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
+const AGES=[['6-12m','6–12 months'],['1-3y','1–3 years'],['4-6y','4–6 years'],['7-9y','7–9 years'],['10-12y','10–12 years'],['13-15y','13–15 years'],['16-18y','16–18 years'],['adult','Adults']];
+const AGE_LABEL=Object.fromEntries(AGES);
+function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=Array.isArray(k.age)?(k.age.length?Math.min(...k.age):0):+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
+const S={age:AGES.some(a=>a[0]===String(QS.get('age')).split(':')[0])?QS.get('age'):savedAge(),code:'',last:null,front:'',back:''};
+const $=id=>document.getElementById(id), out=$('out');
+
+document.getElementById('ages').innerHTML=AGES.map(([v,l])=>`<button type="button" class="chip" data-age="${v}" aria-pressed="${S.age.split(':')[0]===v}">${l}</button>`).join('');
+
+/* from 10 years the ICMR-NIN table is by sex, and for adults by the kind of work: the age becomes e.g. 13-15y:f or adult:m:mod */
+const SEXED=['10-12y','13-15y','16-18y','adult'];
+function paintAges(){document.querySelectorAll('#ages .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.age===S.age.split(':')[0]))}
+function renderWho(){const [b,x,w]=S.age.split(':'),el=document.getElementById('who');if(!el)return;if(!SEXED.includes(b)){el.innerHTML='';return}
+  const fm=b==='adult'?['Men','Women']:['Boys','Girls'];
+  let h='<span>'+(b==='adult'?'Men or women':'Boy or girl')+'</span><div class="scroller">'+[['','Average'],['m',fm[0]],['f',fm[1]]].map(([v,l])=>'<button type="button" class="chip" data-sex="'+v+'" aria-pressed="'+((x||'')===v)+'">'+l+'</button>').join('')+'</div>';
+  if(b==='adult'&&x)h+='<span>Kind of work</span><div class="scroller">'+[['sed','Sedentary'],['mod','Moderate'],['heavy','Heavy']].map(([v,l])=>'<button type="button" class="chip" data-work="'+v+'" aria-pressed="'+((w||'sed')===v)+'">'+l+'</button>').join('')+'</div>';
+  el.innerHTML=h}
+function afterAge(){if(S.code&&S.last&&S.last.status==='found')lookup(S.code,true)}
+document.addEventListener('click',e=>{const b=e.target.closest('#who [data-sex],#who [data-work]');if(!b)return;const [base,x,w]=S.age.split(':');
+  if(b.dataset.sex!=null)S.age=b.dataset.sex?base+':'+b.dataset.sex+(base==='adult'?':sed':''):base; else S.age=base+':'+(x||'m')+':'+b.dataset.work;
+  renderWho();afterAge()});
+renderWho();
+document.getElementById('ages').onclick=e=>{const b=e.target.closest('[data-age]');if(!b)return;S.age=b.dataset.age;paintAges();renderWho();if(S.code&&S.last&&S.last.status==='found')lookup(S.code,true)};
+
+const msg=(t,err)=>{out.innerHTML=`<div class="sc-msg${err?' err':''}">${esc(t)}</div>`};
+
+/* ---------- the camera: barcode reading ---------- */
+const camOK=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+async function openStream(){
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:3840},height:{ideal:2160}},audio:false});
+  try{const t=s.getVideoTracks()[0],c=t.getCapabilities?t.getCapabilities():{};if(c.focusMode&&c.focusMode.indexOf('continuous')>=0)await t.applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(e){}
+  return s;
+}
+const Cam={stream:null,timer:null,stop(){clearInterval(this.timer);this.timer=null;if(this.stream){this.stream.getTracks().forEach(t=>t.stop());this.stream=null}}};
+function loadZXing(){return window.ZXing?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';s.onload=ok;s.onerror=()=>no(new Error('The scanner could not load.'));document.head.appendChild(s)})}
+let zx=null,bd=null;
+function zxingDecode(canvas){
+  if(!window.ZXing)return null;
+  try{
+    if(!zx){const H=new Map();H.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);H.set(ZXing.DecodeHintType.TRY_HARDER,true);zx=new ZXing.MultiFormatReader();zx.setHints(H)}
+    const r=zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(canvas))));
+    return r&&r.getText?r.getText():null;
+  }catch(e){return null}
+}
+async function decodeCanvas(canvas){
+  if('BarcodeDetector' in window){try{if(!bd)bd=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});const r=await bd.detect(canvas);if(r&&r[0]&&r[0].rawValue)return r[0].rawValue}catch(e){bd=null}}
+  return zxingDecode(canvas);
+}
+// the part of the video the person can see (the video fills its box, so the sides or the top may be cropped)
+function visibleRect(v,box){const vw=v.videoWidth,vh=v.videoHeight;if(!box.clientWidth||!box.clientHeight)return{sx:0,sy:0,sw:vw,sh:vh};const ca=box.clientWidth/box.clientHeight,va=vw/vh;if(va>ca){const sw=Math.round(vh*ca);return{sx:Math.round((vw-sw)/2),sy:0,sw,sh:vh}}const sh=Math.round(vw/ca);return{sx:0,sy:Math.round((vh-sh)/2),sw:vw,sh}}
+function frameCanvas(v,box,maxW){const r=visibleRect(v,box),k=Math.min(1,maxW/r.sw),c=document.createElement('canvas');c.width=Math.round(r.sw*k);c.height=Math.round(r.sh*k);c.getContext('2d').drawImage(v,r.sx,r.sy,r.sw,r.sh,0,0,c.width,c.height);return c}
+
+function stopCam(){Cam.stop();$('cam').hidden=true;$('start').hidden=false}
+function gotCode(c){stopCam();try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}$('code').value=c;lookup(c)}
+async function startCam(){
+  if(!camOK()){msg('This browser cannot use the camera here. Type the number under the barcode instead, or take a photo of the barcode.',true);return}
+  const st=$('camstat');
+  try{
+    $('cam').hidden=false;$('start').hidden=true;out.innerHTML='';st.textContent='Starting the camera…';
+    if(!('BarcodeDetector' in window))loadZXing().catch(()=>{st.textContent='The barcode reader could not load. Type the number under the barcode instead.'});
+    Cam.stream=await openStream();
+    const v=$('vid');v.srcObject=Cam.stream;await v.play();
+    st.textContent='Looking for the barcode. Hold it flat inside the frame, a hand\'s width from the phone.';
+    let busy=false,t0=Date.now();
+    Cam.timer=setInterval(async()=>{
+      if(busy||!v.videoWidth)return;busy=true;
+      try{const code=await decodeCanvas(frameCanvas(v,$('cam'),1280));if(code&&normalizeCodeClient(code))gotCode(code)}catch(e){}
+      busy=false;
+      if(Date.now()-t0>12000)st.textContent='Still looking. Add light, hold the barcode flat and steady, or press "Read the barcode now".';
+    },250);
+  }catch(e){
+    stopCam();
+    msg(e&&e.name==='NotAllowedError'?'The camera is switched off for this page. Allow it in the browser, or type the number under the barcode.':'The camera could not start. Type the number under the barcode instead, or take a photo of the barcode.',true);
+  }
+}
+const normalizeCodeClient=c=>/^\d{8}$|^\d{12,14}$/.test(String(c||'').replace(/\D/g,''));
+async function snapBarcode(){
+  const v=$('vid'),st=$('camstat');if(!v.videoWidth)return;
+  st.textContent='Reading…';
+  const code=await decodeCanvas(frameCanvas(v,$('cam'),1600));
+  if(code&&normalizeCodeClient(code))gotCode(code);else st.textContent='No barcode found in that picture. Hold the barcode flat and steady inside the frame, then try again.';
+}
+async function readFromPhoto(file){
+  out.innerHTML='<div class="sc-msg">Reading the barcode from your photo…</div>';
+  try{
+    const bmp=await createImageBitmap(file),k=Math.min(1,1600/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    if(!('BarcodeDetector' in window))await loadZXing();
+    const code=await decodeCanvas(c);
+    if(code&&normalizeCodeClient(code)){gotCode(code);return}
+  }catch(e){}
+  msg('The barcode could not be read from that photo. Try again with the barcode filling the picture, or type the number under it.',true);
+}
+
+
+/* ---------- the answer ---------- */
+async function lookup(code,quiet,kind,fix){
+  S.code=code;
+  if(!quiet)out.innerHTML='<div class="sc-msg">Looking this pack up…</div>';
+  let d;
+  try{const r=await fetch(`${API}/api/kp/scan/lookup?code=${encodeURIComponent(code)}&age=${S.age}${kind?'&kind='+encodeURIComponent(kind):''}${fix?'&fix=1':''}`);d=await r.json();if(!r.ok&&!d.status){msg(d.error||'Something went wrong. Please try again.',true);return}}
+  catch(e){msg('No connection. Please try again.',true);return}
+  S.last=d;render(d);out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function again(){return `<div class="sc-again"><button type="button" id="scanAgain">Scan another pack</button></div>`}
+function wire(){const b=$('scanAgain');if(b)b.onclick=()=>{out.innerHTML='';S.code='';S.last=null;$('code').value='';window.scrollTo({top:0,behavior:'smooth'})}}
+function render(d){
+  if(d.status==='found')return renderFound(d);
+  if(d.status==='need_photos')return renderForm(d);
+  if(d.status==='choose_kind')return renderKind(d);
+  if(d.status==='retake')return renderRetake(d);
+  const err=d.status==='bad_code'||d.status==='not_scored';
+  out.innerHTML=`<div class="sc-msg${err?' err':''}">${esc(d.message||'')}</div>${again()}`;wire();
+}
+function renderFound(d){
+  const p=d.product,n=p.nutrition_per_100g||{};out.__pid=p.id;out.__name=p.name;
+  const ages=AGES.map(([id,l])=>`<span>${esc(l)} <b>${p.scores_by_age&&p.scores_by_age[id]!=null?p.scores_by_age[id]:'–'}</b></span>`).join('');
+  const lab=[['Protein',n.protein_g,'g'],['Fibre',n.fibre_g,'g'],['Total sugars',n.sugars_g,'g'],['Added sugar'+(p.added_sugar_estimated?' (estimated)':''),n.added_sugars_g,'g'],['Saturated fat',n.saturated_fat_g,'g'],['Sodium',n.sodium_mg,'mg']].filter(r=>r[1]!=null).map(r=>`<tr><td>${r[0]}</td><td>${r[1]} ${r[2]}</td></tr>`).join('');
+  const mets=(p.metrics||[]).map(m=>`<div class="sc-m"><div class="n">${esc(m.name)}</div><div class="v" style="color:${m.score?'var(--leaf)':'var(--chilli)'}">${m.score?'Yes':'No'}</div><div class="r">${esc(m.reading||'')}</div></div>`).join('');
+  const fromPhoto=/photo/i.test(p.label_note||'')||d.saved;
+  const status=p.listed?`<div class="sc-status listed">This pack is on the <a href="products.html?open=${p.id}">Products page</a>.</div>`
+    :`<div class="sc-status">${fromPhoto?'Read from the photo you sent. ':''}This score is ready to read now. The pack joins the Products page, for every parent, once our team has checked the label.${fromPhoto?' Please check the values below against the pack.':''}</div>`;
+  out.innerHTML=`<article class="sc-card">
+    <div class="sc-top">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)} pack" referrerpolicy="no-referrer">`:'<div class="noimg"></div>'}
+      <div><div class="sc-brand">${esc(p.brand||'')}</div><div class="sc-name">${esc(p.name)}</div><div class="sc-meta">${esc(p.pack_size||'')}${p.pack_size?' · ':''}${esc(p.kind_label||'')}</div>
+      <div class="sc-meta" style="margin-top:6px">Poshan Score for ${esc(p.age_label||AGE_LABEL[p.age]||p.age)}, out of 100</div></div></div>
+    <div class="sc-sec">${window.kpMeter?kpMeter({score:p.score,band:p.band,capped:p.capped,why:kpMeter.why(p.metrics),legend:true}):''}</div>
+    ${status}
+    ${p.listed?'':`<div class="sc-sec"><div class="sc-confirm" id="scConfirm"><b>Is this your pack?</b><p>We have it as <b>${esc(p.name)}</b>. Check the name on the front of your pack.</p><div class="wz-row"><button type="button" class="wz-btn" id="scYes">Yes, the same</button><a class="wz-btn alt" href="/scan?code=${esc(p.barcode||'')}&fix=1" style="text-decoration:none;display:grid;place-items:center">No, it is different</a></div></div></div>`}
+    ${p.claim&&window.kpClaimCard?`<div class="sc-sec">${kpClaimCard(p.claim)}</div>`:''}
+    <details class="sc-more"><summary>See how this score is worked out</summary>
+    <div class="sc-sec"><h3>By age</h3><div class="sc-ages">${ages}</div></div>
+    <div class="sc-sec"><h3>The ten marks</h3>${mets}<p class="sc-note">${esc(p.basis||'')}. ${p.capped?'A high sodium, sugar or saturated fat reading holds the tier at OK.':''}</p></div>
+    <div class="sc-sec"><h3>On the label (per 100 g)</h3><table class="sc-lab">${lab}</table>${p.added_sugar_estimated?'<p class="sc-note">Added sugar is not printed, so total sugars are used. That can make the score a little stricter than the pack deserves.</p>':''}</div>
+    ${(p.ingredients||[]).length?`<div class="sc-sec"><h3>Ingredients</h3><p class="sc-note" style="margin-top:0">${esc(p.ingredients.join(', '))}</p></div>`:''}
+    <div class="sc-sec"><button type="button" class="link" id="scReport" style="background:none;border:0;color:var(--leaf);text-decoration:underline;cursor:pointer;font-size:14px">Report a mistake with this pack</button></div>
+    ${p.source_url?`<div class="sc-sec"><p class="sc-note">Label data: <a href="${esc(p.source_url)}" target="_blank" rel="noopener">Open Food Facts</a> contributors, Open Database Licence.</p></div>`:''}
+  </details></article>${again()}`;
+  if(window.kpMeter)kpMeter.animate(out);
+  const rb=$('scReport');if(rb)rb.onclick=()=>window.kpReport&&kpReport({product_id:out.__pid,barcode:S.code,name:out.__name});
+  const yes=$('scYes');if(yes)yes.onclick=()=>{$('scConfirm').innerHTML='<b>Thank you.</b> <span style="color:var(--muted)">It matches your pack.</span>'};
+  wire();
+}
+
+// ---- choosing the kind of food: type a word, or tap a suggestion ----
+const POPULAR=['kids_biscuits','instant_noodles','breakfast_cereal','chips','namkeen','chocolate','fruit_juice','instant_soup','custard_powder','dessert_mix','jam','ready_meals'];
+const lc=s=>String(s||'').toLowerCase();
+function kindScore(k,toks,any){let s=0;const L=lc(k.label),W=lc(k.words),C=lc(k.category),Lw=L.split(/[^a-z0-9]+/);for(const t of toks){if(Lw.some(w=>w.startsWith(t)))s+=5;else if(L.includes(t))s+=3;else if(W.split(/[^a-z0-9]+/).some(w=>w.startsWith(t)))s+=4;else if(W.includes(t))s+=2;else if(C.includes(t))s+=1;else if(!any)return 0}return s}
+function findKinds(kinds,q,max,any){const toks=lc(q).split(/[^a-z0-9]+/).filter(t=>t.length>1);if(!toks.length)return[];return kinds.map(k=>[kindScore(k,toks,any),k]).filter(x=>x[0]>(any?5:0)).sort((a,b)=>b[0]-a[0]).slice(0,max).map(x=>x[1])}
+function mountKindPicker(box,kinds,hint,current,onPick){
+  const byKey=Object.fromEntries(kinds.map(k=>[k.kind,k]));
+  const chip=k=>`<button type="button" class="kchip" data-k="${esc(k.kind)}">${esc(k.label)}</button>`;
+  const row=k=>`<button type="button" class="krow" role="option" data-k="${esc(k.kind)}"><b>${esc(k.label)}</b><small>${esc(k.category)}</small></button>`;
+  const guess=findKinds(kinds,hint,3,true);
+  const pop=POPULAR.map(x=>byKey[x]).filter(Boolean);
+  const cats={};kinds.forEach(k=>{(cats[k.category]=cats[k.category]||[]).push(k)});
+  box.innerHTML=`<div class="kp"><div class="kp-sel" id="kpSel" hidden><span>Chosen:</span> <b id="kpName"></b> <button type="button" class="link" id="kpChange">Change</button></div>
+    <div id="kpFind"><input type="search" id="kpQ" class="kp-q" placeholder="Type what it is: custard, chocolate, soup, pickle…" autocomplete="off" aria-label="Search the kind of food">
+    <div class="kp-res" id="kpRes" role="listbox"></div>
+    <div id="kpIdle">${guess.length?`<div class="kp-h">Looks like</div><div class="kp-chips">${guess.map(chip).join('')}</div>`:''}
+    <div class="kp-h">Popular</div><div class="kp-chips">${pop.map(chip).join('')}</div>
+    <details class="kp-all"><summary>Browse every kind</summary>${Object.keys(cats).sort().map(c=>`<div class="kp-h">${esc(c)}</div><div class="kp-chips">${cats[c].map(chip).join('')}</div>`).join('')}</details></div></div></div>`;
+  const q=box.querySelector('#kpQ'),res=box.querySelector('#kpRes'),idle=box.querySelector('#kpIdle');
+  const choose=key=>{const k=byKey[key];if(!k)return;box.querySelector('#kpName').textContent=k.label+' ('+k.category+')';box.querySelector('#kpSel').hidden=false;box.querySelector('#kpFind').hidden=true;onPick(key)};
+  const unchoose=()=>{box.querySelector('#kpSel').hidden=true;box.querySelector('#kpFind').hidden=false;q.value='';res.innerHTML='';idle.hidden=false;onPick('');q.focus()};
+  q.oninput=()=>{const r=findKinds(kinds,q.value,8);idle.hidden=!!q.value.trim();res.innerHTML=q.value.trim()?(r.length?r.map(row).join(''):'<div class="kp-none">Nothing matches. Try another word, or browse every kind.</div>'):''};
+  box.onclick=e=>{const b=e.target.closest('[data-k]');if(b)choose(b.dataset.k)};
+  box.querySelector('#kpChange').onclick=unchoose;
+  if(current&&byKey[current])choose(current);
+}
+
+// a pack we hold whose label could not be read: only the back photo is taken again
+function renderRetake(d){WZ={barcode:d.barcode,prefill:{},kinds:[],msg:d.message||'',retake:true};S.back='';wiz(3)}
+function renderKind(d){
+  const groups={};(d.kinds||[]).forEach(k=>{(groups[k.category]=groups[k.category]||[]).push(k)});
+  const opts='<option value="">Choose…</option>'+Object.keys(groups).map(c=>`<optgroup label="${esc(c)}">${groups[c].map(k=>`<option value="${esc(k.kind)}">${esc(k.label)}</option>`).join('')}</optgroup>`).join('');
+  out.innerHTML=`<div class="sc-msg">${esc(d.message||'')}</div><form class="sform" id="kform"><h2>${esc((d.prefill&&d.prefill.name)||'This pack')}</h2><div class="f"><span>What kind of food is it?</span><div id="kpick"></div></div><button type="submit" class="go" id="kgo" disabled>Score this pack</button><button type="button" class="link" id="knone">None of these fits</button></form>`;
+  let chosenKind='';mountKindPicker($('kpick'),d.kinds||[],((d.prefill&&d.prefill.brand)||'')+' '+((d.prefill&&d.prefill.name)||''),'',k=>{chosenKind=k;$('kgo').disabled=!k});
+  $('knone').onclick=()=>{out.innerHTML='<div class="sc-msg err">Thank you. We do not score that kind of food yet.</div>'+again();wire()};
+  $('kform').onsubmit=async e=>{e.preventDefault();$('kgo').disabled=true;await lookup(d.barcode,false,chosenKind)};
+}
+
+/* ---------- the guided steps: barcode, then three photos taken by the camera itself, then the details ---------- */
+function shrink(file,max,q){return new Promise((ok,no)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',q))};im.onerror=()=>no(new Error('bad image'));im.src=u})}
+async function prepare(file){let max=1500,q=.8,d=await shrink(file,max,q);while(d.length>1300000&&max>700){max-=250;q=Math.max(.5,q-.08);d=await shrink(file,max,q)}return d}
+function jpegOf(canvas){let q=.85,d=canvas.toDataURL('image/jpeg',q);while(d.length>1600000&&q>.5){q-=.07;d=canvas.toDataURL('image/jpeg',q)}return d}
+// a full-size still from the camera (Chrome on Android); null where the phone does not offer it
+async function stillOf(track,maxSide){
+  try{
+    if(!('ImageCapture' in window))return null;
+    const blob=await new ImageCapture(track).takePhoto();
+    const bmp=await createImageBitmap(blob),k=Math.min(1,maxSide/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');
+    c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return c;
+  }catch(e){return null}
+}
+// how sharp a picture is: the variance of a Laplacian over grey pixels. Small = blurred.
+function lapVar(data,w,h){const L=new Float32Array(w*h);for(let i=0;i<w*h;i++)L[i]=data[i*4]*.3+data[i*4+1]*.59+data[i*4+2]*.11;let s=0,s2=0,n=0;for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const v=4*L[y*w+x]-L[y*w+x-1]-L[y*w+x+1]-L[(y-1)*w+x]-L[(y+1)*w+x];s+=v;s2+=v*v;n++}return s2/n-(s/n)*(s/n)}
+function sharpness(dataUrl){return new Promise(ok=>{const im=new Image();im.onload=()=>{try{const w=360,h=Math.max(1,Math.round(im.height*w/im.width)),c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(im,0,0,w,h);ok(lapVar(g.getImageData(0,0,w,h).data,w,h))}catch(e){ok(null)}};im.onerror=()=>ok(null);im.src=dataUrl})}
+const BLUR_BELOW=60, MIN_SHARP=45;
+
+const PACK_SVG='<svg viewBox="0 0 160 190" role="img" aria-label="Front of a pack with the brand and name at the top" class="ill"><rect x="14" y="8" width="132" height="174" rx="10" fill="#fff" stroke="#3F6B3C" stroke-width="3"/><rect x="28" y="22" width="104" height="30" rx="6" fill="#E3EEDF"/><text x="80" y="43" text-anchor="middle" font-size="15" font-weight="700" fill="#3F6B3C" font-family="sans-serif">BRAND</text><rect x="34" y="66" width="92" height="9" rx="4" fill="#E7DFCE"/><rect x="44" y="84" width="72" height="9" rx="4" fill="#E7DFCE"/><circle cx="80" cy="132" r="30" fill="#F6E4BC"/></svg>';
+const TABLE_SVG='<svg viewBox="0 0 160 190" role="img" aria-label="Back of a pack with the nutrition table filling the picture" class="ill"><rect x="14" y="8" width="132" height="174" rx="10" fill="#fff" stroke="#3F6B3C" stroke-width="3"/><rect x="26" y="20" width="108" height="14" rx="3" fill="#3F6B3C"/><text x="80" y="31" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="sans-serif">NUTRITION INFORMATION</text><g fill="#E7DFCE"><rect x="26" y="44" width="108" height="8"/><rect x="26" y="58" width="108" height="8"/><rect x="26" y="72" width="108" height="8"/><rect x="26" y="86" width="108" height="8"/><rect x="26" y="100" width="108" height="8"/><rect x="26" y="114" width="108" height="8"/></g><rect x="26" y="134" width="108" height="36" rx="4" fill="#F6E4BC"/><text x="80" y="156" text-anchor="middle" font-size="9" fill="#6B5D4B" font-family="sans-serif">Ingredients: …</text></svg>';
+const INGR_SVG='<svg viewBox="0 0 160 190" role="img" aria-label="The ingredients line on a pack" class="ill"><rect x="14" y="8" width="132" height="174" rx="10" fill="#fff" stroke="#3F6B3C" stroke-width="3"/><rect x="26" y="40" width="108" height="14" rx="3" fill="#E3EEDF"/><text x="30" y="51" font-size="9" font-weight="700" fill="#3F6B3C" font-family="sans-serif">INGREDIENTS:</text><g fill="#E7DFCE"><rect x="26" y="62" width="108" height="8"/><rect x="26" y="76" width="100" height="8"/><rect x="26" y="90" width="108" height="8"/><rect x="26" y="104" width="76" height="8"/></g><rect x="26" y="130" width="108" height="30" rx="4" fill="#F6E4BC"/></svg>';
+const STEPS={
+  2:{key:'front',short:'front',title:'Photo 1 of 2: the front of the pack',svg:PACK_SVG,doing:'Hold the pack so the <b>brand and product name</b> are in view. Fill the frame with the front of the pack.',ok:'the brand and name can be read'},
+  3:{key:'back',short:'back of the pack',title:'Photo 2 of 2: the back of the pack',svg:TABLE_SVG,doing:'Turn the pack over and bring the phone <b>close</b>: the <b>Nutrition Information</b> box should fill the frame, with the <b>Ingredients</b> line if it fits. The writing must be readable on your screen before the photo is taken. Do not photograph the whole pack.',ok:'the numbers and the ingredients can be read'},
+};
+const TOTAL=4;
+function progress(n){return `<div class="wz-prog" aria-label="Step ${n} of ${TOTAL}"><div class="wz-bar"><i style="width:${n*100/TOTAL}%"></i></div><div class="wz-n">Step ${n} of ${TOTAL}</div></div>`}
+function backBtn(){return '<button type="button" class="wz-back" id="wzBack">← Back</button>'}
+function setStart(show){$('start').hidden=!show;$('app').classList.toggle('wzmode',!show);if(show){$('cam').hidden=true}}
+
+let WZ=null;
+function renderForm(d){WZ={barcode:d.barcode,prefill:d.prefill||{},kinds:d.kinds||[],msg:d.message||'',fix:!!d.fix};S.front='';S.back='';S.fkind='';S.fbrand=WZ.prefill.brand||'';S.fname=WZ.prefill.name||'';wiz(2)}
+
+function wiz(step){
+  setStart(false);Cam.stop();
+  if(step>=2&&step<=3){const c=STEPS[step];S[c.key]?previewView(step,c):liveView(step,c)}else detailsView();
+  window.scrollTo({top:Math.max(0,out.getBoundingClientRect().top+scrollY-70),behavior:'smooth'});
+}
+async function submitRetake(){
+  const em=$('remail');WZ.email=em&&em.value.trim()||'';
+  out.innerHTML='<div class="sc-msg">Reading the label and working out the score. This can take up to a minute…</div>';
+  try{
+    const r=await fetch(`${API}/api/kp/scan/submit`,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({retake:true,barcode:WZ.barcode,back:S.back,age:S.age,consent:true,email:WZ.email||undefined})});
+    const j=await r.json();
+    if(!r.ok){msg(j.error||'Something went wrong. Please try again.',true);return}
+    setStart(true);S.last=j;S.code=j.barcode||WZ.barcode;render(j);out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(x){msg('No connection. Please try again.',true)}
+}
+function leaveWizard(){Cam.stop();WZ=null;out.innerHTML='';setStart(true);S.last=null;window.scrollTo({top:0,behavior:'smooth'})}
+const head=(step,c)=>`${WZ&&WZ.retake?'':progress(step)}${(step===2||(WZ&&WZ.retake))?`<div class="sc-msg">${esc(WZ.msg)}</div>`:''}<h2>${WZ&&WZ.retake?'The back of the pack, again':c.title}</h2><p class="wz-do">${c.doing}</p>`;
+const goBack=step=>()=>(step===2||(WZ&&WZ.retake))?leaveWizard():wiz(step-1);
+
+// the live camera: it takes the picture by itself once the label is sharp and steady, so there is nothing to tap and nothing to blur
+function liveView(step,c){
+  out.innerHTML=`<section class="wz">${head(step,c)}
+    <div class="live" id="live"><video id="lv" playsinline muted></video><div class="lv-guide"></div><div class="lv-stat" id="lvStat" role="status">Starting the camera…</div><div class="lv-flash" id="lvFlash"></div></div>
+    <button type="button" class="wz-btn big" id="lvShot">Take the photo now</button>
+    <p class="fine">The camera takes the photo by itself when the picture is sharp and still. You can also tap the button.</p>
+    <div class="wz-foot">${backBtn()}</div></section>`;
+  $('wzBack').onclick=goBack(step);
+  autoShoot(step,c);
+}
+async function autoShoot(step,c){
+  let stream;
+  try{stream=await openStream()}catch(e){return noCamera(step,c,e)}
+  Cam.stream=stream;
+  const v=$('lv'),box=$('live');v.srcObject=stream;try{await v.play()}catch(e){}
+  const st=$('lvStat'),cv=document.createElement('canvas'),g=cv.getContext('2d',{willReadFrequently:true}),W=320;
+  let hist=[],prev=null,good=0,done=false;const t0=Date.now();
+  const grab=()=>{if(!v.videoWidth)return null;const r=visibleRect(v,box),gx=r.sx+r.sw*.12,gy=r.sy+r.sh*.12,gw=r.sw*.76,gh=r.sh*.76,k=W/gw;cv.width=W;cv.height=Math.round(gh*k);g.drawImage(v,gx,gy,gw,gh,0,0,cv.width,cv.height);return g.getImageData(0,0,cv.width,cv.height)};
+  const take=async()=>{if(done||!v.videoWidth)return;done=true;const side=c.key==='back'?2400:1600;let f=null;const tr=Cam.stream&&Cam.stream.getVideoTracks()[0];if(tr){const still=await stillOf(tr,side);if(still){const r=visibleRect({videoWidth:still.width,videoHeight:still.height},box),k=1;const cc=document.createElement('canvas');cc.width=r.sw;cc.height=r.sh;cc.getContext('2d').drawImage(still,r.sx,r.sy,r.sw,r.sh,0,0,r.sw,r.sh);f=cc}}if(!f)f=frameCanvas(v,box,side);S[c.key]=jpegOf(f);Cam.stop();$('lvFlash').classList.add('go');try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}setTimeout(()=>wiz(step),180)};
+  $('lvShot').onclick=take;
+  Cam.timer=setInterval(()=>{
+    const im=grab();if(!im||done)return;
+    const sharp=lapVar(im.data,im.width,im.height);hist.push(sharp);if(hist.length>16)hist.shift();
+    const peak=Math.max(...hist);
+    // how much the picture moved since the last look (small grey copy)
+    let move=0;const sm=new Uint8Array(40*30);for(let y=0;y<30;y++)for(let x=0;x<40;x++){const i=((Math.floor(y*im.height/30))*im.width+Math.floor(x*im.width/40))*4;sm[y*40+x]=im.data[i]*.3+im.data[i+1]*.59+im.data[i+2]*.11}
+    if(prev){let s=0;for(let i=0;i<sm.length;i++)s+=Math.abs(sm[i]-prev[i]);move=s/sm.length}
+    prev=sm;
+    const elapsed=Date.now()-t0;
+    const still=move<6, sharpEnough=sharp>=MIN_SHARP&&sharp>=peak*.85;
+    if(elapsed>1300&&still&&sharpEnough)good++;else good=0;
+    st.textContent=elapsed<1300?'Starting the camera…':!still?'Hold steady…':sharp<MIN_SHARP?(elapsed>5000?'Move a little closer, or add light, so the writing is sharp.':'Focusing…'):!sharpEnough?'Focusing…':'Hold still…';
+    if(elapsed>14000&&good===0)st.textContent='Tap "Take the photo now" when the writing looks sharp.';
+    if(good>=3)take();
+  },220);
+}
+// no camera available to the page (or it was refused): the phone's own camera app takes the picture instead
+function noCamera(step,c,e){
+  const denied=e&&e.name==='NotAllowedError';
+  out.innerHTML=`<section class="wz">${head(step,c)}
+    <div class="sc-msg err">${denied?'The camera is switched off for this page, so it cannot take the photo by itself. Allow the camera in your browser settings, or use the camera app below.':'The camera could not start here. Use the camera app below instead.'}</div>
+    <div class="wz-ill">${c.svg}</div>
+    <label class="wz-btn big">Open the camera app<input type="file" accept="image/*" capture="environment" id="wzFile"></label>
+    <p class="fine" id="wzStat" role="status"></p><div class="wz-foot">${backBtn()}</div></section>`;
+  $('wzBack').onclick=goBack(step);
+  $('wzFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('wzStat').textContent='Preparing the photo…';try{S[c.key]=await prepare(f);wiz(step)}catch(x){$('wzStat').textContent='That photo could not be used. Please take it again.'}};
+}
+async function previewView(step,c){
+  const photo=S[c.key];
+  out.innerHTML=`<section class="wz">${WZ&&WZ.retake?'':progress(step)}<h2>${c.title}</h2>
+    <div class="wz-prev"><img src="${photo}" alt="Your ${c.short} photo"></div><div id="wzCheck" class="sc-msg">Checking the photo…</div>
+    ${WZ&&WZ.retake?`<label class="kconsent"><input type="checkbox" id="rconsent"><span>These photos are of a pack I have. I am happy for KidPoshan to show them and use them to score this pack.</span></label><label class="f">Your email, if you want a thank-you when the pack is checked (optional)<input type="email" id="remail" maxlength="120" autocomplete="email" placeholder="you@example.com"></label>`:''}
+    <div class="wz-row"><button type="button" class="wz-btn alt" id="wzRetake">Retake</button><button type="button" class="wz-btn" id="wzNext">Use this photo</button></div>
+    <div class="wz-foot">${backBtn()}</div></section>`;
+  $('wzBack').onclick=goBack(step);
+  $('wzRetake').onclick=()=>{S[c.key]='';wiz(step)};
+  if(WZ&&WZ.retake){$('wzNext').disabled=true;$('rconsent').onchange=()=>{$('wzNext').disabled=!$('rconsent').checked}}
+  $('wzNext').onclick=()=>WZ&&WZ.retake?submitRetake():wiz(step+1);
+  const sh=await sharpness(photo);if(!$('wzCheck'))return;
+  const blurry=sh!=null&&sh<BLUR_BELOW;
+  $('wzCheck').className='sc-msg '+(blurry?'err':'ok');
+  $('wzCheck').textContent=blurry?'This photo looks blurred. Please retake it, with the phone steady and the label in good light.':'Check that '+c.ok+'.';
+  if(blurry)$('wzNext').textContent='Use it anyway';
+}
+function detailsView(){
+  const groups={};WZ.kinds.forEach(k=>{(groups[k.category]=groups[k.category]||[]).push(k)});
+  const opts='<option value="">Choose…</option>'+Object.keys(groups).map(c=>`<optgroup label="${esc(c)}">${groups[c].map(k=>`<option value="${esc(k.kind)}"${S.fkind===k.kind?' selected':''}>${esc(k.label)}</option>`).join('')}</optgroup>`).join('');
+  out.innerHTML=`<section class="wz">${progress(4)}
+    <h2>Tell us about the pack</h2>
+    <div class="wz-thumbs"><div><img src="${S.front}" alt="Front photo"><button type="button" class="link" id="chF">Change front</button></div><div><img src="${S.back}" alt="Back photo"><button type="button" class="link" id="chB">Change back</button></div></div>
+    <form class="sform wz-form" id="sform" autocomplete="off">
+      <div class="f"><span>What kind of food is it?</span><div id="fkindBox"></div></div>
+      <label class="f">Brand<input type="text" id="fbrand" maxlength="60" value="${esc(S.fbrand)}" placeholder="for example Maggi"></label>
+      <label class="f">Product name<input type="text" id="fname" maxlength="120" value="${esc(S.fname)}" placeholder="for example 2-minute Masala Noodles"></label>
+      <p class="fine">Barcode ${esc(WZ.barcode)}. The score comes from the nutrition table and the ingredients on your back photo.</p>
+      <label class="kconsent"><input type="checkbox" id="fconsent"><span>These photos are of a pack I have. I am happy for KidPoshan to show them and use them to score this pack.</span></label><label class="f">Your email, if you want a thank-you when the pack is checked (optional)<input type="email" id="femail" maxlength="120" autocomplete="email" placeholder="you@example.com"></label>
+      <button type="submit" class="go" id="fgo" disabled>Score this pack</button>
+      <p class="fine" id="fstat" role="status"></p>
+    </form>
+    <div class="wz-foot">${backBtn()}</div></section>`;
+  const ready=()=>{S.fbrand=$('fbrand').value;S.fname=$('fname').value;$('fgo').disabled=!($('fconsent').checked&&S.front&&S.back&&S.fkind&&S.fbrand.trim().length>1&&S.fname.trim().length>2)};
+  ['fbrand','fname'].forEach(id=>$(id).addEventListener('input',ready));$('fconsent').addEventListener('change',ready);mountKindPicker($('fkindBox'),WZ.kinds,S.fbrand+' '+S.fname,S.fkind,k=>{S.fkind=k;ready()});ready();
+  $('chF').onclick=()=>{S.front='';wiz(2)};$('chB').onclick=()=>{S.back='';wiz(3)};$('wzBack').onclick=()=>wiz(3);
+  $('sform').onsubmit=async e=>{
+    e.preventDefault();$('fgo').disabled=true;$('fstat').textContent='Reading the label and working out the score. This can take up to a minute…';
+    try{
+      const r=await fetch(`${API}/api/kp/scan/submit`,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({barcode:WZ.barcode,kind:S.fkind,brand:S.fbrand,name:S.fname,front:S.front,back:S.back,age:S.age,correct:WZ.fix||undefined,consent:true,email:$('femail').value.trim()||undefined})});
+      const j=await r.json();
+      if(!r.ok){$('fstat').textContent=j.error||'Something went wrong. Please try again.';$('fgo').disabled=false;return}
+      setStart(true);S.last=j;S.code=j.barcode||WZ.barcode;render(j);out.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(x){$('fstat').textContent='No connection. Please try again.';$('fgo').disabled=false}
+  };
+}
+
+
+/* ---------- the page ---------- */
+$('camstart').onclick=startCam;$('camstop').onclick=stopCam;$('camsnap').onclick=snapBarcode;
+$('codeForm').onsubmit=e=>{e.preventDefault();const c=$('code').value.replace(/\D/g,'');if(!c){msg('Type the number printed under the barcode.',true);return}lookup(c)};
+$('codePhoto').onchange=e=>{const f=e.target.files[0];if(f)readFromPhoto(f);e.target.value=''};
+window.addEventListener('pagehide',stopCam);
+const pre=(QS.get('code')||'').replace(/\D/g,'');if(pre){$('code').value=pre;lookup(pre,false,'',QS.get('fix')==='1')}
+</script>
+<script src="/kp-meter.js"></script>
+<script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
+</body>
+</html>

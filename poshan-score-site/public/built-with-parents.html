@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Built with parents — Poshan Score beta</title>
+<meta name="description" content="Poshan Score is a beta built with parents: where the numbers come from, what not yet checked means, and how to add a pack or report a mistake.">
+<link rel="canonical" href="https://www.kidposhan.in/built-with-parents">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="Built with parents — Poshan Score beta">
+<meta property="og:description" content="Poshan Score is a beta built with parents: where the numbers come from, what not yet checked means, and how to add a pack or report a mistake.">
+<meta property="og:url" content="https://www.kidposhan.in/built-with-parents">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Built with parents — Poshan Score beta">
+<meta name="twitter:description" content="Poshan Score is a beta built with parents: where the numbers come from, what not yet checked means, and how to add a pack or report a mistake.">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
+<style>
+:root{--bg:#FDFBF6;--ink:#221A12;--muted:#6B5D4B;--leaf:#3F6B3C;--paper:#fff;--line:#E7DFCE;--gold:#B5790A;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#17130E;--ink:#F3ECDD;--muted:#B7A98F;--leaf:#8FC08A;--paper:#221C14;--line:#3A3226;--gold:#E0B052}}
+:root[data-theme="dark"]{--bg:#17130E;--ink:#F3ECDD;--muted:#B7A98F;--leaf:#8FC08A;--paper:#221C14;--line:#3A3226;--gold:#E0B052}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+nav{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}nav a{color:var(--ink);text-decoration:none;font-size:14px}nav .brand{font-weight:700;margin-right:auto}
+.nb-name{display:inline}
+main{max-width:720px;margin:0 auto;padding:26px 18px 60px}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.15;margin:4px 0 6px}h2{font-size:21px;margin:30px 0 6px}p,li{color:var(--ink)}a{color:var(--leaf)}ul{padding-left:20px}
+.lead{font-size:19px;color:var(--muted)}
+.count{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:18px 0}
+.count div{background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:14px;text-align:center}.count b{display:block;font-size:30px;line-height:1.1}.count span{font-size:13px;color:var(--muted)}
+.cta{display:inline-block;background:var(--leaf);color:#fff;text-decoration:none;font-weight:700;border-radius:12px;padding:12px 20px;margin:6px 10px 6px 0}.cta.alt{background:none;color:var(--leaf);border:1.5px solid var(--leaf)}
+.pill{display:inline-block;border:1.5px solid var(--gold);color:var(--gold);border-radius:999px;padding:1px 9px;font:700 11px system-ui;letter-spacing:.1em;vertical-align:middle}
+.fine{font-size:14px;color:var(--muted)}
+</style></head>
+<body>
+<nav><a class="brand" href="/"><span class="nb-name">Poshan Score</span></a><a href="/products">Products</a><a href="/scan">Scan a pack</a><a href="/meal-ideas">Meal Ideas</a><a href="/age-metrics">Age &amp; Metrics</a></nav>
+<main>
+<p><span class="pill">BETA</span></p>
+<h1>Built with parents</h1>
+<p class="lead">Every pack says it is healthy. We read the back. Poshan Score is a beta, and it gets better each time a parent adds a pack or corrects one.</p>
+
+<div class="count" id="counts" aria-live="polite">
+  <div><b id="c1">–</b><span>packs checked by our team</span></div>
+  <div><b id="c2">–</b><span>packs not yet checked</span></div>
+  <div><b id="c3">–</b><span>added from parents' photos</span></div>
+</div>
+
+<h2>What "beta" means here</h2>
+<ul>
+<li>We are still adding packs. If yours is missing, scan it and we will score it from your photos.</li>
+<li>Some scores come from open data that our team has not checked yet. Those are marked <b>not yet checked</b>. The numbers are the pack's own label, but we can still have read or filed one wrongly.</li>
+<li>When we are wrong, we want to hear it. Every pack has a <b>Report a mistake</b> button.</li>
+</ul>
+
+<h2>Where the numbers come from</h2>
+<ul>
+<li><b>The pack's own label:</b> the nutrition table and the ingredient list, per 100 g, as printed.</li>
+<li><b>Open Food Facts</b>, a free database of food products made by people around the world (<a href="https://world.openfoodfacts.org" rel="noopener">openfoodfacts.org</a>, Open Database Licence). We credit it on every page that uses it.</li>
+<li><b>Photos from parents:</b> the front and back of a pack. Our label reader reads the table, and our team checks the numbers against the photo before a pack is marked checked.</li>
+</ul>
+<p>No brand pays to be here, and no brand can pay to change a score. How a score is worked out is open for anyone to read on the <a href="/age-metrics">Age &amp; Metrics</a> page.</p>
+
+<h2>How you can help</h2>
+<p><a class="cta" href="/scan">Scan a pack</a><a class="cta alt" href="/products">Look for a mistake</a></p>
+<ul>
+<li><b>Scan a pack</b> we do not have, and photograph its front and back.</li>
+<li><b>Is this your pack?</b> On a pack that is not yet checked, tell us if the name on your pack is different. Then photograph yours, and it is scored from your photos.</li>
+<li><b>Report a mistake</b> on any pack: a wrong name, numbers that do not match the label, or a wrong photo.</li>
+</ul>
+
+<h2>About your photos and your email</h2>
+<ul>
+<li>When you send photos you tick a box to say they are of a pack you have and that KidPoshan may show them and use them to score the pack. Please photograph only the pack, not people.</li>
+<li>Your email is optional. If you leave it, we use it once, to thank you when your pack is checked, or to tell you what we did about a report. We use it for nothing else, and we do not share it.</li>
+<li>We keep no name or phone number with a scan or a report. More is on the <a href="/privacy">privacy page</a>.</li>
+</ul>
+
+<h2>Write to us</h2>
+<p>Something we should know, or want to take part? <a href="mailto:kidposhan@gmail.com">kidposhan@gmail.com</a></p>
+<p class="fine">Poshan Score is an independent rating, not a certification. The age guide is general and cautious. It is not medical advice.</p>
+</main>
+<script>
+(function(){var API='https://kidposhan-platform.mailus-pixiedust.workers.dev';
+fetch(API+'/api/kp/stats').then(function(r){return r.json()}).then(function(d){var b=d&&d.beta;if(!b)return;document.getElementById('c1').textContent=b.checked;document.getElementById('c2').textContent=b.unchecked;document.getElementById('c3').textContent=b.from_parents}).catch(function(){});})();
+</script>
+
+<script src="/kp-meter.js" defer></script>
+<script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
+</body></html>

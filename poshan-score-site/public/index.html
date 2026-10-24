@@ -313,7 +313,7 @@
   .tf-card b{ font-size:14.5px; font-weight:600; line-height:1.25; grid-column:1/-1; }
   .tf-card span{ font-size:12.5px; color:var(--ink-dim); }
   .tf-card em{ font-style:normal; background:#3F6B3C; color:#fff; border-radius:999px; padding:3px 10px; font:700 12.5px/1 var(--font-body); }
-  .tf-card em[data-b="Good"]{ background:#4C9A74; } .tf-card em[data-b="Fair"]{ background:var(--gold); color:#2b1c05; } .tf-card em[data-b="Occasional"]{ background:#A6402A; }
+  .tf-card em[data-b="Good"]{ background:#4C9A74; } .tf-card em[data-b="OK"]{ background:var(--gold); color:#2b1c05; } .tf-card em[data-b="Do not use"]{ background:#A6402A; }
   .plan-btn{ display:inline-block; margin:18px 0 0; background:#3F6B3C; color:#fff; padding:14px 26px; border-radius:999px; font:600 15px/1 var(--font-body); text-decoration:none; box-shadow:0 10px 22px -14px rgba(63,107,60,.9); }
   .stats3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:30px 0 0; }
   .stat3{ background:var(--card); border:1px solid var(--card-line); border-radius:14px; padding:14px 18px; }
@@ -354,6 +354,7 @@
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
   <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
@@ -367,14 +368,18 @@
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
 
 <header class="hero">
   <div class="hero-text">
     <div class="eyebrow">Govt-benchmarked &nbsp;·&nbsp; Ingredient-first</div>
-    <h1>Is this good for <em>my child?</em></h1>
-    <p class="lede">Type any kids' food. Get a straight answer for your child's age in 5 seconds.</p>
+    <h1>Every pack says <em>healthy.</em><br>We read the back.</h1>
+    <p class="lede">Scan any packaged food. See its real score for your child's age, and how much of the thing it brags about is actually inside.</p>
+    <style>.scan-cta{display:inline-flex;align-items:center;gap:10px;background:#3F6B3C;color:#fff;text-decoration:none;font-weight:800;font-size:18px;border-radius:16px;padding:16px 26px;margin:2px 0 14px;box-shadow:0 10px 24px -14px rgba(40,70,38,.8)}.scan-cta:hover{background:#355c33}.scan-or{font-size:14px;color:var(--ink-dim,#6B5D4B);margin:0 0 8px}.meter-demo{width:100%;max-width:420px;margin:0 auto;text-align:center}.meter-demo .md-cap{font:600 14px var(--font-body,sans-serif);color:#6B5D4B;margin-top:4px;min-height:20px}.meter-demo .md-ex{font:600 11px var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#B5790A}</style>
+    <a class="scan-cta" href="scan.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M7 9v6M10 9v6M13 9v6M16 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Scan a pack</a>
+    <p class="scan-or">or type a food or brand</p>
     <form class="check-form" id="checkForm" role="search">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <input id="checkInput" type="search" placeholder="Chocos, oats, ragi mix…" autocomplete="off" aria-label="Search a food or recipe" enterkeyhint="search">
@@ -386,71 +391,17 @@
   </div>
 
   <div class="hero-visual" id="heroVisual">
-    <div class="food-orbit">
-      <svg class="food-icon sprig" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M30 88V10" stroke="#B5790A" stroke-width="3" stroke-linecap="round"/>
-        <ellipse cx="20" cy="20" rx="8" ry="5" fill="#F0C361" transform="rotate(-30 20 20)"/>
-        <ellipse cx="40" cy="30" rx="8" ry="5" fill="#F0C361" transform="rotate(30 40 30)"/>
-        <ellipse cx="20" cy="40" rx="8" ry="5" fill="#E3A008" transform="rotate(-30 20 40)"/>
-        <ellipse cx="40" cy="50" rx="8" ry="5" fill="#E3A008" transform="rotate(30 40 50)"/>
-        <ellipse cx="30" cy="8" rx="6" ry="9" fill="#F0C361"/>
-      </svg>
-      <svg class="food-icon ladoo" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="30" cy="30" r="26" fill="#E3A008"/>
-        <circle cx="20" cy="22" r="2.4" fill="#5a4028"/>
-        <circle cx="34" cy="18" r="2" fill="#5a4028"/>
-        <circle cx="40" cy="32" r="2.2" fill="#5a4028"/>
-        <circle cx="24" cy="38" r="2" fill="#5a4028"/>
-        <circle cx="36" cy="42" r="1.8" fill="#5a4028"/>
-      </svg>
-      <svg class="food-icon leaf" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 50C10 20 40 8 52 8C52 34 34 50 10 50Z" fill="#5E8E5A"/>
-        <path d="M12 48C24 34 36 22 50 10" stroke="#3A2416" stroke-width="1.6" stroke-linecap="round" opacity="0.4"/>
-      </svg>
-      <svg class="food-icon grain" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M30 88V16" stroke="#BE4430" stroke-width="3" stroke-linecap="round"/>
-        <ellipse cx="30" cy="20" rx="7" ry="14" fill="#D8735F"/>
-      </svg>
-    </div>
-
-    <div class="tiffin">
-      <svg class="steam" viewBox="0 0 70 50">
-        <path d="M14 48C14 38 24 38 24 28C24 18 14 18 14 8">
-          <animate attributeName="d" dur="4s" repeatCount="indefinite"
-            values="M14 48C14 38 24 38 24 28C24 18 14 18 14 8;
-                    M14 48C14 38 4 38 4 28C4 18 14 18 14 8;
-                    M14 48C14 38 24 38 24 28C24 18 14 18 14 8"/>
-        </path>
-        <path d="M40 48C40 38 50 38 50 28C50 18 40 18 40 8" opacity="0.7">
-          <animate attributeName="d" dur="4.6s" repeatCount="indefinite"
-            values="M40 48C40 38 50 38 50 28C50 18 40 18 40 8;
-                    M40 48C40 38 30 38 30 28C30 18 40 18 40 8;
-                    M40 48C40 38 50 38 50 28C50 18 40 18 40 8"/>
-        </path>
-      </svg>
-      <div class="handle"></div>
-      <div class="stack">
-        <div class="tin excellent">
-          <div class="tin-fill"></div>
-          <div class="tin-label"><span>Excellent</span><span>80–100</span></div>
-        </div>
-        <div class="tin good">
-          <div class="tin-fill"></div>
-          <div class="tin-label"><span>Good</span><span>58–79</span></div>
-        </div>
-        <div class="tin caution">
-          <div class="tin-fill"></div>
-          <div class="tin-label"><span>Fair</span><span>40–57</span></div>
-        </div>
-        <div class="tin avoid">
-          <div class="tin-fill"></div>
-          <div class="tin-label"><span>Occasional</span><span>10–39</span></div>
-        </div>
-      </div>
-      <div class="base-tray"></div>
-    </div>
+    <div class="meter-demo" id="meterDemo" aria-live="polite"><div class="md-ex">The Poshan meter</div><div id="meterHolder"></div><div class="md-cap" id="meterCap"></div></div>
   </div>
 </header>
+<script>
+(function(){
+  var ex=[{n:'Plain rolled oats',s:88},{n:'Masala instant noodles',s:52,c:true},{n:'Cream-filled biscuits',s:31},{n:'Fruit-and-nut muesli',s:66}],i=0;
+  function show(){var m=window.kpMeter,h=document.getElementById('meterHolder'),c=document.getElementById('meterCap');if(!m||!h)return;var e=ex[i%ex.length];h.innerHTML=m({score:e.s,capped:!!e.c,why:e.c?['sodium']:[],legend:true});m.animate(h);c.textContent='Example: '+e.n;i++}
+  function go(){show();setInterval(show,4200)}
+  if(document.readyState==='complete')go();else window.addEventListener('load',go);
+})();
+</script>
 
 <section class="home-now" aria-label="Today on Poshan Score">
   <div class="fvb" aria-label="Front of pack versus back of pack">
@@ -477,7 +428,7 @@
   <div class="section-head">
     <div class="section-eyebrow">How we rate</div>
     <h2 class="section-title">Ten things we check, every time.</h2>
-    <p class="section-sub">The same rubric for every product on the shelf — theirs and ours. Ten metrics, each marked 1 to 10, stretched to a score from 0 to 100 for your child's age and one realistic serving. Six are numbers off the label, measured against the daily reference for that age. Three are checks on the ingredient list. The tenth is the worst of the sugar, sodium and saturated-fat marks. Full citations and thresholds on the <a href="age-metrics.html">Age &amp; Metrics</a> page.</p>
+    <p class="section-sub">The same rubric for every product on the shelf — theirs and ours. Ten yes-or-no checks, each worth 10 points, for your child's age and one realistic serving. Six are numbers off the label, measured against the daily reference for that age. Three are checks on the ingredient list. The tenth is the worst of the sugar, sodium and saturated-fat marks. Full citations and thresholds on the <a href="age-metrics.html">Age &amp; Metrics</a> page.</p>
   </div>
   <div class="metrics-grid" id="metricsGrid">
     <div class="metric-card c-red"><div class="bar"></div><h4>Added Sugar</h4><p>Checked against a WHO-derived, age-wise free-sugar limit, not just "no added sugar" claims on the front.</p></div>
@@ -533,7 +484,7 @@ window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fi
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nice = (n) => { const t = String(n || '').split('|')[0].replace(/\(.*?\)/g, '').replace(/\brecipes?\b/ig, '').replace(/\s+/g, ' ').trim(); return t || String(n || ''); };
-  const bandOf = (v, c) => (c ? 'Fair' : v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+  const bandOf = (v, c) => (c ? 'OK' : v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use');
   const openSearch = (q) => { if (window.kpSearch) window.kpSearch.open(q || '', null); else location.href = 'products.html'; };
   $('checkForm').addEventListener('submit', (e) => { e.preventDefault(); openSearch($('checkInput').value); });
   document.querySelectorAll('.checking .chip').forEach((b) => { b.onclick = () => openSearch(b.dataset.q); });
@@ -622,6 +573,7 @@ document.querySelectorAll('#mobileMenu a').forEach(a => {
   a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
 });
 </script>
+<script src="/kp-meter.js" defer></script>
 <script src="/kp-visits.js" defer></script>
 <script src="/kp-search.js" defer></script>
 </body>

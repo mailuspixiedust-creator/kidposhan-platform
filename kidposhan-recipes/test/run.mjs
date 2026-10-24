@@ -67,6 +67,8 @@ db.exec(fs.readFileSync('migrations/0028_cap_flags.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0029_sync_and_misses.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0030_pageviews.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0031_open_food_facts.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0032_scans.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0033_reports_contrib.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -289,7 +291,7 @@ ok(scorePack({ protein_g: 10 }, ['ragi']).status === 'pending', 'Pack score pend
 const label = { protein_g: 9, fibre_g: 8, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 0.8, sodium_mg: 120 };
 const good = scorePack(label, ['Ragi flour (60%)', 'Rice flour', 'Salt'], 'Ragi dosa mix');
 const bad = scorePack({ ...label, added_sugars_g: 18, sodium_mg: 900 }, ['Maida', 'Sugar', 'Palm oil', 'Preservative (E211)', 'Artificial flavour'], 'Ragi dosa mix');
-ok(good.status === 'exact' && bad.status === 'exact' && bad.score < good.score && good.detail.bands['4-6'].metrics[8].score === 10 && bad.detail.bands['4-6'].metrics[8].score <= 3 && bad.detail.bands['4-6'].metrics[7].score < 10, `Exact pack score reads the ingredient list: the refined-first, additive-laden pack scores lower (good ${good.score}, bad ${bad.score})`);
+ok(good.status === 'exact' && bad.status === 'exact' && bad.score < good.score && good.detail.bands['4-6'].metrics[8].score === 1 && bad.detail.bands['4-6'].metrics[8].score === 0 && bad.detail.bands['4-6'].metrics[7].score === 0, `Exact pack score reads the ingredient list: the refined-first, additive-laden pack scores lower (good ${good.score}, bad ${bad.score})`);
 db.prepare("INSERT INTO kp_recipes (source_id, source_url, name, ingredients_raw_json, extraction_method, completeness, diet, age_min_months, age_max_months, review_status) VALUES (9060,'https://site.in/ragi-dosa/','Ragi Dosa Recipe','[]','jsonld','complete','veg',12,72,'approved')").run();
 const ragiId = db.prepare("SELECT id FROM kp_recipes WHERE source_url='https://site.in/ragi-dosa/'").get().id;
 db.prepare("INSERT INTO kp_ready_products (kind, name, brand, pack_size, product_url, retailer, ingredients_json) VALUES ('ragi_dosa_mix','Indira Ragi Dosa Mix','Indira','500 g','https://zepto.com/p/1','zepto','[\"Ragi flour\",\"Rice flour\",\"Salt\"]')").run();
@@ -764,7 +766,7 @@ const pickT = pickRandom([...poolA.slice(0, 3), ...Array.from({ length: 5 }, (_,
 ok(pickT.slice(0, 3).every((r) => r.match === 'exact'), 'pickRandom: the best-matching tier (in season, right meal) is used before a looser one');
 ok(isPrepRecipe('Idli Dosa Batter | Homemade Idli Dosa Batter Recipe') && isPrepRecipe('Vietnamese Curry Powder (Bot Ca Ri Viet)') && !isPrepRecipe('Thai Pumpkin Soup With Red Curry Paste Recipe') && !isPrepRecipe('Masala Dosa Recipe'), 'Batters, spice powders and pastes are ingredients, not meals; a soup made with a paste is still a meal');
 ok(seasonMismatch('Cold Sesame Soba', 'winter') && !seasonMismatch('Cold Sesame Soba', 'summer') && seasonMismatch('Beef Stew', 'summer') && !seasonMismatch('Dal Tadka', 'winter'), 'A cold dish is not a winter dish and a hot stew is not a summer dish');
-for (let i = 0; i < 30; i++) { const id = mkRecipe('https://fresh.example/' + i, { status: 'approved', name: 'Fresh Dish ' + i }); db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ? WHERE id = ?').run(60 + i, 'estimated', id); }
+for (let i = 0; i < 30; i++) { const id = mkRecipe('https://fresh.example/' + i, { status: 'approved', name: 'Fresh Dish ' + i }); db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ? WHERE id = ?').run(70 + i, 'estimated', id); }
 const fq = (extra = '') => handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=60&occasion=lunch&pref=veg&season=all' + extra), env, ctx);
 const fresh0 = await (await fq()).json();
 ok(fresh0.count === 20, 'With no limit given, a combination that has enough recipes returns 20: ' + fresh0.count);
@@ -776,7 +778,7 @@ ok(ids2.filter((i) => !ids1.has(i)).length >= 10, 'The second search from the sa
 const asc = (arr) => arr.every((x, i) => i === 0 || x.match !== arr[i - 1].match || (x.poshan_score ?? -1) <= (arr[i - 1].poshan_score ?? -1));
 ok(asc(r1j.results) && asc(r2j.results), 'Each shelf is still in descending Poshan Score order after the repeat');
 const otherDev = await (await fq('&vid=otherdevice0123456789')).json();
-ok(otherDev.count === 20 && otherDev.results.every((x) => x.poshan_score >= 58 && !x.capped), 'Every recipe offered scores 58 or more and is not capped');
+ok(otherDev.count === 20 && otherDev.results.every((x) => x.poshan_score >= 70 && !x.capped), 'Every recipe offered scores 70 or more and is not capped');
 const shuf = await (await fq('&shuffle=1&exclude=' + r1j.results.map((x) => x.id).join(','))).json();
 ok(shuf.count === 20 && shuf.results.filter((x) => !ids1.has(x.id)).length >= 8, 'Shuffle draws a new set that avoids the recipes on screen: ' + shuf.results.filter((x) => !ids1.has(x.id)).length + ' new');
 const hitsRowF = db.prepare("SELECT sum(times) m FROM kp_seen WHERE vid = ?").get(devId);
@@ -912,14 +914,14 @@ ok(stRes.status === 200 && (await stRes.json()).daily_cap === aoCap && (await ro
 
 // ---- the Products page: every approved, scored packaged food, with age guide, filters and score workings ----
 import * as PR from '../../src/recipes/products.js';
-import { ALL_KINDS as pkKinds, CATALOGUE_KINDS as pkCat, READY_KINDS as pkReady, scorePack as pkScore } from '../../src/recipes/ready.js';
-ok(new Set(pkKinds.map((k) => k.kind)).size === pkKinds.length && pkKinds.every((k) => k.category && k.label && k.query && k.product instanceof RegExp), 'Every pack and product type has a unique key, a category, a search and a name check');
-ok(pkKinds.length === pkReady.length + pkCat.length && pkCat.length >= 30 && ['Breakfast and cereals', 'Snacks', 'Drinks', 'Dairy', 'Baby foods', 'Ready mixes'].every((c) => pkKinds.some((k) => k.category === c)), 'The catalogue covers breakfast, flours, snacks, drinks, dairy, baby foods and ready mixes');
+import { ALL_KINDS as pkKinds, CATALOGUE_KINDS as pkCat, MORE_KINDS as pkMore, READY_KINDS as pkReady, scorePack as pkScore } from '../../src/recipes/ready.js';
+ok(new Set(pkKinds.map((k) => k.kind)).size === pkKinds.length && pkKinds.every((k) => k.category && k.label && (k.scanOnly || k.query) && k.product instanceof RegExp), 'Every pack and product type has a unique key, a category, a search and a name check');
+ok(pkKinds.length === pkReady.length + pkCat.length + pkMore.length && pkMore.every((k) => k.scanOnly && k.words) && pkCat.length >= 30 && ['Breakfast and cereals', 'Snacks', 'Drinks', 'Dairy', 'Baby foods', 'Ready mixes'].every((c) => pkKinds.some((k) => k.category === c)), 'The catalogue covers breakfast, flours, snacks, drinks, dairy, baby foods and ready mixes');
 ok(pkCat.every((k) => !k.dish) && PR.KIND_CATEGORIES.length >= 8, 'Catalogue products are never matched to a recipe; they only appear on the Products page');
 const prodAges = PR.agesFor;
-ok(prodAges('ragi_flour', { added_sugars_g: 0, sodium_mg: 5 }, ['ragi']).join() === '6-12m,1-3y,4-6y,7-9y,10-12y', 'A plain baby-suitable food with no sugar or salt is offered from 6 months');
-ok(prodAges('ragi_flour', { added_sugars_g: 0, sodium_mg: 5 }, ['ragi', 'salt']).join() === '1-3y,4-6y,7-9y,10-12y' && prodAges('baby_cereal', { added_sugars_g: 6, sodium_mg: 40 }, []).join() === '1-3y,4-6y,7-9y,10-12y', 'Salt in the ingredients, or sugar above 2 g, takes it out of the 6-12 month age');
-ok(prodAges('kids_biscuits', { added_sugars_g: 22, sodium_mg: 300 }, []).join() === '1-3y,4-6y,7-9y,10-12y' && prodAges('rolled_oats', {}, []).join() === '1-3y,4-6y,7-9y,10-12y', 'A biscuit is never offered under 12 months; a product with no label values is not offered under 12 months either (from 12 months the score itself weighs sugar and salt for the age)');
+ok(prodAges('ragi_flour', { added_sugars_g: 0, sodium_mg: 5 }, ['ragi']).join() === '6-12m,1-3y,4-6y,7-9y,10-12y,13-15y,16-18y,adult', 'A plain baby-suitable food with no sugar or salt is offered from 6 months');
+ok(prodAges('ragi_flour', { added_sugars_g: 0, sodium_mg: 5 }, ['ragi', 'salt']).join() === '1-3y,4-6y,7-9y,10-12y,13-15y,16-18y,adult' && prodAges('baby_cereal', { added_sugars_g: 6, sodium_mg: 40 }, []).join() === '1-3y,4-6y,7-9y,10-12y,13-15y,16-18y,adult', 'Salt in the ingredients, or sugar above 2 g, takes it out of the 6-12 month age');
+ok(prodAges('kids_biscuits', { added_sugars_g: 22, sodium_mg: 300 }, []).join() === '1-3y,4-6y,7-9y,10-12y,13-15y,16-18y,adult' && prodAges('rolled_oats', {}, []).join() === '1-3y,4-6y,7-9y,10-12y,13-15y,16-18y,adult', 'A biscuit is never offered under 12 months; a product with no label values is not offered under 12 months either (from 12 months the score itself weighs sugar and salt for the age)');
 ok(prodAges('kids_biscuits', { added_sugars_g: 2, sodium_mg: 100 }, []).includes('6-12m') === false, 'A kind that is not meant for babies is never offered under 12 months, however clean its label');
 
 const pkAdd = (o) => db.prepare("INSERT INTO kp_ready_products (kind, name, brand, pack_size, product_url, image_url, retailer, ingredients_json, nutrition_json, kidposhan_score, score_status, score_breakdown_json, status, label_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
@@ -942,9 +944,9 @@ ok((await PR.listProducts(env, { category: 'Snacks' })).total === 0 && (await PR
 const prodInfants = await PR.listProducts(env, { age: '6-12m' });
 ok(prodInfants.items.map((x) => x.name).sort().join() === 'Organic Ragi Flour,Rolled Oats 1kg' && prodInfants.categories.length === 2, 'For 6-12 months only the plain, low-sugar, low-salt baby-suitable products are listed (the biscuit is not), and the category list follows the age: ' + prodInfants.items.map((x) => x.name));
 const bisc1 = (await PR.listProducts(env, { age: '1-3y' })).items.find((x) => x.name === 'Choco Kids Biscuit'), bisc10 = (await PR.listProducts(env, { age: '10-12y' })).items.find((x) => x.name === 'Choco Kids Biscuit');
-ok((await PR.listProducts(env, { age: '4-6y' })).total === 3 && bisc1 && bisc10 && bisc10.score >= bisc1.score, 'From 12 months every scored product is listed, and the same biscuit scores no better for a 1-3 year old than for a 10-12 year old');
+ok((await PR.listProducts(env, { age: '4-6y' })).total === 3 && bisc1 && bisc10 && bisc10.score >= bisc1.score - 2, 'From 12 months every scored product is listed, and the same biscuit scores no better for a 1-3 year old than for a 10-12 year old (within 2 points: a small child needs less protein and fibre, so those marks come easier)');
 const prodDet = await PR.productDetail(env, pRagi);
-ok(prodDet && prodDet.name === 'Organic Ragi Flour' && prodDet.offered_for[0] === '6-12m' && prodDet.nutrition_per_100g.fibre_g === 11 && prodDet.metrics.length === 10 && prodDet.metrics.every((m) => m.score >= 1 && m.score <= 10) && prodDet.score === Math.round((prodDet.metrics.reduce((a, m) => a + m.score, 0) - 10) / 90 * 100) && Object.keys(prodDet.scores_by_age).length === 5, 'The product detail carries the label, the age guide and the ten metrics (each 1 to 10, adding up to the score)');
+ok(prodDet && prodDet.name === 'Organic Ragi Flour' && prodDet.offered_for[0] === '6-12m' && prodDet.nutrition_per_100g.fibre_g === 11 && prodDet.metrics.length === 10 && prodDet.metrics.every((m) => m.score === 0 || m.score === 1) && prodDet.score === prodDet.metrics.reduce((a, m) => a + m.score, 0) * 10 && Object.keys(prodDet.scores_by_age).length === 8, 'The product detail carries the label, the age guide and the ten metrics (each a yes or no, passes times 10 = the score)');
 ok(await PR.productDetail(env, 999999) === null && await PR.productDetail(env, db.prepare("SELECT id FROM kp_ready_products WHERE name = 'Waiting Chips'").get().id) === null, 'A product that is not approved and scored has no page');
 const prodApi = await routeRecipes(new Request('https://w/api/kp/products?age=nonsense&sort=name', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
 const prodApiJ = await prodApi.json();
@@ -959,35 +961,35 @@ ok((await routeRecipes(new Request('https://w/api/kp/admin/products/approve-scor
 // ---- Poshan Score version 2: ten metrics, each 1 to 10, out of 100, for the child's age band ----
 import * as S2 from '../../src/recipes/score2.js';
 import { methodSpec as s2Spec } from '../../src/recipes/score2.js';
-ok(S2.BANDS.length === 4 && S2.bandForMonths(9).id === '1-3' && S2.bandForMonths(12).id === '1-3' && S2.bandForMonths(47).id === '1-3' && S2.bandForMonths(48).id === '4-6' && S2.bandForMonths(84).id === '7-9' && S2.bandForMonths(120).id === '10-12' && S2.bandForMonths(300).id === '10-12', 'An age in months maps to the 1-3, 4-6, 7-9 or 10-12 year band (under 12 months uses the 1-3 reference)');
-ok(S2.riskScore(0) === 10 && S2.riskScore(1.9) === 10 && S2.riskScore(2) === 9 && S2.riskScore(9.9) === 8 && S2.riskScore(10) === 7 && S2.riskScore(29.9) === 4 && S2.riskScore(30) === 3 && S2.riskScore(49.9) === 2 && S2.riskScore(50) === 1 && S2.riskScore(500) === 1, 'A risk metric scores 10 down to 1 by its share of the daily reference (pass under 10% = 8-10, partial under 30% = 4-7, fail 30%+ = 1-3)');
-ok(S2.creditScore(30) === 10 && S2.creditScore(15) === 8 && S2.creditScore(14.9) === 7 && S2.creditScore(5) === 4 && S2.creditScore(4.9) === 3 && S2.creditScore(1.4) === 1, 'A credit metric (fibre, protein) scores 10 down to 1 (pass 15%+ = 8-10, partial 5-15% = 4-7, fail under 5% = 1-3)');
+ok(S2.BANDS.length === 4 && S2.bandForMonths(9).id === '1-3' && S2.bandForMonths(12).id === '1-3' && S2.bandForMonths(47).id === '1-3' && S2.bandForMonths(48).id === '4-6' && S2.bandForMonths(84).id === '7-9' && S2.bandForMonths(120).id === '10-12' && S2.bandForMonths(155).id === '10-12' && S2.bandForMonths(156).id === '13-15' && S2.bandForMonths(200).id === '16-18' && S2.bandForMonths(300).id === 'adult', 'An age in months maps to its ICMR-NIN group: 1-3, 4-6, 7-9, 10-12, 13-15, 16-18 or adult (under 12 months uses the 1-3 reference)');
+ok(S2.riskScore(0) === 1 && S2.riskScore(10) === 1 && S2.riskScore(29.9) === 1 && S2.riskScore(30) === 0 && S2.riskScore(500) === 0, 'A risk metric is a yes or no by its share of the daily reference (yes under 30%, no at 30% or more)');
+ok(S2.creditScore(30) === 1 && S2.creditScore(15) === 1 && S2.creditScore(14.9) === 0 && S2.creditScore(0) === 0, 'A credit metric (fibre, protein) is a yes or no (yes at 15% of the day or more)');
 const s2Clean = S2.scoreAllBands({ basis: 'pack', protein: 12, fibre: 10, addedSugar: 0, satFat: 1, sodium: 10, name: 'Rolled Oats', ingredients: ['Rolled oats'] });
-ok(s2Clean.version === 'kp-score-v3' && Object.keys(s2Clean.bands).join() === '1-3,4-6,7-9,10-12' && s2Clean.reference === s2Clean.bands['4-6'].total && s2Clean.bands['4-6'].metrics.length === 10, 'Every score is worked out for all four age bands, with ten metrics each');
-ok(s2Clean.bands['4-6'].metrics.every((m, i) => m.n === i + 1 && m.score >= 1 && m.score <= 10 && Number.isInteger(m.score)) && s2Clean.bands['4-6'].total === s2Clean.bands['4-6'].metrics.reduce((a, m) => a + m.score, 0) && s2Clean.bands['4-6'].total >= 90, 'The ten metrics are whole numbers from 1 to 10 and add up to the score out of 100: ' + s2Clean.bands['4-6'].total);
+ok(s2Clean.version === 'kp-score-v4' && Object.keys(s2Clean.bands).length === 19 && ['1-3','4-6','7-9','10-12','13-15:f','adult:m:heavy'].every((k) => k in s2Clean.bands) && s2Clean.reference === s2Clean.bands['4-6'].total && s2Clean.bands['4-6'].metrics.length === 10, 'Every score is worked out for every ICMR-NIN age group (children, boys and girls, men and women), with ten metrics each');
+ok(s2Clean.bands['4-6'].metrics.every((m, i) => m.n === i + 1 && (m.score === 0 || m.score === 1) && m.pass === (m.score === 1)) && s2Clean.bands['4-6'].total === s2Clean.bands['4-6'].metrics.reduce((a, m) => a + m.score, 0) * 10 && s2Clean.bands['4-6'].total >= 90, 'The ten metrics are each 0 or 1 and the passes times 10 give the score out of 100: ' + s2Clean.bands['4-6'].total);
 const s2Junk = S2.scoreAllBands({ basis: 'pack', protein: 3, fibre: 1, addedSugar: 30, satFat: 14, sodium: 700, name: 'Choco Wafer', ingredients: ['Sugar', 'Palm oil', 'Refined wheat flour', 'Hydrogenated vegetable fat', 'Preservative (INS 211)', 'Artificial flavour', 'Colour (INS 110)'] });
 const jm = s2Junk.bands['4-6'].metrics;
-ok(jm[0].score === 1 && jm[2].score === 1 && jm[3].score === 2 && jm[6].score < 10 && jm[7].score < 10 && jm[8].score === 1 && jm[9].score === jm[0].score, 'Sugar first, hydrogenated fat, a preservative and artificial additives each cost points; HFSS is the worst of sugar, sodium and saturated fat');
+ok(jm[0].score === 0 && jm[2].score === 0 && jm[3].score === 0 && jm[6].score === 0 && jm[7].score === 0 && jm[8].score === 0 && jm[9].score === 0, 'Sugar first, hydrogenated fat, a preservative and artificial additives each fail their check; HFSS fails if sugar, sodium or saturated fat fails');
 ok(s2Junk.bands['4-6'].total <= 57 && s2Junk.bands['4-6'].tier !== 'Excellent' && s2Junk.bands['4-6'].tier !== 'Good', 'A product that fails a risk metric outright is capped at 57 (Fair) at most: ' + s2Junk.bands['4-6'].total);
-const salty = (b) => S2.scoreForBand({ basis: 'pack', protein: 8, fibre: 6, addedSugar: 1, satFat: 2, sodium: 600, name: 'Savoury Mix', ingredients: ['Chickpea flour'] }, b).metrics[1].score;
-ok(salty('1-3') <= salty('4-6') && salty('4-6') <= salty('7-9') && salty('7-9') <= salty('10-12') && salty('1-3') < salty('10-12'), 'The same salty food scores worse on sodium for a younger child than for an older one');
+const salty = (b) => S2.scoreForBand({ basis: 'pack', protein: 8, fibre: 6, addedSugar: 1, satFat: 2, sodium: 400, name: 'Savoury Mix', ingredients: ['Chickpea flour'] }, b).metrics[1].score;
+ok(salty('1-3') <= salty('4-6') && salty('4-6') <= salty('7-9') && salty('7-9') <= salty('10-12') && salty('1-3') < salty('10-12'), 'The same salty food can fail sodium for a younger child and pass for an older one');
 const sameMeal = { protein: 9, fibre: 5, addedSugar: 1, satFat: 2.5, sodium: 380, name: 'Veg pulao', ingredients: '', topKey: 'rice' };
-ok(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share === S2.scoreForBand({ ...sameMeal, basis: 'pack' }, '4-6').metrics[1].share && Math.round(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share) === 25, 'A serving is compared with the FULL daily reference (380 mg of 1,500 mg = 25%), not a third of it');
-ok(S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'sugar' }, '4-6').metrics[8].score === 4 && S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'rice' }, '4-6').metrics[8].score === 10, 'For a dish, base-ingredient integrity looks at what dominates by weight');
+ok(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share === S2.scoreForBand({ ...sameMeal, basis: 'pack' }, '4-6').metrics[1].share && Math.round(S2.scoreForBand({ ...sameMeal, basis: 'meal' }, '4-6').metrics[1].share) === 28, 'A serving is compared with the FULL daily reference (380 mg of 1,360 mg = 28%), not a third of it');
+ok(S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'sugar' }, '4-6').metrics[8].score === 0 && S2.scoreForBand({ ...sameMeal, basis: 'meal', topKey: 'rice' }, '4-6').metrics[8].score === 1, 'For a dish, base-ingredient integrity looks at what dominates by weight');
 const spec = s2Spec();
-ok(spec.metrics.length === 10 && spec.scale.max === 10 && spec.scale.total === 100 && spec.bands.length === 4 && spec.metrics.every((m) => Array.isArray(m.steps) && m.steps.length >= 1) && spec.metrics[0].steps.length === 10 && spec.metrics[4].steps.length === 10, 'The method page data lists ten metrics, four age bands, and a demarcated 1-10 table for the number-based metrics');
-ok(spec.metrics[0].steps[0].score === 10 && spec.metrics[0].steps[9].score === 1 && /under 2%/.test(spec.metrics[0].steps[0].rule) && /50% or more/.test(spec.metrics[0].steps[9].rule), 'The printed thresholds are generated from the same table the scoring uses');
+ok(spec.metrics.length === 10 && spec.scale.max === 1 && spec.scale.total === 100 && spec.bands.length === 4 && spec.metrics.every((m) => Array.isArray(m.steps) && m.steps.length >= 1) && spec.metrics[0].steps.length === 2 && spec.metrics[4].steps.length === 2, 'The method page data lists ten metrics, four age bands, and a yes and a no rule for each metric');
+ok(spec.metrics[0].steps[0].score === 1 && spec.metrics[0].steps[1].score === 0 && /under 30%/.test(spec.metrics[0].steps[0].rule) && /at or over/.test(spec.metrics[0].steps[1].rule), 'The printed thresholds are generated from the same table the scoring uses');
 const specRes = await routeRecipes(new Request('https://w/api/kp/score-method', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
 ok(specRes.status === 200 && (await specRes.json()).metrics.length === 10 && specRes.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in', 'The scoring method is served to the Age & Metrics page (and answers CORS for kidposhan.in)');
 
 // recipes carry a score per age band, and search/detail follow the child's age
 const s2Q = async (age) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&pref=veg&limit=40'), env, ctx)).json());
 const s2Id = mkRecipe('https://s2.example/dish/', { status: 'approved', name: 'Salty Dal Dish', agemin: 6, agemax: 144 });
-db.prepare('UPDATE kp_recipes SET score_13 = 62, score_46 = 66, score_79 = 72, score_1012 = 88, poshan_score = 66 WHERE id = ?').run(s2Id);
+db.prepare('UPDATE kp_recipes SET score_13 = 70, score_46 = 80, score_79 = 80, score_1012 = 90, poshan_score = 80 WHERE id = ?').run(s2Id);
 // every search is a random draw, so ask a few times until the recipe is in the draw
 const s2Find = async (age) => { for (let i = 0; i < 12; i++) { const r = (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&pref=veg&limit=40&shuffle=1'), env, ctx)).json()).results.find((x) => x.id === s2Id); if (r) return r; } return null; };
 const s2a = await s2Find(24), s2b = await s2Find(132), s2c = await s2Find(60);
-ok(s2a && s2b && s2c && s2a.poshan_score === 62 && s2b.poshan_score === 88 && s2c.poshan_score === 66, "A recipe's listed score follows the child's age band (62 at 1-3 years, 66 at 4-6, 88 at 10-12 in this example)");
+ok(s2a && s2b && s2c && s2a.poshan_score === 70 && s2b.poshan_score === 90 && s2c.poshan_score === 80, "A recipe's listed score follows the child's age band (70 at 1-3 years, 80 at 4-6, 90 at 10-12 in this example)");
 ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_band === '10-12', 'The search says which age band the scores are for');
 
 
@@ -1007,8 +1009,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const clean = RP.scorePack({ ...base, flags: { preservatives: 0, additives: 0, trans: false, integrity: 10 } }, [], 'Rolled oats');
   const dirty = RP.scorePack({ ...base, flags: { preservatives: 1, additives: 3, trans: true, integrity: 3 } }, [], 'Rolled oats');
   const m = (r) => r.detail.bands['4-6'].metrics;
-  ok(m(clean)[6].score === 10 && m(clean)[7].score === 10 && m(clean)[8].score === 10 && m(clean)[3].score === 10, 'Checked-reading flags: no preservatives, additives or hydrogenated fat, whole-food first, scores 10 on each check');
-  ok(m(dirty)[6].score === 6 && m(dirty)[7].score === 1 && m(dirty)[3].score === 2 && m(dirty)[8].score === 3 && dirty.score < clean.score, 'Checked-reading flags carry a preservative, three additives, a hydrogenated fat and a refined first ingredient into the marks');
+  ok(m(clean)[6].score === 1 && m(clean)[7].score === 1 && m(clean)[8].score === 1 && m(clean)[3].score === 1, 'Checked-reading flags: no preservatives, additives or hydrogenated fat, whole-food first, passes each check');
+  ok(m(dirty)[6].score === 0 && m(dirty)[7].score === 0 && m(dirty)[3].score === 0 && m(dirty)[8].score === 0 && dirty.score < clean.score, 'Checked-reading flags carry a preservative, three additives, a hydrogenated fat and a refined first ingredient into the checks');
   ok(RP.kindByKey('mayonnaise')?.category === 'Spreads and sauces', 'Mayonnaise is a product kind');
 }
 
@@ -1034,10 +1036,10 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const E = await import('../../src/recipes/score2.js');
   const RP = await import('../../src/recipes/ready.js');
   const salty = E.scoreForBand({ basis: 'meal', protein: 8, fibre: 6, addedSugar: 0, satFat: 1, sodium: 3000, name: 'Dal', ingredients: ['Toor dal', 'Salt'] }, '4-6');
-  ok(salty.capped && salty.total === Math.round((salty.sum - 10) / 90 * 100) && salty.total > 57 && salty.tier === 'Fair', `A capped result keeps the real score (${salty.total}) and is rated Fair, not clipped to 57`);
+  ok(salty.capped && salty.total === salty.sum * 10 && salty.total > 70 && salty.tier === 'OK', `A capped result keeps the real score (${salty.total}) and is rated OK, not clipped to 70`);
   const flakes = { protein_g: 6.7, fibre_g: 2.5, sugars_g: 9.2, added_sugars_g: 8, saturated_fat_g: 0.6, sodium_mg: 490 };
   const asPack = RP.scorePack(flakes, ['Corn grits', 'Sugar', 'Salt'], 'Corn Flakes', 'breakfast_cereal');
-  ok(asPack.detail.inputs.basis === 'meal' && asPack.detail.inputs.serving_g === 30 && Math.abs(asPack.detail.inputs.sodium - 147) < 0.01, 'A pack is scored per serving (30 g of cereal), like a recipe, not per 100 g');
+  ok(asPack.detail.inputs.basis === 'meal' && asPack.detail.inputs.serving_g === 40 && Math.abs(asPack.detail.inputs.sodium - 196) < 0.01, 'A pack is scored per serving (40 g of cereal, the FDA reference amount), like a recipe, not per 100 g');
   const big = RP.scorePack({ ...flakes, serving_g: 60 }, ['Corn grits', 'Sugar', 'Salt'], 'Corn Flakes', 'breakfast_cereal');
   ok(big.detail.inputs.sodium > asPack.detail.inputs.sodium && big.score <= asPack.score, 'A bigger serving counts for more');
   const d = await PR.productDetail(env, (await PR.listProducts(env, {})).items[0].id, {});
@@ -1067,8 +1069,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   dn.run(dVeg);
   const meals = await mAll('age_months=60&occasion=snack_4pm,dinner&pref=veg&season=all');
   ok(meals.has(dVeg), 'Two meals together: a recipe that suits either one is offered');
-  const bad = await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=24,999&occasion=lunch'), env, ctx);
-  ok(bad.status === 400, 'An age outside 6 to 144 months is refused, even in a list');
+  const bad = await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=24,1201&occasion=lunch'), env, ctx);
+  ok(bad.status === 400, 'An age outside 6 to 1200 months is refused, even in a list');
 }
 
 
@@ -1096,12 +1098,12 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
 // ---- the score runs from 0 to 100 ----
 {
   const E2 = await import('../../src/recipes/score2.js');
-  ok(E2.stretch(10) === 0 && E2.stretch(100) === 100 && E2.stretch(55) === 50, 'Ten marks of 1 give 0 and ten marks of 10 give exactly 100 (the 10-100 sum is stretched to 0-100)');
+  ok(E2.stretch(0) === 0 && E2.stretch(10) === 100 && E2.stretch(5) === 50, 'No checks passed give 0 and all ten give exactly 100 (passes times 10)');
   const best = E2.scoreForBand({ basis: 'pack', protein: 20, fibre: 20, addedSugar: 0, satFat: 0, sodium: 0, name: 'Rolled oats', ingredients: ['Rolled oats'] }, '4-6');
-  ok(best.total === 100 && best.tier === 'Excellent', 'A perfect product scores exactly 100: ' + best.total);
+  ok(best.total === 100 && best.tier === 'Good', 'A perfect product scores exactly 100: ' + best.total);
   const worst = E2.scoreForBand({ basis: 'pack', protein: 0, fibre: 0, addedSugar: 100, satFat: 100, sodium: 5000, name: 'Sugar', ingredients: ['Sugar', 'Hydrogenated vegetable fat', 'Preservative (E211)', 'Artificial flavour', 'Colour (E102)'] }, '4-6');
-  ok(worst.total <= 10 && worst.tier === 'Occasional', 'The worst possible product scores near 0: ' + worst.total);
-  ok(E2.methodSpec().tiers.at(-1).min === 0 && E2.methodSpec().scale.sum_range.join() === '10,100', 'The method page data says the score runs from 0');
+  ok(worst.total <= 10 && worst.tier === 'Do not use', 'The worst possible product scores near 0: ' + worst.total);
+  ok(E2.methodSpec().tiers.at(-1).min === 0 && E2.methodSpec().scale.sum_range.join() === '0,10', 'The method page data says the score runs from 0');
 }
 
 // ---- saves stay on the phone; another device needs a one-time code ----
@@ -1243,5 +1245,214 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
 }
 
 { const { toPoints } = await import('../../src/recipes/clean.js'); const p = toPoints([{ text: 'Step 1: Heat oil in a pan. Add cumin and let it splutter. Add the onions and fry until golden brown, stirring often so they do not catch. Add the tomatoes and cook until soft and the oil separates from the masala.' }, { text: 'Serve hot.' }]); ok(p.length === 5 && p[0].text === 'Heat oil in a pan.' && p[4].text === 'Serve hot.', 'A long paragraph of method becomes one point per sentence; short steps stay as they are'); }
+
+// ---- the scanner ----
+{
+  const S = await import('../../src/recipes/scan.js');
+  ok(S.normalizeCode('8901058000290') === '8901058000290' && S.normalizeCode('890 1058 000290') === '8901058000290' && S.normalizeCode('036000291452') === '0036000291452' && S.normalizeCode('12345') === null && S.normalizeCode('abc') === null, 'Barcodes are cleaned to 8 or 13 digits; anything else is not a barcode');
+  const offFetch = (product, status = 200) => async () => ({ ok: status === 200, status, text: async () => JSON.stringify(product === undefined ? { status: 0 } : { status: 1, product }) });
+  const bad = await S.scanLookup(env, '123', {});
+  ok(bad.status === 'bad_code', 'A short number is not accepted as a barcode');
+  const miss = await S.scanLookup(env, '8909990000011', { fetchFn: offFetch(undefined, 404) });
+  ok(miss.status === 'need_photos' && miss.kinds.length > 20 && /photograph/i.test(miss.message), 'A pack nobody has recorded asks for the two photos, and offers the kinds of food to choose from');
+  const slow = await S.scanLookup(env, '8909990000012', { fetchFn: async () => ({ ok: false, status: 503, text: async () => '' }) });
+  ok(slow.status === 'need_photos' && /busy/i.test(slow.message), 'When Open Food Facts is busy the parent is asked for photos, not shown an error');
+  const full = { code: '8909990000013', product_name: 'Test Oats', brands: 'Testco', quantity: '400 g', categories_tags: ['en:breakfast-cereals', 'en:oat-flakes'], ingredients_text: 'Rolled oats', nutriments: { proteins_100g: 12, fiber_100g: 10, sugars_100g: 1, 'saturated-fat_100g': 1.2, sodium_100g: 0.01 } };
+  const hit = await S.scanLookup(env, '8909990000013', { age: '4-6y', fetchFn: offFetch(full) });
+  ok(hit.status === 'found' && hit.listed === false && hit.product.score > 0 && hit.product.metrics.length === 10 && hit.product.barcode === '8909990000013', 'A pack Open Food Facts knows fully is scored at once, and is not listed until approved');
+  const again = await S.scanLookup(env, '8909990000013', { age: '1-3y', fetchFn: async () => { throw new Error('should not be asked again'); } });
+  ok(again.status === 'found' && again.product.age === '1-3y', 'The second scan comes from our own database, for the age chosen');
+  const OFX = await import('../../src/recipes/openfood.js');
+  const kinds = (await S.scanLookup(env, '8909990000070', { fetchFn: offFetch(undefined, 404) })).kinds;
+  const find = (w) => kinds.filter((k) => (k.label + ' ' + k.words).toLowerCase().includes(w)).map((k) => k.kind);
+  ok(kinds.length >= 60 && find('custard').includes('custard_powder') && find('toffee').includes('candy_toffee') && find('maggi').includes('instant_noodles') && find('pickle').includes('pickle_chutney'), 'The list of kinds of food is wide, and each carries the words people use for it: ' + kinds.length);
+  ok(OFX.kindFor(['en:custard-powders'], 'Brown & Polson Custard Powder') === 'custard_powder' && OFX.kindFor(['en:ice-creams'], 'Amul Vanilla Ice Cream') === 'ice_cream' && OFX.kindFor(['en:chocolates'], 'Dairy Milk') === 'chocolate' && OFX.kindFor(['en:biscuits'], 'Chocolate Biscuit') === 'kids_biscuits', 'More foods are recognised on their own, without disturbing the old ones');
+  ok(OFX.kindFor(['en:soups', 'en:dehydrated-soups'], 'Knorr Sweet Corn Vegetable Soup') === 'instant_soup', 'Soups are a kind we score');
+  const odd = { code: '8909990000060', product_name: 'Tamarind Concentrate', brands: 'Testco', categories_tags: ['en:condiments'], ingredients_text: 'Tamarind', nutriments: { proteins_100g: 3, fiber_100g: 5, sugars_100g: 30, 'saturated-fat_100g': 0.1, sodium_100g: 0.2 } };
+  const ck = await S.scanLookup(env, '8909990000060', { fetchFn: offFetch(odd) });
+  ok(ck.status === 'choose_kind' && ck.kinds.length > 20, 'When the kind cannot be told the parent is asked to choose it, not turned away');
+  const ck2 = await S.scanLookup(env, '8909990000060', { kind: 'jam', age: '4-6y', fetchFn: offFetch(odd) });
+  ok(ck2.status === 'found' && ck2.product.kind_label.startsWith('Jam'), 'Once a kind is chosen the pack is scored');
+  const spice = await S.scanLookup(env, '8909990000014', { fetchFn: offFetch({ code: '8909990000014', product_name: 'Garam Masala', brands: 'Testco', categories_tags: ['en:spices'], nutriments: { proteins_100g: 12, fiber_100g: 10, sugars_100g: 1, 'saturated-fat_100g': 1, sodium_100g: 0.1 } }) });
+  ok(spice.status === 'not_scored', 'A food we do not score (spices) says so');
+
+  const labelJson = JSON.stringify({ nutrition_found: true, serving_size_g: null, per_100g: { protein_g: 9, fibre_g: 6, sugars_g: 3, added_sugars_g: 1, saturated_fat_g: 1.5, sodium_mg: 200 }, per_serving: null, ingredients: ['Whole wheat flour', 'Sugar', 'Salt'] });
+  const aiOk = { ...env, AI: { run: async () => ({ response: labelJson }) } };
+  const aiBusy = { ...env, AI: { run: async () => { throw new Error('4006: you have used up your daily free allocation'); } } };
+  const jpg = 'data:image/jpeg;base64,/9j/4AAQ';
+  const good = { barcode: '8909990000021', kind: 'kids_biscuits', brand: 'Testco', name: 'Wheat Biscuits', front: jpg, back: jpg, ingredients: jpg, consent: true };
+  const noPhoto = await S.scanSubmit(aiOk, { ...good, back: '' }, { who: 'w1', origin: 'https://p' }).catch((e) => e);
+  ok(noPhoto instanceof S.ScanError && /back/.test(noPhoto.message), 'The back photo is needed');
+  const noIng = await S.scanSubmit(aiOk, { ...good, barcode: '8909990000040', ingredients: '' }, { who: 'w4', origin: 'https://p' });
+  ok(noIng.status === 'found' && db.prepare("SELECT COUNT(*) n FROM kp_scan_photos WHERE product_id = (SELECT id FROM kp_ready_products WHERE barcode = '8909990000040')").get().n === 2, 'Two photos are enough: the front and the back, which carries the table and the ingredients');
+  const noKind = await S.scanSubmit(aiOk, { ...good, kind: 'nonsense' }, { who: 'w1', origin: 'https://p' }).catch((e) => e);
+  ok(noKind instanceof S.ScanError, 'The kind of food must be one of ours');
+  const sent = await S.scanSubmit(aiOk, good, { who: 'w1', origin: 'https://p', age: '4-6y' });
+  ok(sent.status === 'found' && sent.saved && sent.listed === false && sent.product.score > 0, 'Photos are read, the pack is scored and shown at once, and it waits for approval: ' + JSON.stringify(sent).slice(0, 200));
+  const row = db.prepare("SELECT data_source, status, image_url, label_image_url, label_source FROM kp_ready_products WHERE barcode = '8909990000021'").get();
+  ok(row.data_source === 'scan' && row.status === 'candidate' && /scan\/photo\/\d+\/front$/.test(row.image_url) && /\/back$/.test(row.label_image_url), 'The scanned pack is saved as a candidate with links to its two photos');
+  const pid = db.prepare("SELECT id FROM kp_ready_products WHERE barcode = '8909990000021'").get().id;
+  const ph = await routeRecipes(new Request('https://w/api/kp/scan/photo/' + pid + '/front'), env, ctx);
+  ok(ph.status === 200 && ph.headers.get('content-type') === 'image/jpeg', 'The saved photo can be shown');
+  const dupe = await S.scanSubmit(aiOk, good, { who: 'w1', origin: 'https://p' });
+  ok(dupe.status === 'found' && db.prepare("SELECT COUNT(*) n FROM kp_ready_products WHERE barcode = '8909990000021'").get().n === 1, 'The same barcode is never saved twice');
+  const busy = await S.scanSubmit(aiBusy, { ...good, barcode: '8909990000022' }, { who: 'w2', origin: 'https://p' });
+  ok(busy.status === 'saved' && busy.retry === true, 'When the label reader is busy the photos are kept and the parent is told to come back');
+  const pend = await S.readScansPending(aiOk, { limit: 5 });
+  ok(pend.length === 0, 'It is not tried again straight away');
+  db.prepare("UPDATE kp_ready_products SET label_tried_at = datetime('now','-4 hours') WHERE barcode = '8909990000022'").run();
+  const pend2 = await S.readScansPending(aiOk, { limit: 5 });
+  ok(pend2.length === 1 && pend2[0].ok && pend2[0].status === 'exact', 'Later the reader is tried again and the pack is scored');
+  let limited = null;
+  for (let k = 0; k < 10 && !limited; k++) limited = await S.scanSubmit(aiOk, { ...good, barcode: '89099900001' + String(30 + k) }, { who: 'w3', origin: 'https://p' }).then(() => null, (e) => e);
+  ok(limited instanceof S.ScanError && limited.status === 429, 'One phone can only send so many packs in an hour');
+  // condensed milk: a label that does not print fibre at all
+  const milkJson = JSON.stringify({ nutrition_found: true, serving_size_g: null, per_serving: null, per_100g: { energy_kcal: 330, protein_g: 8, carbohydrate_g: 55.5, total_fat_g: 9, fibre_g: null, sugars_g: 55.5, added_sugars_g: 43, saturated_fat_g: 2.6, sodium_mg: 110 }, ingredients: ['Milk', 'Sugar'] });
+  const milk = await S.scanSubmit({ ...env, AI: { run: async () => ({ response: milkJson }) } }, { ...good, barcode: '8909990000050', kind: 'flavoured_milk', name: 'Sweetened Condensed Milk', brand: 'Testco' }, { who: 'w5', origin: 'https://p' });
+  ok(milk.status === 'found' && milk.product.score > 0 && /fibre is not printed/.test(milk.product.label_note), 'A milk label that prints no fibre is still scored (fibre taken as 0, said in the note)');
+  // a pack whose photo could not be read: the parent is asked for the back photo again, and a good one finishes the job
+  const noTab = JSON.stringify({ nutrition_found: false });
+  const aiNo = { ...env, AI: { run: async () => ({ response: noTab }) } };
+  const unread = await S.scanSubmit(aiNo, { ...good, barcode: '8909990000080', name: 'Sauce Pouch', kind: 'ketchup' }, { who: 'w6', origin: 'https://p' });
+  ok(unread.status === 'saved' && /could not be read/.test(unread.message), 'A photo with no readable table is saved and said so');
+  const ask = await S.scanLookup(env, '8909990000080', {});
+  ok(ask.status === 'retake' && /take the back photo again/.test(ask.message), 'Scanning that pack again asks for a better back photo, not that we are reading it');
+  const keChk = JSON.stringify({ nutrition_found: true, serving_size_g: 15, per_100g: { energy_kcal: 100, protein_g: 1.2, carbohydrate_g: 24, total_fat_g: 0.1, fibre_g: 0.4, sugars_g: 22, added_sugars_g: 18, saturated_fat_g: 0, sodium_mg: 900 }, ingredients: ['Tomato', 'Sugar', 'Salt'] });
+  const redo = await S.scanRetake({ ...env, AI: { run: async () => ({ response: keChk }) } }, { barcode: '8909990000080', back: jpg, consent: true }, { who: 'w6', origin: 'https://p', age: '4-6y' });
+  ok(redo.status === 'found' && redo.product.score > 0 && redo.product.nutrition_per_100g.serving_g === 15, 'A new back photo reads, scores the pack, and keeps its printed serving');
+  const again2 = await S.scanRetake(aiNo, { barcode: '8909990000080', back: jpg, consent: true }, { who: 'w6', origin: 'https://p' });
+  ok(again2.status === 'found', 'A pack that already has a score cannot be overwritten by a new photo');
+  // the biggest claim, against the ingredient list
+  const CL = await import('../../src/recipes/claims.js');
+  const c1 = CL.headlineClaim('Dabur Pure Honey', ['Honey']);
+  ok(c1.claim === 'Honey' && c1.percent === 100 && /only ingredient/.test(c1.verdict), 'Pure honey with honey as the only ingredient: 100%');
+  const c2 = CL.headlineClaim('Honey Oats Crunch', ['Rolled oats (62%)', 'Sugar', 'Honey (3%)', 'Salt']);
+  ok(c2.claim === 'Honey' && c2.percent === 3 && c2.position === 3 && /3% of the pack is Honey/.test(c2.verdict), 'The honey in a honey cereal: 3%, third in the list');
+  const c3 = CL.headlineClaim('Maggi Masala Veg Atta Noodles', ['Noodles: Wheat Flour (Atta) (84.2%)', 'Palm oil', 'Iodised salt']);
+  ok(c3.claim === 'Whole wheat' && c3.percent === 84.2, 'Atta noodles: the atta is 84.2% of the noodle part');
+  const c4 = CL.headlineClaim('Real Mango Fruit Drink', ['Water', 'Sugar', 'Acidity regulator', 'Mango pulp (10%)']);
+  ok(c4.claim === 'Mango' && c4.percent === 10, 'A mango drink with 10% mango pulp');
+  const c5 = CL.headlineClaim('Mango Delight', ['Water', 'Sugar', 'Colour', 'Flavour']);
+  ok(c5.found === false && /no mango appears/.test(c5.verdict), 'A mango name with no mango in the list says so');
+  const c6 = CL.headlineClaim('Multigrain Bread', ['Wheat flour', 'Water', 'Oats', 'Ragi flour', 'Yeast', 'Salt']);
+  ok(c6.claim === 'Multigrain' && c6.grains.length >= 3 && c6.percent === null && /does not print how much/.test(c6.verdict), 'Multigrain lists the grains and says when the amounts are not printed');
+  ok(CL.headlineClaim('Crunchy Munchies', ['Corn', 'Oil']) === null, 'A name with no claim gives no claim card');
+  const detail = PR.detailFromRow({ id: 1, name: 'Dabur Pure Honey', kind: 'sweeteners', score_status: 'exact', kidposhan_score: 40, status: 'approved', nutrition_json: JSON.stringify({ protein_g: 0.3, fibre_g: 0, sugars_g: 80, added_sugars_g: 80, saturated_fat_g: 0, sodium_mg: 5 }), ingredients_json: '["Honey"]' }, '');
+  ok(detail && detail.claim && detail.claim.percent === 100, 'The product detail carries the claim');
+  // unchecked packs are findable (flagged), and a parent whose pack differs replaces the entry with their own photos
+  const SE = await import('../../src/recipes/search.js');
+  const offRow = { code: '8909990000090', product_name: 'Zorbo Crunchy Oat Biscuit', brands: 'Zorbo', categories_tags: ['en:biscuits'], ingredients_text: 'Oats, Sugar, Salt', nutriments: { proteins_100g: 7, fiber_100g: 5, sugars_100g: 20, 'saturated-fat_100g': 4, sodium_100g: 0.3 } };
+  await S.scanLookup(env, '8909990000090', { fetchFn: offFetch(offRow) });
+  const found1 = await SE.searchAll(env, 'zorbo', { age: 60 });
+  ok(found1.products.length === 1 && found1.products[0].unchecked === true && found1.products[0].source === 'openfoodfacts', 'A scored pack nobody has approved yet is found by search, flagged as not yet checked');
+  const pid2 = found1.products[0].id;
+  const det = await PR.productDetail(env, pid2, {});
+  ok(det && det.listed === false && det.barcode === '8909990000090', 'Its detail opens, and says it is not listed');
+  const plain = await PR.listProducts(env, { limit: 200 });
+  ok(!plain.items.some((x) => x.id === pid2), 'The Products page itself still shows only approved packs');
+  const fixAsk = await S.scanLookup(env, '8909990000090', { fix: true });
+  ok(fixAsk.status === 'need_photos' && fixAsk.fix === true && fixAsk.prefill.name === 'Zorbo Crunchy Oat Biscuit', 'A parent who says the name differs is asked to photograph their own pack');
+  const fixLabel = JSON.stringify({ nutrition_found: true, serving_size_g: 30, per_100g: { energy_kcal: 480, protein_g: 6, carbohydrate_g: 70, total_fat_g: 19, fibre_g: 3, sugars_g: 22, added_sugars_g: 20, saturated_fat_g: 8, sodium_mg: 400 }, ingredients: ['Wheat flour', 'Sugar', 'Palm oil'] });
+  const fixed = await S.scanSubmit({ ...env, AI: { run: async () => ({ response: fixLabel }) } }, { ...good, barcode: '8909990000090', kind: 'kids_biscuits', brand: 'Zorbo', name: 'Zorbo Wheat Biscuit', correct: true }, { who: 'w7', origin: 'https://p', age: '4-6y' });
+  ok(fixed.status === 'found' && fixed.product.name === 'Zorbo Wheat Biscuit' && db.prepare("SELECT data_source ds FROM kp_ready_products WHERE barcode = '8909990000090'").get().ds === 'scan', 'The entry is replaced by what the parent photographed, and scored from it');
+  db.prepare("UPDATE kp_ready_products SET status = 'approved' WHERE barcode = '8909990000090'").run();
+  const noFix2 = await S.scanSubmit(aiOk, { ...good, barcode: '8909990000090', name: 'Hijack Two', correct: true }, { who: 'w7', origin: 'https://p' });
+  ok(db.prepare("SELECT name FROM kp_ready_products WHERE barcode = '8909990000090'").get().name === 'Zorbo Wheat Biscuit', 'A pack the owner has approved cannot be replaced this way');
+  // the beta: consent, optional thank-you email, mistake reports
+  const BE = await import('../../src/recipes/beta.js');
+  const noConsent = await S.scanSubmit(aiOk, { ...good, barcode: '8909990000110', consent: undefined }, { who: 'w8', origin: 'https://p' }).catch((x) => x);
+  ok(noConsent instanceof S.ScanError && /tick the box/.test(noConsent.message), 'Photos are not taken without the tick that they are the sender\'s to share');
+  const badMail = await S.scanSubmit(aiOk, { ...good, barcode: '8909990000111', email: 'not-an-email' }, { who: 'w8', origin: 'https://p' }).catch((x) => x);
+  ok(badMail instanceof BE.BetaError, 'A mistyped email is refused, and an empty one is fine');
+  const withMail = await S.scanSubmit(aiOk, { ...good, barcode: '8909990000112', email: 'Parent@Example.com' }, { who: 'w8', origin: 'https://p' });
+  const cid = db.prepare("SELECT id FROM kp_ready_products WHERE barcode = '8909990000112'").get().id;
+  ok(withMail.status === 'found' && db.prepare('SELECT email FROM kp_contrib WHERE product_id = ?').get(cid).email === 'parent@example.com', 'The optional email is kept, lower-cased');
+  const sentMail = [];
+  const th0 = await BE.thankPending(env, { send: async (_e, to, subj, body) => sentMail.push({ to, subj, body }) });
+  ok(th0.sent === 0, 'No thank-you goes out while the pack is still unchecked');
+  db.prepare("UPDATE kp_ready_products SET status = 'approved' WHERE id = ?").run(cid);
+  const th1 = await BE.thankPending(env, { send: async (_e, to, subj, body) => sentMail.push({ to, subj, body }) });
+  const th2 = await BE.thankPending(env, { send: async (_e, to, subj, body) => sentMail.push({ to, subj, body }) });
+  ok(th1.sent === 1 && th2.sent === 0 && sentMail.length === 1 && sentMail[0].to === 'parent@example.com' && /Thank you/.test(sentMail[0].subj), 'Once the pack is approved the sender is thanked, once');
+  ok((await BE.thankPending(env, {})).skipped, 'Without Gmail connected, nothing is sent and nothing breaks');
+  const rep1 = await BE.submitReport(env, { reason: 'name', product_id: cid, note: 'The pack says Zorbo Gold' }, { who: 'w9' });
+  const rep2 = await BE.submitReport(env, { reason: 'other', product_id: cid, note: 'x' }, { who: 'w9' }).catch((x) => x);
+  const list = await BE.listReports(env, {});
+  ok(rep1.ok && rep2 instanceof BE.BetaError && list.reports.length === 1 && list.reports[0].product_name, 'A mistake report is saved against the pack; a vague "other" is refused');
+  await BE.resolveReport(env, list.reports[0].id);
+  ok((await BE.listReports(env, {})).reports.length === 0 && (await BE.listReports(env, { status: 'done' })).reports.length === 1, 'Resolving a report moves it out of the open list');
+  const viaRoute = await routeRecipes(new Request('https://w/api/kp/report', { method: 'POST', headers: { origin: 'https://www.kidposhan.in' }, body: JSON.stringify({ reason: 'photo', barcode: '8909990000112' }) }), env, ctx);
+  ok(viaRoute.status === 200 && (await routeRecipes(new Request('https://w/api/kp/admin/reports', { headers: { 'x-admin-token': 't' } }), { ...env, ADMIN_TOKEN: 't' }, ctx)).status === 200, 'The report button reaches the server, and the admin can read the list');
+  const bs = await BE.betaStats(env);
+  ok(bs.checked >= 1 && bs.from_parents >= 1 && bs.contributors >= 1, 'The counts for the Built with parents page');
+  // a snack or sweet has half the room of a meal for sugar, sodium and saturated fat
+  const RDY = await import('../../src/recipes/ready.js');
+  const sameFood = { protein_g: 6, fibre_g: 3, added_sugars_g: 0, saturated_fat_g: 2, sodium_mg: 600 };
+  const asMeal = RDY.scorePack({ ...sameFood, serving_g: 50 }, ['Wheat flour', 'Salt'], 'Test', 'whole_wheat_atta'), asSnack = RDY.scorePack({ ...sameFood, serving_g: 50 }, ['Wheat flour', 'Salt'], 'Test', 'chips');
+  const mm = Object.fromEntries(asMeal.detail.bands['4-6'].metrics.map((x) => [x.id, x])), sm = Object.fromEntries(asSnack.detail.bands['4-6'].metrics.map((x) => [x.id, x]));
+  ok(RDY.SNACK_KINDS.has('chips') && !RDY.SNACK_KINDS.has('whole_wheat_atta') && mm.sodium.share === sm.sodium.share && sm.sodium.score < mm.sodium.score && mm.sodium.score === 1 && sm.sodium.score === 0, 'The same label fails sodium as a snack (fails at 15% of the day) but passes as a meal (fails at 30%): ' + mm.sodium.score + ' vs ' + sm.sodium.score);
+  const viaApi = await routeRecipes(new Request('https://w/api/kp/scan/lookup?code=8909990000013&age=7-9y', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  const viaJson = await viaApi.json();
+  ok(viaApi.status === 200 && viaApi.headers.get('access-control-allow-origin') === 'https://www.kidposhan.in' && viaJson.status === 'found', 'The lookup is reachable from the main site');
+}
+
+
+// ---- reading a label photo: the label's own arithmetic ----
+{
+  const LB = await import('../../src/recipes/label.js');
+  ok(LB.addsUp({ energy: 601.62, protein: 26.54, carb: 19.57, fat: 44.42 }) === true && LB.addsUp({ energy: 600, protein: 8.4, carb: 1.1, fat: 8.0 }) === false && LB.addsUp({ energy: null, protein: 1, carb: 1, fat: 1 }) === null, 'Energy, protein, carbohydrate and fat are checked against each other (4, 4 and 9 kcal a gram)');
+  // a table with only an "Amount per 100g" column and a column of percentages: a model puts the percentages in per_serving
+  const d = { nutrition_found: true, serving_size_g: 28,
+    per_serving: { energy_kcal: 8.4, protein_g: 8.4, carbohydrate_g: 8.02, total_fat_g: 18.56, fibre_g: 8.02, sugars_g: null, added_sugars_g: 0, saturated_fat_g: 10.83, sodium_mg: 8.02 },
+    per_100g: { energy_kcal: 601.62, protein_g: 26.54, carbohydrate_g: 19.57, total_fat_g: 44.42, fibre_g: 8.7, sugars_g: 1.1, added_sugars_g: 0, saturated_fat_g: 8.51, sodium_mg: 573.02 }, ingredients: ['Sunflower seeds'] };
+  const r = LB.labelFrom(d);
+  ok(r.ok && r.how === 'per 100 g column' && r.label.protein_g === 26.54 && r.label.sodium_mg === 573.02, 'A column of percentages mistaken for per-serving amounts is not used: the numbers that add up are: ' + JSON.stringify(r.label));
+  const good = { label: { protein_g: 26.54, fibre_g: 8.7, sugars_g: 1.1, added_sugars_g: 0, saturated_fat_g: 8.51, sodium_mg: 573 }, check: { energy: 601.62, protein: 26.54, carb: 19.57, fat: 44.42 }, ingredients: ['Sunflower seeds'] };
+  const bad = { label: { protein_g: 9.1, fibre_g: 2.4, sugars_g: 1.1, added_sugars_g: 0, saturated_fat_g: 3.1, sodium_mg: 640 }, check: { energy: 601.62, protein: 9.1, carb: 19.57, fat: 44.42 }, ingredients: null };
+  const v = LB.voteReadings([bad, good, { ...good, label: { ...good.label, sodium_mg: 573.4 } }]);
+  ok(v.label.protein_g === 26.54 && v.label.sodium_mg === 573 && /agree/.test(v.notes[0]), 'Three readings: two that agree outvote a third that does not');
+  const v2 = LB.voteReadings([bad, good]);
+  ok(v2.label.protein_g === 26.54 && v2.label.saturated_fat_g === 8.51, 'With two readings that disagree, the one whose numbers add up wins');
+  // jelly crystals: a reader copied the 100 g numbers into the per-serving column too (scaled by 100/18 they are absurd): the printed 100 g column is used
+  const jelly = LB.labelFrom({ nutrition_found: true, serving_size_g: 18, per_serving: { energy_kcal: 71, protein_g: 0.4, carbohydrate_g: 18, total_fat_g: 0.1, added_sugars_g: 91.8, sodium_mg: 8.7 }, per_100g: { energy_kcal: 396, protein_g: 0.4, carbohydrate_g: 98.5, total_fat_g: 0.1, added_sugars_g: 91.8, sodium_mg: 8.7 } });
+  ok(jelly.ok && jelly.how === 'per 100 g column' && jelly.label.added_sugars_g === 91.8, 'A serving column that is really the 100 g numbers does not sink the reading: ' + JSON.stringify(jelly.label));
+  // vermicelli: one reader left saturated fat blank and the other read it. That is not a contradiction.
+  const lionA = { label: { protein_g: 8, fibre_g: 2, sugars_g: 0, added_sugars_g: 0, saturated_fat_g: null, sodium_mg: null }, check: { energy: 380, protein: 8, carb: 84, fat: 1 }, ingredients: ['Rice'] };
+  const lionB = { label: { protein_g: 8, fibre_g: 2, sugars_g: 0, added_sugars_g: 0, saturated_fat_g: 2, sodium_mg: 10 }, check: { energy: 380, protein: 8, carb: 84, fat: 1 }, ingredients: ['Rice'] };
+  const lv = LB.voteReadings([lionA, lionB]);
+  ok(lv.label.saturated_fat_g === 2 && lv.label.sodium_mg === 10 && /one reader only/.test(lv.notes[0]), 'A value one reader saw and the other left blank is kept, flagged for checking: ' + lv.notes[0]);
+  ok(LB.servingOf([{ serving_g: 28 }, { serving_g: 28.5 }, { serving_g: 50 }]) === 28 && LB.servingOf([{ serving_g: null }, { serving_g: 30 }]) === 30 && LB.servingOf([{ serving_g: 28 }, { serving_g: 50 }]) === null, 'The serving size is the one two readers agree on');
+  const sv = LB.labelFrom({ nutrition_found: true, serving_size_g: 28, per_100g: { protein_g: 26.5, fibre_g: 8.7, sugars_g: 1.1, added_sugars_g: 0, saturated_fat_g: 8.5, sodium_mg: 573 } });
+  ok(sv.ok && sv.serving_g === 28 && LB.labelFrom({ nutrition_found: true, serving_size_g: 900, per_100g: { protein_g: 26.5, fibre_g: 8.7, sugars_g: 1.1, added_sugars_g: 0, saturated_fat_g: 8.5, sodium_mg: 573 } }).serving_g === null, 'The printed serving size is kept, if it is a plausible 5 to 400 g');
+  const RD = await import('../../src/recipes/ready.js');
+  const nut = { protein_g: 8, fibre_g: 2, added_sugars_g: 10, saturated_fat_g: 3, sodium_mg: 400 };
+  const sDef = RD.scorePack(nut, ['Rice'], 'Test', 'kids_biscuits'), sPr = RD.scorePack({ ...nut, serving_g: 60 }, ['Rice'], 'Test', 'kids_biscuits');
+  ok(sDef.detail.serving_g === 30 && sDef.detail.serving_source === 'reference' && /typical serving/.test(sDef.detail.basis) && sPr.detail.serving_g === 60 && sPr.detail.serving_source === 'pack' && /printed on the pack/.test(sPr.detail.basis) && sPr.detail.inputs.sodium === 240, 'A pack is scored on its own printed serving; a typical serving is used only when none is printed, and the page says which');
+  const v3 = LB.voteReadings([{ ...good, check: null }, { ...bad, check: null }]);
+  ok(v3.label.protein_g == null && /disagreed/.test(v3.notes[0]), 'With nothing to settle it the value is left for the owner to enter');
+}
+
+// ICMR-NIN groups beyond 12 years: boys and girls, men and women by work, and recipes and packs scored for them
+{
+  const E = await import('../../src/recipes/score2.js');
+  const PRD = await import('../../src/recipes/products.js');
+  const lbl = (id) => E.bandById(id).label;
+  ok(lbl('13-15:f') === 'Girls 13–15 years' && lbl('adult:m:heavy') === 'Men, heavy work' && lbl('16-18:m') === 'Boys 16–18 years', 'Every ICMR-NIN group has its own label');
+  const r = (id) => E.bandById(id).ref;
+  ok(r('13-15:m').protein === 45 && r('13-15:f').protein === 43 && r('16-18:m').fibre === 50 && r('adult:m:sed').protein === 54 && r('adult:f:sed').protein === 46 && r('adult:f:heavy').fibre === 40 && r('adult:m:sed').sodium === 2000 && r('adult:f:sed').energy === 1660, 'Reference energy, protein and fibre are the ICMR-NIN 2020 figures for each group');
+  const food = { basis: 'pack', protein: 12, fibre: 6, addedSugar: 8, satFat: 3, sodium: 400, name: 'Test Mix', ingredients: ['Oats'] };
+  const sc = (id) => E.scoreForBand(food, id);
+  ok(sc('adult:m:heavy').metrics[1].share < sc('1-3').metrics[1].share && sc('adult:f:sed').metrics[0].share > sc('adult:m:heavy').metrics[0].share, 'The same serving takes a smaller share of a bigger day: less of a man\'s sodium than of a toddler\'s');
+  ok(PRD.resolveAge('13-15y:f').band === '13-15:f' && PRD.resolveAge('adult:m:mod').band === 'adult:m:mod' && PRD.resolveAge('adult:m').band === 'adult:m:sed' && PRD.resolveAge('adult').band === 'adult' && PRD.resolveAge('4-6y:f').band === '4-6' && PRD.resolveAge('nope') === null && PRD.isAgeId('16-18y:m'), 'An age id may carry a sex and, for adults, the kind of work; below 10 years sex makes no difference');
+  const idA = mkRecipe('https://nin.example/a', { status: 'approved', name: 'Adult Dish' });
+  db.prepare('UPDATE kp_recipes SET poshan_score = 60, score_status = ?, age_min_months = 12, age_max_months = 144, total_minutes = 20, score_breakdown_json = ? WHERE id = ?').run('estimated', JSON.stringify({ bands: { 'adult:m:sed': { total: 100, capped: false }, '13-15:f': { total: 80, capped: false } } }), idA);
+  const ad = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=300&band=adult:m:sed&occasion=lunch&pref=veg&season=all&limit=40'), env, ctx)).json();
+  const hit = (ad.results || []).find((x) => x.id === idA);
+  ok(hit && hit.poshan_score === 100, 'A recipe list for men at sedentary work reads each recipe\'s score for that group: ' + (hit && hit.poshan_score));
+  const tf = await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=168&band=13-15:f&occasion=lunch&pref=veg&season=all&limit=40'), env, ctx)).json();
+  ok((tf.results || []).find((x) => x.id === idA)?.poshan_score === 80, 'A recipe list for girls 13-15 reads the score for girls 13-15');
+  const dd = await (await handleRecipesApi(new Request(`https://w/api/kp/recipes/${idA}?age_months=300&band=adult:m:sed`), env, ctx)).json();
+  ok(dd.score?.age_band === 'adult:m:sed' && dd.score?.age_band_label === 'Men, sedentary work' && dd.poshan_score === 100, 'A recipe\'s page shows the score and group label for the chosen band: ' + dd.score?.age_band_label);
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);
