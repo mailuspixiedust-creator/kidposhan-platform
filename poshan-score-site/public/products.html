@@ -197,14 +197,12 @@ body{background:radial-gradient(1100px 420px at 50% -140px,var(--leaf-2),transpa
 /* Poshan Score badge, coloured by band */
 .badge{z-index:2;flex-direction:column;gap:0;min-width:48px;height:48px;line-height:1;box-shadow:0 4px 12px -3px rgba(0,0,0,.35);border:2.5px solid var(--paper)}
 .badge small{margin:1px 0 0;font:700 8px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:inherit;opacity:.85}
-.badge[data-band="Excellent"]{background:var(--leaf);color:var(--paper)}
-.badge[data-band="Good"]{background:#4C9A74;color:#fff}
-.badge[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
-.badge[data-band="Occasional"]{background:var(--chilli);color:#fff}
-.score[data-band="Excellent"] b{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
-.score[data-band="Good"] b{background:#4C9A74;border-color:#4C9A74;color:#fff}
-.score[data-band="Fair"] b{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
-.score[data-band="Occasional"] b{background:var(--chilli);border-color:var(--chilli);color:#fff}
+.badge[data-band="Good"]{background:var(--leaf);color:var(--paper)}
+.badge[data-band="OK"]{background:var(--turmeric);color:#2B1D00}
+.badge[data-band="Do not use"]{background:var(--chilli);color:#fff}
+.score[data-band="Good"] b{background:var(--leaf);border-color:var(--leaf);color:var(--paper)}
+.score[data-band="OK"] b{background:var(--turmeric);border-color:var(--turmeric);color:#2B1D00}
+.score[data-band="Do not use"] b{background:var(--chilli);border-color:var(--chilli);color:#fff}
 .score b{box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
 
 /* recipe hero */
@@ -278,10 +276,9 @@ h1,h2,h3{font-family:var(--display)}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .lg{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 11px;border-radius:100px;color:#fff}
-.lg[data-band="Excellent"]{background:var(--leaf)}
-.lg[data-band="Good"]{background:#4C9A74}
-.lg[data-band="Fair"]{background:var(--turmeric);color:#2B1D00}
-.lg[data-band="Occasional"]{background:var(--chilli)}
+.lg[data-band="Good"]{background:var(--leaf)}
+.lg[data-band="OK"]{background:var(--turmeric);color:#2B1D00}
+.lg[data-band="Do not use"]{background:var(--chilli)}
 .banner{margin:14px 18px;padding:12px 14px;border-radius:14px;background:var(--turmeric-2);font-size:15px}
 
 /* ingredients: smaller type */
@@ -431,7 +428,7 @@ body.lb-open{overflow:hidden}
 .scoredet>summary::after{content:"＋";float:right;color:var(--gold)}.scoredet[open]>summary::after{content:"－"}
 .mlist{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .mhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.mhead b{font-size:15px}.mscore{font:800 20px/1 var(--display)}.mscore small{font:600 12px/1 var(--body);color:var(--muted)}
+.mhead b{font-size:15px}.mscore{font:800 20px/1 var(--display)}.mscore.yes{color:var(--leaf)}.mscore.no{color:var(--chilli)}.mscore small{font:600 12px/1 var(--body);color:var(--muted)}
 .mread{font-size:13px;color:var(--muted);margin-top:2px}
 .ruler{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;margin-top:6px}
 .rc{height:22px;border-radius:5px;background:#EFEAD9;color:#8C7A64;font:600 11px/22px var(--body);text-align:center}
@@ -521,11 +518,13 @@ body.lb-open{overflow:hidden}
 .pmodal h4{margin:18px 0 6px;font:700 13px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .psc{display:flex;align-items:center;gap:14px;margin:12px 0 4px}
 .psc b{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;font:800 24px/1 var(--display);color:#fff;background:var(--leaf)}
-.psc[data-band="Good"] b{background:#4C9A74}.psc[data-band="Fair"] b{background:var(--turmeric);color:#2B1D00}.psc[data-band="Occasional"] b{background:var(--chilli)}
+.psc[data-band="OK"] b{background:var(--turmeric);color:#2B1D00}.psc[data-band="Do not use"] b{background:var(--chilli)}
 .ptab{width:100%;border-collapse:collapse;font-size:14.5px}
 .ptab td{padding:6px 0;border-bottom:1px solid var(--line)}.ptab td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .ptab .plus{color:var(--leaf);font-weight:600}.ptab .minus{color:var(--chilli);font-weight:600}
 .pages{display:flex;flex-wrap:wrap;gap:6px}.pages span{font-size:13px;background:var(--leaf-2);color:var(--leaf);border-radius:999px;padding:3px 11px;font-weight:600}
+.kpconfirm{border:1.5px dashed var(--turmeric);background:var(--turmeric-2);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:14.5px}.kpconfirm .pmrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.kpconfirm a.pscore{text-decoration:none}
+.pmore{margin:10px 0}.pmore>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--leaf);color:var(--leaf);background:var(--paper);font-weight:700;border-radius:12px;padding:12px 16px;font-size:15.5px}.pmore>summary::-webkit-details-marker{display:none}.pmore[open]>summary{background:var(--leaf-2)}
 .pmodal p.fine{font-size:12.5px;color:var(--muted);margin-top:10px}
 </style>
 </head>
@@ -541,6 +540,7 @@ body.lb-open{overflow:hidden}
     <a href="age-metrics.html">Age &amp; Metrics</a>
     <a href="meal-ideas.html">Meal Ideas</a>
     <a href="products.html" class="on">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
   </div>
   <button class="nb-burger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -552,18 +552,20 @@ body.lb-open{overflow:hidden}
   <a href="age-metrics.html">Age &amp; Metrics</a>
   <a href="meal-ideas.html">Meal Ideas</a>
   <a href="products.html">Products</a>
+    <a href="scan.html">Scan a pack</a>
     <a href="why-we-do-this.html">Why We Do This</a>
 </div>
 <main class="wrap" id="app">
   <section class="pintro pad">
     <div class="eyebrow">Ingredient-first · Scored for kids</div>
     <h1>Packaged foods, scored</h1>
-    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack, worked out for one realistic serving (the same way recipes are scored, so the two can be compared). The score is made of ten metrics, each marked 1 to 10, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
+    <p>Every product below gets a Poshan Score out of 100, from the nutrition label printed on the pack, worked out for one realistic serving (the same way recipes are scored, so the two can be compared). The score is made of ten yes-or-no checks, each worth 10 points, and it is worked out for the age you pick. A low score is not a warning. It is a reason to keep it occasional. We search for new products every few hours and read their labels, and a product appears here once its label has been read and checked.</p>
   </section>
-  <section class="frow" style="margin-top:20px"><span>Child's age: the scores below are for this age</span><div class="scroller" id="ages" role="group" aria-label="Child's age"></div></section>
+  <section class="frow" style="margin-top:20px"><span>Age: the scores below are for this age</span><div class="scroller" id="ages" role="group" aria-label="Age"></div></section>
+  <section class="frow" id="who" style="margin-top:10px"></section>
   <section class="pfilters" aria-label="Filters">
     <label>Category<select id="f-cat"></select></label>
-    <label>Minimum score<select id="f-min"><option value="0">Show everything</option><option value="58">Good and above (58+)</option><option value="80">Excellent only (80+)</option></select></label>
+    <label>Minimum score<select id="f-min"><option value="0">Show everything</option><option value="50">OK and above (50+)</option><option value="80">Good only (80+)</option></select></label>
     <label>Sort by<select id="f-sort"><option value="score">Score, high to low</option><option value="name">Name</option></select></label>
   </section>
   <p class="pcount" id="count" role="status"></p>
@@ -581,11 +583,11 @@ const QS=new URLSearchParams(location.search);
 const API=QS.get('api')||'https://kidposhan-platform.mailus-pixiedust.workers.dev'; // products and scores come from the KidPoshan platform Worker
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toggleMobileMenu(){const m=document.getElementById('mobileMenu'),b=document.querySelector('.nb-burger');const o=m.classList.toggle('open');b&&b.setAttribute('aria-expanded',o?'true':'false')}
-const AGES=[['6-12m','6–12 months'],['1-3y','1–3 years'],['4-6y','4–6 years'],['7-9y','7–9 years'],['10-12y','10–12 years']];
+const AGES=[['6-12m','6–12 months'],['1-3y','1–3 years'],['4-6y','4–6 years'],['7-9y','7–9 years'],['10-12y','10–12 years'],['13-15y','13–15 years'],['16-18y','16–18 years'],['adult','Adults']];
 const AGE_LABEL=Object.fromEntries(AGES);
 // start on the age chosen on the Meal Ideas page, if any (same bands), otherwise 4-6 years
 function savedAge(){try{const k=JSON.parse(sessionStorage.getItem('kp_menu')||localStorage.getItem('kp_menu')||'{}');const m=Array.isArray(k.age)?(k.age.length?Math.min(...k.age):0):+k.age;if(m){return m<12?'6-12m':m<48?'1-3y':m<84?'4-6y':m<120?'7-9y':'10-12y'}}catch(e){}return '4-6y'}
-const S={age:AGES.some(a=>a[0]===QS.get('age'))?QS.get('age'):savedAge(),cat:QS.get('category')||'',min:0,sort:'score'};
+const S={age:AGES.some(a=>a[0]===String(QS.get('age')).split(':')[0])?QS.get('age'):savedAge(),cat:QS.get('category')||'',min:0,sort:'score'};
 const BOWL='<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#E3EEDF"/><g fill="none" stroke="#3F6B3C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 50h52a26 26 0 0 1-52 0z"/><path d="M40 40c0-5 5-6 5-11M52 40c0-5 5-6 5-11"/></g></svg>';
 /* front of the pack, with a tab that spins it to the back (nutrition and ingredients) */
 function shotHTML(front,back){
@@ -596,14 +598,28 @@ function shotHTML(front,back){
 document.addEventListener('click',e=>{const b=e.target.closest('.spinbtn');if(!b)return;const sp=b.parentElement.querySelector('.spin');sp.classList.toggle('flipped');b.textContent=sp.classList.contains('flipped')?'See front of pack':'See back of pack'});
 const retailerName=r=>r?String(r).replace(/^./,c=>c.toUpperCase()):'the seller';
 const fromOff=p=>p.retailer==='openfoodfacts';
-const buyLink=(p,cls)=>fromOff(p)?`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>`:`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>`;
+const buyLink=(p,cls)=>p.retailer==='scan'?'':fromOff(p)?`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>`:`<a class="${cls||'pbuy'}" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc(retailerName(p.retailer))}</a>`;
 /* the ten metrics, each on a numbered 1-10 ruler */
 const bandOfScore=s=>s>=8?'hi':s>=4?'mid':'lo';
-function rulerHTML(score){let c='';for(let i=1;i<=10;i++) c+=`<span class="rc${i<=score?' on '+bandOfScore(score):''}${i===score?' cur':''}">${i}</span>`;return `<div class="ruler" role="img" aria-label="${score} out of 10">${c}</div><div class="rscale"><span>1 worst</span><span>10 best</span></div>`}
-function metricsHTML(ms,total){return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore">${m.score}<small>/10</small></span></div><div class="mread">${esc(m.reading)}</div>${rulerHTML(m.score)}</li>`).join('')}</ol><div class="mtotal"><span>The ten marks add up to ${ms.reduce((a,m)=>a+m.score,0)} (10 to 100)</span></div><div class="mtotal"><span>Poshan Score, stretched to run 0 to 100</span><b>${total!=null?Math.round(total):Math.round((ms.reduce((a,m)=>a+m.score,0)-10)/90*100)}</b></div>`}
+function rulerHTML(score){return ''}
+function metricsHTML(ms,total){const n=ms.reduce((a,m)=>a+m.score,0);return `<ol class="mlist">${ms.map(m=>`<li><div class="mhead"><b>${m.n}. ${esc(m.name)}</b><span class="mscore ${m.score?'yes':'no'}">${m.score?'Yes':'No'}</span></div><div class="mread">${esc(m.reading)}</div></li>`).join('')}</ol><div class="mtotal"><span>Checks passed</span><b>${n} of 10</b></div><div class="mtotal"><span>Poshan Score (checks passed x 10)</span><b>${Math.round(total!=null?total:n*10)}</b></div>`}
 
-document.getElementById('ages').innerHTML=AGES.map(([v,l])=>`<button type="button" class="chip" data-age="${v}" aria-pressed="${S.age===v}">${l}</button>`).join('');
-document.getElementById('ages').onclick=e=>{const b=e.target.closest('[data-age]');if(!b)return;S.age=b.dataset.age;document.querySelectorAll('#ages .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.age===S.age));load()};
+document.getElementById('ages').innerHTML=AGES.map(([v,l])=>`<button type="button" class="chip" data-age="${v}" aria-pressed="${S.age.split(':')[0]===v}">${l}</button>`).join('');
+
+/* from 10 years the ICMR-NIN table is by sex, and for adults by the kind of work: the age becomes e.g. 13-15y:f or adult:m:mod */
+const SEXED=['10-12y','13-15y','16-18y','adult'];
+function paintAges(){document.querySelectorAll('#ages .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.age===S.age.split(':')[0]))}
+function renderWho(){const [b,x,w]=S.age.split(':'),el=document.getElementById('who');if(!el)return;if(!SEXED.includes(b)){el.innerHTML='';return}
+  const fm=b==='adult'?['Men','Women']:['Boys','Girls'];
+  let h='<span>'+(b==='adult'?'Men or women':'Boy or girl')+'</span><div class="scroller">'+[['','Average'],['m',fm[0]],['f',fm[1]]].map(([v,l])=>'<button type="button" class="chip" data-sex="'+v+'" aria-pressed="'+((x||'')===v)+'">'+l+'</button>').join('')+'</div>';
+  if(b==='adult'&&x)h+='<span>Kind of work</span><div class="scroller">'+[['sed','Sedentary'],['mod','Moderate'],['heavy','Heavy']].map(([v,l])=>'<button type="button" class="chip" data-work="'+v+'" aria-pressed="'+((w||'sed')===v)+'">'+l+'</button>').join('')+'</div>';
+  el.innerHTML=h}
+function afterAge(){load()}
+document.addEventListener('click',e=>{const b=e.target.closest('#who [data-sex],#who [data-work]');if(!b)return;const [base,x,w]=S.age.split(':');
+  if(b.dataset.sex!=null)S.age=b.dataset.sex?base+':'+b.dataset.sex+(base==='adult'?':sed':''):base; else S.age=base+':'+(x||'m')+':'+b.dataset.work;
+  renderWho();afterAge()});
+renderWho();
+document.getElementById('ages').onclick=e=>{const b=e.target.closest('[data-age]');if(!b)return;S.age=b.dataset.age;paintAges();renderWho();load()};
 ['f-cat','f-min','f-sort'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{
   if(id==='f-cat')S.cat=e.target.value; else if(id==='f-min')S.min=+e.target.value; else S.sort=e.target.value; load()}));
 
@@ -614,7 +630,7 @@ async function load(){
   if(S.cat&&!d.categories.some(c=>c.name===S.cat)){ S.cat=''; return load() }   // a link asked for a category that has no products yet: show everything
   const sel=document.getElementById('f-cat'); sel.innerHTML='<option value="">All categories</option>'+d.categories.map(c=>`<option value="${esc(c.name)}" ${S.cat===c.name?'selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
   document.getElementById('count').textContent=`${d.total} product${d.total===1?'':'s'}, scored for ${d.age_label}`;
-  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}" title="${p.capped?'Held at Fair because one risk metric scored 3 or less':'Poshan Score'}">${Math.round(p.score)}<small>Poshan</small>${p.capped?'<span class="cap">capped</span>':''}</span></div>
+  document.getElementById('list').innerHTML=d.items.map(p=>`<article class="pcard"><div class="pimg">${shotHTML(p.image_url,p.back_image_url)}<span class="badge" data-band="${p.band}" title="${p.capped?'Held at OK because one risk check failed':'Poshan Score'}">${Math.round(p.score)}<small>Poshan</small>${p.capped?'<span class="cap">capped</span>':''}</span></div>
     <div class="pbody"><div class="pbrand">${esc(p.brand||'')}</div><h3>${esc(p.name)}</h3><div class="pmeta">${esc([p.pack_size,p.category].filter(Boolean).join(' · '))}</div>
     <div class="pactions">${buyLink(p)}${(window.KP_PRODUCT_PAGES||{})[p.id]?`<a class="pscore" href="/products/${(window.KP_PRODUCT_PAGES||{})[p.id]}">See the score</a>`:`<button class="pscore" type="button" data-id="${p.id}">See the score</button>`}</div></div></article>`).join('');
   document.getElementById('empty').innerHTML=d.total?'':(d.in_catalogue
@@ -631,22 +647,28 @@ async function openDetail(id){
   bg.innerHTML=`<div class="pmodal" role="dialog" aria-modal="true" aria-labelledby="pm-h"><button class="x" aria-label="Close">×</button>
     <div class="pbrand">${esc(d.brand||'')}</div><h2 id="pm-h">${esc(d.name)}</h2><p class="pmeta">${esc([d.pack_size,d.kind_label].filter(Boolean).join(' · '))}</p>
     ${d.image_url||d.back_image_url?`<div class="pimg">${shotHTML(d.image_url,d.back_image_url)}</div>`:''}
-    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?`. Held at Fair, whatever the total, because one risk metric scored 3 or less. The ${Math.round(d.score)} is the real score, not clipped.`:''}</div></div></div>
+    ${d.listed===false?`<div class="kpconfirm" id="pmConfirm"><b>Not yet checked.</b> This score comes from ${d.data_source==='openfoodfacts'?'open data (Open Food Facts)':'a parent\'s photos'} and our team has not checked it. <b>Is this your pack?</b> The name should read <b>${esc(d.name)}</b>. <span class="pmrow"><button type="button" class="pbuy" id="pmYes">Yes, the same</button> <a class="pscore" href="/scan?code=${esc(d.barcode||'')}&fix=1">No, it is different</a></span></div>`:''}
+    <div style="margin:6px 0 4px">${window.kpMeter?kpMeter({score:d.score,band:d.band,capped:d.capped,why:kpMeter.why(d.metrics),legend:true}):''}</div>
+    ${d.claim&&window.kpClaimCard?kpClaimCard(d.claim):''}
+    <details class="pmore"><summary>See how this score is worked out</summary>
+    <div class="psc" data-band="${d.band}"><b>${Math.round(d.score)}</b><div><div style="font-weight:700">${d.band}</div><div class="pmeta">Poshan Score for ${esc(d.age_label)}, out of 100 (${esc(d.basis)})${d.capped?`. Held at OK, whatever the total, because one risk check failed. The ${Math.round(d.score)} is the real score, not clipped.`:''}</div></div></div>
     <h4>The same product at each age</h4><div class="pages">${Object.entries(d.scores_by_age).map(([a,v])=>`<span>${esc(AGE_LABEL[a]||a)}: ${v==null?'Not for under 1':v}</span>`).join('')}</div>
-    <h4>How the score is worked out: ten metrics, each 1 to 10</h4>${metricsHTML(d.metrics,d.score)}
+    <h4>How the score is worked out: ten checks, each a yes or no</h4>${metricsHTML(d.metrics,d.score)}
     <h4>On the label (per 100 g)</h4><table class="ptab"><tr><td>Protein</td><td>${fmt(n.protein_g,'g')}</td></tr><tr><td>Fibre</td><td>${fmt(n.fibre_g,'g')}</td></tr><tr><td>Total sugars</td><td>${fmt(n.sugars_g,'g')}</td></tr><tr><td>Added sugar</td><td>${fmt(n.added_sugars_g,'g')}</td></tr><tr><td>Saturated fat</td><td>${fmt(n.saturated_fat_g,'g')}</td></tr><tr><td>Sodium</td><td>${fmt(n.sodium_mg,'mg')}</td></tr></table>
     ${d.ingredients.length?`<h4>Ingredients</h4><p style="font-size:14.5px">${esc(d.ingredients.join(', '))}</p>`:''}
     ${d.added_sugar_estimated?'<p class="fine">Added sugar is not printed in the database, so total sugars are used here. That can make the score a little stricter than the pack deserves.</p>':''}
-    <p style="margin-top:16px">${buyLink(d)}</p>
+    </details>
+    <p style="margin-top:16px">${buyLink(d)} <button type="button" class="pscore" id="pmReport" style="background:none">Report a mistake</button></p>
     <p class="fine">Label values come from the pack's own product page and are checked before a product is listed. Every threshold is on the <a href="age-metrics.html">Age &amp; Metrics</a> page. The age guide is general and cautious, not medical advice.</p></div>`;
   const prev=document.activeElement;
   const close=()=>{bg.remove();document.removeEventListener('keydown',onKey);prev&&prev.focus&&prev.focus()};
   const onKey=e=>{if(e.key==='Escape')close()};
   document.addEventListener('keydown',onKey); bg.onclick=e=>{if(e.target===bg)close()}; bg.querySelector('.x').onclick=close;
-  document.body.appendChild(bg); bg.querySelector('.x').focus();
+  document.body.appendChild(bg); if(window.kpMeter)kpMeter.animate(bg); const prb=bg.querySelector('#pmReport'); if(prb)prb.onclick=()=>window.kpReport&&kpReport({product_id:d.id,barcode:d.barcode,name:d.name}); const py=bg.querySelector('#pmYes'); if(py)py.onclick=()=>{bg.querySelector('#pmConfirm').innerHTML='<b>Thank you.</b> It matches your pack.'}; bg.querySelector('.x').focus();
 }
 load().then(()=>{const o=+QS.get('open');if(o)openDetail(o)});
 </script>
+<script src="/kp-meter.js"></script>
 <script src="/kp-visits.js" defer></script>
 <script src="/kp-search.js" defer></script>
 </body>

@@ -9,7 +9,7 @@
 import { ALL_KINDS, kindByKey, scorePack } from './ready.js';
 
 const OFF = 'https://world.openfoodfacts.org';
-const FIELDS = 'code,product_name,product_name_en,brands,quantity,categories_tags,unique_scans_n,nutriments,ingredients_text,ingredients_text_en,image_front_url,image_nutrition_url,lang';
+const FIELDS = 'serving_quantity,serving_size,code,product_name,product_name_en,brands,quantity,categories_tags,unique_scans_n,nutriments,ingredients_text,ingredients_text_en,image_front_url,image_nutrition_url,lang';
 const PAGE_SIZE = 50;
 
 // The best-known brands first (Open Food Facts brand tags). One request each, three pages at most.
@@ -31,6 +31,11 @@ export function kindFor(categories = [], name = '') {
   const n = String(name).toLowerCase();
   const both = c + ' ' + n;
   const rules = [
+    ['instant_soup', /\bsoups?\b/],
+    ['custard_powder', /custard/],
+    ['condensed_milk', /condensed/],
+    ['ice_cream', /ice-?cream|kulfi|frozen-?dessert/],
+    ['dessert_mix', /\bjelly\b|pudding|blancmange|dessert-?mix/],
     ['baby_cereal', /baby|infant|cerelac|toddler.*(cereal|porridge)/],
     ['rusk_toast', /rusk|toast/],
     ['millet_cookies', /millet.*(cookie|biscuit)|ragi.*(cookie|biscuit)/],
@@ -57,7 +62,37 @@ export function kindFor(categories = [], name = '') {
     ['paneer', /paneer/],
     ['dried_fruit', /dried-?fruit|raisin|dates\b|figs?\b|apricot/],
     ['roasted_snacks', /roasted|makhana|trail-?mix|nuts-?and-?seeds/],
+    ['corn_flour', /corn-?flour|cornstarch|corn-?starch|arrowroot/],
+    ['milk_powder', /milk-?powder|creamer|whitener/],
+    ['sweets_mithai', /mithai|ladoo|laddu|barfi|gulab-?jamun|halwa|jalebi|rasgulla|soan-?papdi|\bpeda\b/],
+    ['papad', /papad|fryums?/],
+    ['pickle_chutney', /pickle|\bachar\b|chutney/],
+    ['dips_dressings', /\bdips?\b|dressing|hummus/],
+    ['tomato_puree', /tomato-?(puree|paste)|passata|pasta-?sauce/],
+    ['coconut_milk', /coconut-?(milk|cream)/],
+    ['soft_drink', /soft-?drink|\bsoda\b|\bcola\b|carbonated|aerated|sparkling/],
+    ['drink_mix', /squash|syrup|glucose|electrolyte|\bors\b|drink-?mix|rasna/],
+    ['plant_milk', /soy-?milk|almond-?milk|oat-?milk|plant-?based-?milk/],
+    ['tofu_soya', /tofu|soya|soy-?chunks|meal-?maker/],
+    ['frozen_snacks', /frozen|nuggets|french-?fries|\btikki\b|samosa|spring-?roll/],
+    ['ready_meals', /ready-?(to-?eat|meal)|heat-?and-?eat|biryani/],
+    ['baby_puree', /baby.*puree|puree.*baby/],
+    ['cake_pastry', /\bcakes?\b|muffin|brownie|pastry|cupcake|swiss-?roll/],
+    ['semolina', /semolina|\brava\b|\bsuji\b|sooji/],
+    ['besan', /besan|gram-?flour|sattu/],
+    ['poha_flakes', /poha|rice-?flakes|puffed-?rice|murmura/],
+    ['dal_pulses', /\bdal\b|lentil|pulses|chickpea|rajma|\bchana\b|\bmoong\b|\btoor\b|masoor|legume/],
+    ['chocolate', /chocolate|cocoa-?bar/],
+    ['candy_toffee', /candy|toffee|lollipop|chewing|bubble-?gum|\bmints?\b/],
+    ['nuts_seeds', /\bnuts?\b|almond|cashew|walnut|pistachio|peanuts?\b|\bseeds?\b/],
+    ['butter', /\bbutter\b/],
+    ['plain_milk', /\bmilk\b/],
+    ['white_rice', /\brice\b/],
+    ['sweeteners', /\bsugar\b|jaggery|\bhoney\b/],
   ];
+  // what the pack is called counts first ("Multi Grain Bread" is bread, whatever the database files it under), then its categories
+  const WEAK = new Set(['plain_milk', 'white_rice', 'sweeteners', 'butter', 'nuts_seeds', 'candy_toffee', 'chocolate']);   // single words that mean little on their own
+  for (const [kind, re] of rules) if (!WEAK.has(kind) && re.test(n) && kindByKey(kind)) return kind;
   for (const [kind, re] of rules) if (re.test(both) && kindByKey(kind)) return kind;
   return null;
 }
@@ -75,8 +110,11 @@ export function splitIngredients(text) {
   return out.slice(0, 60);
 }
 
+// the serving printed on the pack, in grams or millilitres (5 to 400), if the database has it
+const servingG = (p) => { const q = num(p.serving_quantity); return q != null && q >= 5 && q <= 400 ? Math.round(q * 10) / 10 : null; };
+
 // One Open Food Facts product -> what we store, or { skip: 'reason' }.
-export function mapProduct(p) {
+export function mapProduct(p, forceKind = null) {
   const code = String(p.code || '').replace(/\D/g, '');
   if (code.length < 8) return { skip: 'no barcode' };
   const brand = cleanText(String(p.brands || '').split(',')[0], 60);
@@ -87,14 +125,14 @@ export function mapProduct(p) {
   let sodium = num(n.sodium_100g) != null ? num(n.sodium_100g) * 1000 : (num(n.salt_100g) != null ? num(n.salt_100g) * 400 : null);     // sodium in g -> mg; salt g x 400 = sodium mg
   if ([protein, fibre, sat, sodium].some((v) => v == null) || (added == null && sugars == null)) return { skip: 'label incomplete' };
   if ([protein, fibre, sugars ?? 0, added ?? 0, sat].some((v) => v < 0 || v > 100) || sodium < 0 || sodium > 40000) return { skip: 'values out of range' };
-  const kind = kindFor(p.categories_tags || [], name);
+  const kind = forceKind && kindByKey(forceKind) ? forceKind : kindFor(p.categories_tags || [], name);
   if (!kind) return { skip: 'not a kind of food we score' };
   const estimated = added == null;
   const ingredients = splitIngredients(p.ingredients_text_en || p.ingredients_text);
   return {
     code, foreign_barcode: !code.startsWith('890'), kind, brand, name: name.toLowerCase().startsWith(brand.toLowerCase()) ? name : `${brand} ${name}`, pack_size: cleanText(p.quantity, 40) || null,
     image_url: p.image_front_url || null, label_image_url: p.image_nutrition_url || null, popularity: num(p.unique_scans_n) || 0, estimated, ingredients,
-    nutrition: { protein_g: round2(protein), fibre_g: round2(fibre), sugars_g: sugars == null ? undefined : round2(sugars), added_sugars_g: round2(added ?? sugars), saturated_fat_g: round2(sat), sodium_mg: round2(sodium), ...(estimated ? { added_sugar_estimated: true } : {}) },
+    nutrition: { ...(servingG(p) ? { serving_g: servingG(p) } : {}), protein_g: round2(protein), fibre_g: round2(fibre), sugars_g: sugars == null ? undefined : round2(sugars), added_sugars_g: round2(added ?? sugars), saturated_fat_g: round2(sat), sodium_mg: round2(sodium), ...(estimated ? { added_sugar_estimated: true } : {}) },
   };
 }
 
@@ -108,7 +146,7 @@ async function fetchPage(env, params, fetchFn = fetch) {
   try { return { json: JSON.parse(text) }; } catch { return { slowdown: true }; }             // an HTML "temporarily unavailable" page
 }
 
-async function store(env, m) {
+export async function store(env, m) {
   const url = `${OFF}/product/${m.code}`;
   const label = m.nutrition;
   const sc = scorePack(label, m.ingredients, m.name, m.kind);
@@ -159,3 +197,15 @@ export async function importOffNext(env, fetchFn = fetch) {
 }
 
 export const offBrandJob = (b) => (OFF_BRANDS.includes(b) ? brandJob(b) : null);
+
+// One product by its barcode (the scanner). Returns { product } | { notfound: true } | { slowdown: true } | { error }.
+export async function lookupOff(env, code, fetchFn = fetch) {
+  const u = `${OFF}/api/v2/product/${encodeURIComponent(code)}.json?fields=${FIELDS}`;
+  let res;
+  try { res = await fetchFn(u, { headers: { 'user-agent': `KidPoshan/1.0 (${env.OFF_CONTACT || 'kidposhan@gmail.com'})`, accept: 'application/json' } }); } catch { return { slowdown: true }; }
+  if (res.status === 404) return { notfound: true };
+  if (res.status === 429 || res.status === 503 || res.status === 502) return { slowdown: true };
+  if (!res.ok) return { error: `Open Food Facts answered ${res.status}` };
+  let j; try { j = JSON.parse(await res.text()); } catch { return { slowdown: true }; }
+  return j?.product && j.status !== 0 ? { product: { ...j.product, code: j.product.code || code } } : { notfound: true };
+}

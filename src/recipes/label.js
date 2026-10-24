@@ -43,11 +43,11 @@ export const PROMPT = [
   'If it shows a "Nutrition Facts" / "Nutrition Information" table, copy the numbers EXACTLY as printed, digit by digit. Do no arithmetic.',
   'Reply with ONLY a JSON object:',
   '{"nutrition_found":true|false,"serving_size_g":number|null,"serving_size_text":string|null,',
-  '"per_serving":{"protein_g":number|null,"fibre_g":number|null,"sugars_g":number|null,"added_sugars_g":number|null,"saturated_fat_g":number|null,"sodium_mg":number|null,"salt_g":number|null}|null,',
-  '"per_100g":{"protein_g":number|null,"fibre_g":number|null,"sugars_g":number|null,"added_sugars_g":number|null,"saturated_fat_g":number|null,"sodium_mg":number|null,"salt_g":number|null}|null,',
+  '"per_serving":{"energy_kcal":number|null,"protein_g":number|null,"carbohydrate_g":number|null,"total_fat_g":number|null,"fibre_g":number|null,"sugars_g":number|null,"added_sugars_g":number|null,"saturated_fat_g":number|null,"sodium_mg":number|null,"salt_g":number|null}|null,',
+  '"per_100g":{"energy_kcal":number|null,"protein_g":number|null,"carbohydrate_g":number|null,"total_fat_g":number|null,"fibre_g":number|null,"sugars_g":number|null,"added_sugars_g":number|null,"saturated_fat_g":number|null,"sodium_mg":number|null,"salt_g":number|null}|null,',
   '"ingredients":[strings]|null}.',
-  'per_100g is the column headed per 100 g / 100 ml, or null if the table has no such column. per_serving is the column per serving / per portion, or null.',
-  'serving_size_g is the serving weight in grams as printed (for "2/3 cup (55g)" it is 55). Use null for anything not printed; never estimate. Numbers only, no units.',
+  'per_100g is the column headed per 100 g / 100 ml (often "Amount per 100g"), or null if the table has no such column. per_serving is the column of AMOUNTS per serving / per portion, or null. A column of percentages (%RDA, % daily value) is NOT per_serving: ignore it.',
+  'serving_size_g is the serving weight in grams as printed (for "2/3 cup (55g)" it is 55). For a powder, mix or flakes it is the weight of the dry product as sold (for example 27 g), NOT the volume or weight after preparing it, and not the weight of the whole pack. Use null for anything not printed; never estimate. Numbers only, no units.',
 ].join(' ');
 
 function parseJson(text) {
@@ -74,27 +74,46 @@ export async function readImage(env, imageUrl, model) {
 export function labelFrom(d) {
   if (!d || !d.nutrition_found) return { ok: false, why: 'no nutrition table in this image' };
   const has = (o) => o && Object.values(o).some((v) => num(v) != null);
-  let src, k = 1, how;
   const g = num(d.serving_size_g);
-  // Models sometimes invent a per-100 g column by doing the arithmetic themselves, so scaling per-serving values here is preferred.
-  if (has(d.per_serving) && g && g > 0) { src = d.per_serving; k = 100 / g; how = `per-serving values scaled by 100/${g} g`; }
-  else if (has(d.per_100g)) { src = d.per_100g; how = 'per 100 g column'; }
-  else if (has(d.per_serving)) return { ok: false, why: 'label is per serving and the serving size in grams is not printed' };
-  else return { ok: false, why: 'nutrition table values not readable' };
-  const scale = (v) => { const x = num(v); return x == null ? null : Math.round(x * k * 100) / 100; };
-  const label = {
-    protein_g: scale(src.protein_g), fibre_g: scale(src.fibre_g), sugars_g: scale(src.sugars_g), added_sugars_g: scale(src.added_sugars_g),
-    saturated_fat_g: scale(src.saturated_fat_g), sodium_mg: scale(src.sodium_mg),
+  const ings = Array.isArray(d.ingredients) ? d.ingredients.map((x) => String(x).trim()).filter(Boolean).slice(0, 60) : null;
+  // Two candidate columns: the per-100 g column as printed, and the per-serving column scaled to 100 g. Each is checked for plausible
+  // values (a model that copies the 100 g number into the serving column gives nonsense once scaled) and for whether its energy, protein,
+  // carbohydrate and fat add up (a column of percentages mistaken for amounts does not). A column whose numbers add up beats one that does not; the scaled serving column wins a tie.
+  const build = (src, k, how) => {
+    const scale = (v) => { const x = num(v); return x == null ? null : Math.round(x * k * 100) / 100; };
+    const label = { protein_g: scale(src.protein_g), fibre_g: scale(src.fibre_g), sugars_g: scale(src.sugars_g), added_sugars_g: scale(src.added_sugars_g), saturated_fat_g: scale(src.saturated_fat_g), sodium_mg: scale(src.sodium_mg) };
+    if (label.sodium_mg == null && num(src.salt_g) != null) label.sodium_mg = Math.round(num(src.salt_g) * k * 393); // sodium = 39.3% of salt
+    const bad = Object.entries(label).filter(([key, v]) => v != null && (v < 0 || (key !== 'sodium_mg' && v > 100)));
+    if (bad.length) return { ok: false, why: `implausible values: ${bad.map(([key]) => key).join(', ')}` };
+    if (Object.values(label).filter((v) => v != null).length < 3) return { ok: false, why: 'too few values readable' };
+    const sc = (v) => (num(v) == null ? null : num(v) * k);
+    return { ok: true, how, label, check: { energy: sc(src.energy_kcal), protein: sc(src.protein_g), carb: sc(src.carbohydrate_g), fat: sc(src.total_fat_g) }, serving_g: g && g >= 5 && g <= 400 ? g : null, ingredients: ings };
   };
-  if (label.sodium_mg == null && num(src.salt_g) != null) label.sodium_mg = Math.round(num(src.salt_g) * k * 393); // sodium = 39.3% of salt
-  const bad = Object.entries(label).filter(([key, v]) => v != null && (v < 0 || (key !== 'sodium_mg' && v > 100)));
-  if (bad.length) return { ok: false, why: `implausible values: ${bad.map(([key]) => key).join(', ')}` };
-  if (Object.values(label).filter((v) => v != null).length < 3) return { ok: false, why: 'too few values readable' };
-  return { ok: true, how, label, ingredients: Array.isArray(d.ingredients) ? d.ingredients.map((x) => String(x).trim()).filter(Boolean).slice(0, 60) : null };
+  const tries = [];
+  if (has(d.per_serving) && g && g > 0) tries.push(build(d.per_serving, 100 / g, `per-serving values scaled by 100/${g} g`));   // first: models sometimes invent a 100 g column by doing the arithmetic
+  if (has(d.per_100g)) tries.push(build(d.per_100g, 1, 'per 100 g column'));
+  if (!tries.length) return { ok: false, why: has(d.per_serving) ? 'label is per serving and the serving size in grams is not printed' : 'nutrition table values not readable' };
+  const good = tries.filter((t) => t.ok);
+  if (!good.length) return tries[0];
+  return good.find((t) => addsUp(t.check) === true) || good.find((t) => addsUp(t.check) == null) || good[0];
+}
+
+// Do the energy, protein, carbohydrate and fat on a label agree? (4 x protein + 4 x carbohydrate + 9 x fat is about the energy.) true | false | null (not enough printed)
+export function addsUp(c) {
+  if (!c || c.energy == null || c.protein == null || c.carb == null || c.fat == null || c.energy <= 0) return null;
+  const est = 4 * c.protein + 4 * c.carb + 9 * c.fat;
+  return Math.abs(est - c.energy) <= Math.max(0.08 * c.energy, 15);
 }
 
 const SWEET = /\b(sugar|jaggery|gur|syrup|honey|dextrose|glucose|fructose|maltose|molasses|invert|sucrose)\b/i;
 
+// the serving size two or more readings agree on; one reading alone is used when the others saw none
+export function servingOf(reads) {
+  const v = reads.map((r) => r && r.serving_g).filter((x) => x != null);
+  if (!v.length) return null;
+  const hit = v.find((x) => v.filter((y) => Math.abs(y - x) <= Math.max(0.05 * x, 1)).length >= 2);
+  return hit != null ? hit : v.length === 1 ? v[0] : null;
+}
 const agree = (x, y) => Math.abs(x - y) <= Math.max(0.05 * Math.max(Math.abs(x), Math.abs(y)), 0.02);
 export function consensus(la, lb) {
   if (!lb || !lb.ok) return { label: la.label, ingredients: la.ingredients, notes: ['only one reader could read this label: check every value against the photo'] };
@@ -105,7 +124,7 @@ export function consensus(la, lb) {
     else if (x != null && y != null && agree(x, y)) label[k] = x;
     else { label[k] = null; differ.push(k); }
   }
-  return { label, ingredients: la.ingredients?.length ? la.ingredients : lb.ingredients, notes: differ.length ? [`two readers disagreed on ${differ.join(', ')}: enter ${differ.length > 1 ? 'those' : 'it'} by hand`] : ['two readers agreed on every value'] };
+  return { label, check: la.check || lb.check, serving_g: servingOf([la, lb]), ingredients: la.ingredients?.length ? la.ingredients : lb.ingredients, notes: differ.length ? [`two readers disagreed on ${differ.join(', ')}: enter ${differ.length > 1 ? 'those' : 'it'} by hand`] : ['two readers agreed on every value'] };
 }
 
 // Reads one stored pack. Saves the proposed label + the image it came from; computes the exact score when complete.
@@ -143,6 +162,7 @@ export async function readPackLabel(env, id) {
   let ingredients = []; try { ingredients = JSON.parse(p.ingredients_json || '[]'); } catch { /* ignore */ }
   if (!ingredients.length && found.ingredients?.length) ingredients = found.ingredients;
   const label = { ...found.label }; const notes = ['values read from the pack image: check them against the photo', ...(found.notes || [])];
+  if (found.serving_g) { label.serving_g = found.serving_g; notes.push(`serving size ${found.serving_g} g as printed on the pack`); }
   // "Added sugars" is often not printed. Zero is inferred only when the ingredient list is known and names no sweetener.
   if (label.added_sugars_g == null && ingredients.length) {
     if (!SWEET.test(ingredients.join(', '))) { label.added_sugars_g = 0; notes.push('added sugars set to 0: the ingredient list names no sugar, jaggery, syrup or honey'); }
@@ -165,4 +185,75 @@ export async function readLabelsPending(env, { limit = 2 } = {}) {
   const out = [];
   for (const r of results) out.push(await readPackLabel(env, r.id));
   return out;
+}
+
+// ---- a photo sent by a parent (the back of the pack, shrunk on the phone; a data URL) ----
+const PROMPT_100G = PROMPT + ' Read ONLY the column headed per 100 g (or Amount per 100g). Ignore the serving size, the per serving column and any % column. If the picture is turned or tilted, read it anyway.';
+
+// Per value: the number two or more of the readings agree on; otherwise the number from the one reading whose energy, protein, carbohydrate and fat add up.
+export function voteReadings(reads) {
+  const label = {}, differ = [], single = [];
+  for (const k of Object.keys(reads[0].label)) {
+    const vals = reads.map((r) => r.label[k]).filter((v) => v != null);
+    let pick = null;
+    for (const v of vals) if (vals.filter((x) => agree(x, v)).length >= 2) { pick = v; break; }
+    if (pick == null && vals.length === 1 && reads.filter((r) => addsUp(r.check) !== false).length) { const one = reads.find((r) => r.label[k] != null); if (addsUp(one.check) !== false) { pick = vals[0]; single.push(k); } }   // one reader saw it, the other left it blank: not a contradiction
+    if (pick == null) { const ok = reads.filter((r) => addsUp(r.check) === true && r.label[k] != null); if (ok.length === 1) pick = ok[0].label[k]; }
+    label[k] = pick; if (pick == null && vals.length) differ.push(k);
+  }
+  const ing = reads.map((r) => r.ingredients).find((x) => x && x.length) || null;
+  return { label, check: (reads.find((r) => r.check && r.check.fat != null) || reads[0]).check, serving_g: servingOf(reads), ingredients: ing, notes: differ.length ? [`the readers still disagreed on ${differ.join(', ')} after a third look: enter ${differ.length > 1 ? 'those' : 'it'} by hand`] : [`${reads.length} readings compared: they agree on every value${single.length ? ' (' + single.join(', ') + ' seen by one reader only: check it against the photo)' : ''}`] };
+}
+
+async function visionRead(env, model, dataUrl, prompt = PROMPT) {
+  const out = await env.AI.run(model, {
+    messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: dataUrl } }] }],
+    max_tokens: 700, temperature: 0,
+  });
+  const raw = out?.response ?? out?.result?.response ?? out?.choices?.[0]?.message?.content;
+  return { data: raw && typeof raw === 'object' ? raw : parseJson(String(raw)) };
+}
+
+// The label and ingredients from one photo, read by two models, a value kept only where both agree (as for pack images).
+// Returns { ok: true, label, ingredients, notes } or { ok: false, why, retry } (retry: true when the reader was unavailable, so trying later may work).
+// The ingredient list from its own photo (the third photo a parent sends). Returns an array, or null when it cannot be read.
+export async function readIngredientsPhoto(env, dataUrl) {
+  if (!env.AI) return null;
+  try {
+    const out = await env.AI.run(env.LABEL_MODEL_A || LABEL_MODELS[0], {
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'This is a photo of the ingredient list on a food pack. Copy the ingredients EXACTLY as printed, in order, as one string per ingredient (keep any brackets and percentages with the ingredient they belong to). Reply with ONLY a JSON object: {"ingredients":[strings]|null}. Use null if no ingredient list is readable. Never guess.' }, { type: 'image_url', image_url: { url: dataUrl } }] }],
+      max_tokens: 700, temperature: 0,
+    });
+    const raw = out?.response ?? out?.result?.response ?? out?.choices?.[0]?.message?.content;
+    const d = raw && typeof raw === 'object' ? raw : parseJson(String(raw));
+    const list = Array.isArray(d?.ingredients) ? d.ingredients.map((x) => String(x).trim()).filter(Boolean).slice(0, 60) : null;
+    return list && list.length ? list : null;
+  } catch { return null; }
+}
+
+export async function readPhotoLabel(env, dataUrl, ingredientsUrl = null) {
+  if (!env.AI) return { ok: false, why: 'the label reader is not available', retry: true };
+  const [modelA, modelB] = [env.LABEL_MODEL_A || LABEL_MODELS[0], env.LABEL_MODEL_B || LABEL_MODELS[1]];
+  let ra;
+  try { ra = await visionRead(env, modelA, dataUrl); } catch (e) { return { ok: false, why: `the label reader is busy (${String(e.message || e).slice(0, 80)})`, retry: true }; }
+  const la = labelFrom(ra.data);
+  if (!la.ok) return { ok: false, why: la.why, retry: false };
+  let lb = null;
+  try { lb = labelFrom((await visionRead(env, modelB, dataUrl)).data); } catch { lb = null; }
+  let found = consensus(la, lb);
+  // the two readers disagreed: a third reading (the 100 g column only) votes, and a reading whose numbers add up wins a tie
+  if (lb && lb.ok && found.notes.some((n) => /disagreed/.test(n))) {
+    let lc = null;
+    try { lc = labelFrom((await visionRead(env, modelA, dataUrl, PROMPT_100G)).data); } catch { lc = null; }
+    found = voteReadings([la, lb, ...(lc && lc.ok ? [lc] : [])]);
+  }
+  const fromPhoto = ingredientsUrl ? await readIngredientsPhoto(env, ingredientsUrl) : null;
+  const ingredients = fromPhoto || found.ingredients || [];
+  const label = { ...found.label };
+  const notes = ['values read from a photo sent by a parent: check them against the photo', ...(found.notes || [])];
+  if (label.added_sugars_g == null && ingredients.length) {
+    if (!SWEET.test(ingredients.join(', '))) { label.added_sugars_g = 0; notes.push('added sugars set to 0: the ingredient list names no sugar, jaggery, syrup or honey'); }
+    else notes.push('added sugars not printed and the ingredients include a sweetener: enter added sugars by hand');
+  } else if (label.added_sugars_g == null) notes.push('added sugars not printed and no ingredient list: enter it by hand');
+  return { ok: true, label, check: found.check || la.check || null, serving_g: found.serving_g ?? la.serving_g ?? null, ingredients, notes };
 }

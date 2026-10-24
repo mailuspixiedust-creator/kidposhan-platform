@@ -4,7 +4,7 @@
 //   several meals, seasons or food preferences: a recipe matching ANY of them is offered.
 // GET /api/kp/recipes/:id
 //
-// Which recipes: only ones with a Poshan Score of 58 or more that are not held at Fair (capped) and have a cooking time. A random selection,
+// Which recipes: only ones with a Poshan Score of 70 or more (7 checks of 10) that are not held at OK (capped) and have a cooking time. A random selection,
 // not the same top of the list every time: recipes the device saw last time are skipped, and `shuffle=1` (with `exclude=` the ids on screen) draws a new set.
 // Guarantee: return at least MIN_RESULTS when the catalogue can supply them (lower-scored recipes only fill what is missing).
 // Diet preference and age safety are HARD filters and are never relaxed.
@@ -16,12 +16,12 @@ import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
 import { scoreSqlFor, capSqlFor } from './score.js';
 import { creditName, cleanIngredients, singleMethod, toPoints, hasChilli, KID_CHILLI_NOTE, isRealMeal, SWEET_OR_BAKED, savouryOnly, dishKey } from './clean.js';
 export { isPrepRecipe } from './clean.js';
-import { bandForMonths, bandById, REFERENCE_BAND } from './score2.js';
+import { bandForMonths, bandById, REFERENCE_BAND, ALL_BANDS } from './score2.js';
 
 export const MIN_RESULTS = 20;          // every filter combination should offer at least this many recipes
 const MAX_LIMIT = 40, POOL = 160;       // POOL: candidates gathered so a random draw has something to choose from
 export const WORLD_SHELF = 6;           // the Asian and European shelves show a handful, not a full list
-export const GOOD_MIN = 58;             // a recipe is offered by default only from this score up (and not capped)
+export const GOOD_MIN = 70;             // a recipe is offered by default only from this score up (and not capped)
 const OCCASIONS = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
 const SEASONS = ['summer', 'monsoon', 'winter', 'all'];
 const RELATED = {
@@ -56,21 +56,22 @@ function readParams(url) {
   const shuffle = p.get('shuffle') === '1';
   const exclude = (p.get('exclude') || '').split(',').map((x) => parseInt(x, 10)).filter((x) => Number.isFinite(x)).slice(0, 80);
   const errors = [];
-  if (!ages.length || ages.some((a) => !Number.isFinite(a) || a < 6 || a > 144)) errors.push('age_months must be 6-144');
+  const bandP = p.get('band') || '', bandId = ALL_BANDS.some((b) => b.id === bandP) ? bandP : null;     // a named ICMR-NIN group, e.g. 13-15:f or adult:m:mod
+  if (!ages.length || ages.some((a) => !Number.isFinite(a) || a < 6 || a > 1200)) errors.push('age_months must be 6-1200');
   if (!occasions.length || occasions.some((o) => !OCCASIONS.includes(o))) errors.push(`occasion must be one of ${OCCASIONS.join(', ')}`);
   if (seasons.some((x) => !SEASONS.includes(x))) errors.push(`season must be one of ${SEASONS.join(', ')}`);
   if (prefs.some((x) => !DIETS[x])) errors.push('pref must be veg, jain or nonveg');
   if (!WORLDS.includes(world)) errors.push(`world must be one of ${WORLDS.join(', ')}`);
   const age = Math.min(...ages);                      // the youngest: the single-value fields keep meaning the primary choice
-  return { age, ages, band: bandForMonths(age).id, occasion: occasions[0], occasions, season: seasons[0], seasons, pref: prefs[0], prefs, limit, world, vid, shuffle, exclude, errors };
+  return { age, ages, bandId, band: bandId || bandForMonths(age).id, occasion: occasions[0], occasions, season: seasons[0], seasons, pref: prefs[0], prefs, limit, world, vid, shuffle, exclude, errors };
 }
 
 // the search's own view of its filters: lists, whether it was called with lists or with single values
 export function normalizeQuery(q) {
   const ages = q.ages?.length ? q.ages : [q.age];
   const age = Math.min(...ages);
-  const bands = uniq(ages.map((a) => bandForMonths(a).id));
-  return { ...q, ages, age, bands, band: bandForMonths(age).id,
+  const bands = q.bandId ? [q.bandId] : uniq(ages.map((a) => bandForMonths(a).id));
+  return { ...q, ages, age, bands, band: q.bandId || bandForMonths(age).id,
     occasions: q.occasions?.length ? q.occasions : [q.occasion], seasons: q.seasons?.length ? q.seasons : [q.season || 'all'], prefs: q.prefs?.length ? q.prefs : [q.pref || 'veg'] };
 }
 // SQL for the score parents see: for several ages, the lowest of the bands' scores (a recipe has to suit every child) and any band's cap
@@ -95,7 +96,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
        AND r.age_min_months <= ? AND r.age_max_months >= ?
        AND s.world = ?
        AND r.total_minutes IS NOT NULL AND (${scoreExpr(q)}) IS NOT NULL`;     // no score or no time: not shown until it has both
-  args.push(...diets, Math.min(...q.ages), Math.max(...q.ages), q.world || 'india');   // suits every chosen age
+  args.push(...diets, Math.min(...q.ages), Math.min(144, Math.max(...q.ages)), q.world || 'india');   // suits every chosen age
   if (tier.good) sql += ` AND (${scoreExpr(q)}) >= ${GOOD_MIN} AND ${capExpr(q)} = 0`;
 
   if (tier.season) {
@@ -127,7 +128,7 @@ export function seasonMismatch(name, season) {
 // Over four hours is mostly soaking, fermenting or chilling, not cooking: the card says so instead of "930 min".
 export const WAITING_MINUTES = 240;
 
-const comboKey = (q) => [q.world || 'india', [...q.prefs].sort().join('+'), [...q.occasions].sort().join('+'), [...q.seasons].sort().join('+'), [...q.ages].sort((x, y) => x - y).map((a) => bandForMonths(a).id).join('+')].join('|');
+const comboKey = (q) => [q.world || 'india', [...q.prefs].sort().join('+'), [...q.occasions].sort().join('+'), [...q.seasons].sort().join('+'), [...q.ages].sort((x, y) => x - y).map((a) => bandForMonths(a).id).join('+'), q.bandId || ''].join('|');
 // the recipes this device was last shown for this combination (the newest batch)
 async function lastShown(env, vid, combo) {
   const { results } = await env.DB.prepare('SELECT recipe_id FROM kp_seen WHERE vid = ? AND combo = ? AND last_at = (SELECT max(last_at) FROM kp_seen WHERE vid = ? AND combo = ?)').bind(vid, combo, vid, combo).all();
@@ -162,7 +163,7 @@ export async function searchRecipes(env, q) {
     { match: 'any_season',          season: false, occasions: q.occasions, good: true },
     { match: 'related_occasion',    season: true,  occasions: related, good: true },
     { match: 'related_any_season',  season: false, occasions: related, good: true },
-    // only when the combination still has too few recipes at 58 or more: the best of the rest fills the gap
+    // only when the combination still has too few recipes at 70 or more: the best of the rest fills the gap
     { match: 'lower_score',         season: false, occasions: q.occasions, good: false },
     { match: 'lower_score_related', season: false, occasions: related, good: false },
   ];
@@ -206,14 +207,14 @@ export async function searchRecipes(env, q) {
   };
 }
 
-const bandOf = (v) => (v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional');
+const bandOf = (v) => (v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use');
 
 // Mayonnaise can be made either way. For a Veg / Jain meal it reads "Eggless mayonnaise"; for Non-veg it stays "Mayonnaise".
 export function mayoFor(text) {
   return String(text ?? '').replace(/((?:eggless|egg[- ]free|vegan|veg(?:etarian)?)\s+)?\bmayonnaise\b/gi, (m, pre, offset, whole) => (pre ? m : offset === 0 || /[.!?]\s*$/.test(whole.slice(0, offset)) ? 'Eggless mayonnaise' : 'eggless mayonnaise'));
 }
 
-export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
+export async function recipeDetail(env, id, { pref = '', age = null, band = '' } = {}) {
   const r = await env.DB.prepare(
     `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden, s.world
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -246,7 +247,7 @@ export async function recipeDetail(env, id, { pref = '', age = null } = {}) {
   const kpSteps = !authorSteps.length && r.kp_steps_status === 'approved' ? JSON.parse(r.kp_steps_json || '[]') : [];
   let detail = {}; try { detail = JSON.parse(r.score_breakdown_json || '{}'); } catch { /* ignore */ }
   // the score for the child's age band (the reference band, 4-6 years, when no age is given)
-  const bandId = age != null ? bandForMonths(age).id : REFERENCE_BAND;
+  const bandId = ALL_BANDS.some((b) => b.id === band) ? band : age != null ? bandForMonths(age).id : REFERENCE_BAND;
   const forBand = detail.bands?.[bandId] || null;
   const scoreValue = forBand ? forBand.total : r.poshan_score;
   const scoreVisible = scoreValue != null && !r.score_hidden;
@@ -289,7 +290,7 @@ export async function handleRecipesApi(request, env, ctx) {
   if (m) {
     const pref = url.searchParams.get('pref') || '';
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
-    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '', age: Number.isFinite(ageQ) ? ageQ : null });
+    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '', age: Number.isFinite(ageQ) ? ageQ : null, band: url.searchParams.get('band') || '' });
     return d ? json(d) : json({ error: 'Recipe not found' }, 404);
   }
   const q = readParams(url);

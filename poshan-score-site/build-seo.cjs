@@ -12,10 +12,12 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 const PAGE_META = {
   'index.html': { path: '/', title: null, desc: "Poshan Score rates kids' food and recipes out of 100 for your child's age, from sugar, salt, saturated fat, fibre, protein and the ingredient list. Independent: no brand pays to be here." },
-  'age-metrics.html': { path: '/age-metrics', desc: "How the Poshan Score works: ten metrics, each marked 1 to 10, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed." },
+  'age-metrics.html': { path: '/age-metrics', desc: "How the Poshan Score works: ten yes-or-no checks, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed." },
   'meal-ideas.html': { path: '/meal-ideas', desc: "Recipe ideas for children by age, meal, season and food preference (veg, Jain, non-veg), each with a Poshan Score out of 100. Save the ones you like and plan the week." },
   'products.html': { path: '/products', desc: "Packaged foods for kids scored out of 100 for your child's age: cereals, noodles, biscuits, ready mixes and more. See the sugar, salt and fibre behind each score." },
+  'scan.html': { path: '/scan', desc: "Scan the barcode on any packaged food and see its Poshan Score for your child's age. If we do not know the pack yet, photograph the front and back and we will score it." },
   'why-we-do-this.html': { path: '/why-we-do-this', desc: "Why we built the Poshan Score: a plain, independent way to read what is really on the back of a pack, scored for each age from 6 months to 12 years." },
+  'built-with-parents.html': { path: '/built-with-parents', desc: 'Poshan Score is a beta built with parents: where the numbers come from, what not yet checked means, and how to add a pack or report a mistake.' },
   'privacy.html': { path: '/privacy', desc: 'How KidPoshan handles your name and mobile number: what we keep, why, and how to have it removed.' },
 };
 
@@ -81,17 +83,17 @@ function ogImage() {
   return png(W, H, px);
 }
 
-const AGE_LABEL = { '6-12m': '6–12 months', '1-3y': '1–3 years', '4-6y': '4–6 years', '7-9y': '7–9 years', '10-12y': '10–12 years' };
+const AGE_LABEL = { '6-12m': '6–12 months', '1-3y': '1–3 years', '4-6y': '4–6 years', '7-9y': '7–9 years', '10-12y': '10–12 years', '13-15y': '13–15 years', '16-18y': '16–18 years', adult: 'Adults' };
 const slugOf = (p) => `${p.id}-${String(p.name || 'product').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '')}`;
-const TIER_COLOR = { Excellent: '#3F6B3C', Good: '#4C9A74', Fair: '#B5790A', Occasional: '#A6402A' };
+const TIER_COLOR = { Good: '#3F6B3C', OK: '#B5790A', 'Do not use': '#A6402A' };
 
 function productPage(p, slug) {
   const url = `${SITE}/products/${slug}`;
   const score = Math.round(p.score), nm = p.name.split('|')[0].replace(/\s+/g, ' ').trim();
   const title = `Is ${nm} healthy for kids? Poshan Score ${score}/100`;
   const sodium = p.nutrition_per_100g?.sodium_mg, sugar = p.nutrition_per_100g?.added_sugars_g;
-  const desc = `${nm} scores ${score} out of 100 (${p.capped ? 'held at Fair' : p.band}) on the Poshan Score for ${p.age_label}. See the ten-metric breakdown, the sugar, salt, fibre and protein per serving, and the score for every age from 6 months to 12 years.`;
-  const metrics = (p.metrics || []).map((m) => `<tr><td>${m.n}. ${esc(m.name)}</td><td class="r">${esc(m.reading)}</td><td class="m"><b>${m.score}</b>/10</td></tr>`).join('');
+  const desc = `${nm} scores ${score} out of 100 (${p.capped ? 'held at OK' : p.band}) on the Poshan Score for ${p.age_label}. See the ten-check breakdown, the sugar, salt, fibre and protein per serving, and the score for every age from 6 months to 12 years.`;
+  const metrics = (p.metrics || []).map((m) => `<tr><td>${m.n}. ${esc(m.name)}</td><td class="r">${esc(m.reading)}</td><td class="m"><b>${m.score ? 'Yes' : 'No'}</b></td></tr>`).join('');
   const byAge = Object.entries(p.scores_by_age || {}).map(([a, v]) => `<tr><td>${esc(AGE_LABEL[a] || a)}</td><td class="m">${v == null ? 'Not for under 1' : '<b>' + v + '</b>/100'}</td></tr>`).join('');
   const n = p.nutrition_per_100g || {}, fmt = (v, u) => (v === '' || v == null ? 'not printed' : `${v} ${u}`);
   const ld = { '@context': 'https://schema.org', '@type': 'Product', name: nm, brand: p.brand ? { '@type': 'Brand', name: p.brand } : undefined, image: p.image_url || undefined, category: p.category, description: desc, url };
@@ -110,12 +112,13 @@ h1{font-size:clamp(26px,6vw,36px);line-height:1.15;margin:6px 0 8px}h2{font-size
 .crumb{font-size:13px;color:var(--dim)}.crumb a{color:var(--dim)}
 .hero{display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center;margin:14px 0}
 .hero img{width:140px;height:140px;object-fit:contain;background:#fff;border-radius:14px;border:1px solid var(--line)}
-.score{display:flex;align-items:center;gap:14px}.score b{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:32px;color:#fff;background:${TIER_COLOR[p.capped ? 'Fair' : p.band] || TIER_COLOR.Good}}
+.score{display:flex;align-items:center;gap:14px}.score b{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:32px;color:#fff;background:${TIER_COLOR[p.capped ? 'OK' : p.band] || TIER_COLOR.Good}}
 .score span{color:var(--dim);font-size:14px}
 table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}td.m{text-align:right;white-space:nowrap}td.r{color:var(--dim)}
 .cta{display:inline-block;background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;text-decoration:none;font-weight:600;margin:6px 8px 6px 0}
 .cta.alt{background:none;color:var(--ink);border:1.5px solid var(--ink)}
 .fine{font-size:13px;color:var(--dim)}
+.more{margin:14px 0}.more>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--green);color:var(--green);background:var(--card);font-weight:700;border-radius:12px;padding:13px 16px;font-size:16px}.more>summary::-webkit-details-marker{display:none}.more[open]>summary{background:#E3EEDF;color:#2d4f2b}
 @media(max-width:520px){.hero{grid-template-columns:96px 1fr}.hero img{width:96px;height:96px}td.r{display:none}}
 </style></head><body>
 <nav><a class="brand" href="/">Poshan Score <small>by KidPoshan</small></a><a href="/products">Products</a><a href="/meal-ideas">Meal Ideas</a><a href="/age-metrics">Age &amp; Metrics</a></nav>
@@ -123,19 +126,25 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;bo
 <p class="crumb"><a href="/">Home</a> › <a href="/products">Products</a> › ${esc(p.category)}</p>
 <h1>Is ${esc(nm)} healthy for kids?</h1>
 <div class="hero">${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(nm)}" loading="eager" referrerpolicy="no-referrer">` : '<div></div>'}
-<div class="score"><b>${score}</b><div><div><strong>${esc(p.capped ? 'Fair (capped)' : p.band)}</strong></div><span>Poshan Score for ${esc(p.age_label)}, out of 100${p.capped ? '. Held at Fair because one risk metric scored 3 or less.' : ''}</span></div></div></div>
+<div class="score" id="kpscore"><b>${score}</b><div><div><strong>${esc(p.capped ? 'OK (capped)' : p.band)}</strong></div><span>Poshan Score for ${esc(p.age_label)}, out of 100${p.capped ? '. Held at OK because one risk check failed.' : ''}</span></div></div></div>
+<div id="kpm"></div><div id="kpclaim"></div>
 <p>${esc(p.brand ? p.brand + ' · ' : '')}${esc(p.kind_label || '')}${p.pack_size ? ' · ' + esc(p.pack_size) : ''}. Scored ${esc(p.basis || 'per serving')}. The same product scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
+<details class="more"><summary>See how this score is worked out</summary>
 <h2>The score at every age</h2><table>${byAge}</table>
-<h2>How the score is worked out: ten metrics, each 1 to 10</h2><table>${metrics}</table>
+<h2>How the score is worked out: ten checks, each a yes or no</h2><table>${metrics}</table>
 <p class="fine">The ten marks add up to a number from 10 to 100, which is stretched to a score from 0 to 100. <a href="/age-metrics">Every threshold and source is on the Age &amp; Metrics page.</a></p>
 <h2>On the label (per 100 g)</h2><table>
 <tr><td>Protein</td><td class="m">${fmt(n.protein_g, 'g')}</td></tr><tr><td>Fibre</td><td class="m">${fmt(n.fibre_g, 'g')}</td></tr><tr><td>Total sugars</td><td class="m">${fmt(n.sugars_g, 'g')}</td></tr>
 <tr><td>Added sugar</td><td class="m">${fmt(n.added_sugars_g, 'g')}</td></tr><tr><td>Saturated fat</td><td class="m">${fmt(n.saturated_fat_g, 'g')}</td></tr><tr><td>Sodium</td><td class="m">${fmt(n.sodium_mg, 'mg')}</td></tr></table>
 ${p.ingredients && p.ingredients.length ? `<h2>Ingredients</h2><p>${esc(p.ingredients.join(', '))}</p>` : ''}
-<p style="margin-top:22px"><a class="cta" href="/products?open=${p.id}">Change the age and see all workings</a>${p.url ? (p.data_source === 'openfoodfacts' ? `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>` : `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc((p.retailer || 'the seller').replace(/^./, (c) => c.toUpperCase()))}</a>`) : ''}</p>
+</details>
+<p class="fine"><a href="#" id="kpreport">Report a mistake with this pack</a></p>
+<p style="margin-top:22px"><a class="cta" href="/products?open=${p.id}">Change the age and see all workings</a>${p.url && p.data_source !== 'scan' ? (p.data_source === 'openfoodfacts' ? `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>` : `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc((p.retailer || 'the seller').replace(/^./, (c) => c.toUpperCase()))}</a>`) : ''}</p>
 ${p.data_source === 'openfoodfacts' ? `<p class="fine">Label data: <a href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> contributors, under the Open Database Licence${p.added_sugar_estimated ? '. Added sugar is not printed in the database, so total sugars are used, which can make the score a little stricter than the pack deserves' : ''}.</p>` : ''}
 <p class="fine">Label values come from the pack's own product page (or Open Food Facts) and are checked before a product is listed. Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice.</p>
-</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
+</main><script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;var d=${JSON.stringify({ score, band: p.band, capped: !!p.capped, why: (p.metrics || []).filter((x) => ['sugar', 'sodium', 'satfat', 'trans'].includes(x.id) && x.score <= 3).map((x) => ({ sugar: 'added sugar', sodium: 'sodium', satfat: 'saturated fat', trans: 'trans fat' })[x.id]) })};
+document.getElementById('kpm').innerHTML=m({score:d.score,band:d.band,capped:d.capped,why:d.why,legend:true});m.animate(document);var s=document.getElementById('kpscore');if(s)s.style.display='none';var rp=document.getElementById('kpreport');if(rp)rp.onclick=function(e){e.preventDefault();if(window.kpReport)kpReport({product_id:${p.id},barcode:${JSON.stringify(p.barcode || '')},name:${JSON.stringify(nm)}})};
+fetch('${PLATFORM}/api/kp/products/${p.id}').then(function(r){return r.json()}).then(function(j){if(j&&j.claim&&window.kpClaimCard)document.getElementById('kpclaim').innerHTML=kpClaimCard(j.claim)}).catch(function(){});})();</script><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   html = withMeta(html, { url, title, desc, type: 'article' });
   return { html, url, title };
 }

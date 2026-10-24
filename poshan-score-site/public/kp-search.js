@@ -20,11 +20,11 @@
     + '.kps .th{width:46px;height:46px;border-radius:10px;background:#E3EEDF center/cover no-repeat;flex-shrink:0}'
     + '.kps .nm{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.25}.kps .nm small{display:block;font-weight:400;color:#6B5D4B;font-size:12.5px;margin-top:2px}'
     + '.kps .sc{min-width:42px;text-align:center;border-radius:999px;padding:5px 8px;font:800 14px/1 system-ui,sans-serif;color:#fff;background:#3F6B3C}'
-    + '.kps .sc[data-b=Good]{background:#4C9A74}.kps .sc[data-b=Fair]{background:#B5790A}.kps .sc[data-b=Occasional]{background:#A6402A}'
+    + '.kps .sc[data-b="OK"]{background:#B5790A}.kps .sc[data-b="Do not use"]{background:#A6402A}'
     + '.kps .msg{padding:18px 16px;color:#6B5D4B;font-size:14.5px}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  var band = function (v, capped) { return capped ? 'Fair' : v >= 80 ? 'Excellent' : v >= 58 ? 'Good' : v >= 40 ? 'Fair' : 'Occasional'; };
+  var band = function (v, capped) { return capped ? 'OK' : v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use'; };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var nice = function (n) { var t = String(n || '').split('|')[0].replace(/\(.*?\)/g, '').replace(/\brecipes?\b/ig, '').replace(/\s+/g, ' ').trim(); return t || String(n || ''); };
   var onMeal = /meal-ideas/.test(location.pathname);
@@ -52,7 +52,7 @@
         if (my !== seq) return;
         var h = d.age_label && ((d.recipes && d.recipes.length) || (d.products && d.products.length)) ? '<p class="msg" style="padding-bottom:0">Scores are for ' + esc(d.age_label) + '. Pick your child\'s age on Meal Ideas or Products to change it.</p>' : '';
         if (d.recipes && d.recipes.length) h += '<h3>Recipes</h3><ul>' + d.recipes.map(function (r) { return row('/meal-ideas#/r/' + r.id, r.image_url, nice(r.name), r.total_minutes ? (r.total_minutes >= 240 ? 'Make ahead' : r.total_minutes + ' min') : '', r.score, band(r.score, r.capped)); }).join('') + '</ul>';
-        if (d.products && d.products.length) h += '<h3>Products</h3><ul>' + d.products.map(function (p) { return row('/products?open=' + p.id, p.image_url, p.name, [p.brand, p.category].filter(Boolean).join(' · '), p.score, p.band); }).join('') + '</ul>';
+        if (d.products && d.products.length) h += '<h3>Products</h3><ul>' + d.products.map(function (p) { return row('/products?open=' + p.id, p.image_url, p.name, [p.brand, p.category, p.unchecked ? 'not yet checked' : ''].filter(Boolean).join(' · '), p.score, p.band); }).join('') + '</ul>';
         out.innerHTML = h || '<p class="msg">We have not scored "' + esc(q) + '" yet. We are adding the best-known kids\' foods first, and what you search for helps us choose. Try one word, like "oats" or "ragi".</p>';
       }).catch(function () { if (my === seq) out.innerHTML = '<p class="msg">Search is not available just now. Please try again.</p>'; });
     }
@@ -70,4 +70,49 @@
     if (before) nav.insertBefore(b, before); else nav.appendChild(b);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* Beta: a pill by the logo, a line in the footer, and the "Report a mistake" window (used by the scan, product and Products pages). */
+(function () {
+  var API = 'https://kidposhan-platform.mailus-pixiedust.workers.dev';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var css = '.kp-beta{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;border:1.5px solid #B5790A;color:#B5790A;font:700 10px/1.5 system-ui,sans-serif;letter-spacing:.1em;vertical-align:middle;-webkit-text-fill-color:#B5790A}'
+    + '.kp-betafoot{margin:10px auto 0;max-width:720px;padding:0 16px;text-align:center;font-size:13px;opacity:.85}.kp-betafoot a{color:inherit}'
+    + '.kprep-bg{position:fixed;inset:0;background:rgba(20,15,8,.55);display:grid;place-items:center;z-index:400;padding:16px}.kprep{background:var(--bg,#FDFBF6);color:var(--ink,#221A12);border-radius:18px;padding:20px;width:min(440px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);font:16px/1.45 system-ui,sans-serif}'
+    + '.kprep h2{margin:0 0 4px;font-size:21px}.kprep p{margin:0 0 10px;color:var(--muted,#6B5D4B);font-size:14.5px}.kprep label.o{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1.5px solid var(--line,#E7DFCE);border-radius:12px;margin:6px 0;cursor:pointer}.kprep label.o input{margin-top:3px}'
+    + '.kprep textarea,.kprep input[type=email]{width:100%;box-sizing:border-box;border:1.5px solid var(--line,#E7DFCE);border-radius:12px;padding:10px 12px;font:inherit;background:var(--paper,#fff);color:inherit;margin-top:6px}'
+    + '.kprep .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.kprep button{font:700 15px system-ui,sans-serif;border-radius:12px;padding:11px 18px;cursor:pointer;border:1.5px solid var(--leaf,#3F6B3C);background:var(--leaf,#3F6B3C);color:#fff}.kprep button.alt{background:none;color:var(--leaf,#3F6B3C)}.kprep .msg{margin-top:10px;font-size:14.5px}';
+  function addCss() { if (document.getElementById('kp-beta-css')) return; var s = document.createElement('style'); s.id = 'kp-beta-css'; s.textContent = css; document.head.appendChild(s); }
+  function ready(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  ready(function () {
+    addCss();
+    var brand = document.querySelector('.nb-name, .brand-name');
+    if (brand && !document.querySelector('.kp-beta')) { var s = document.createElement('span'); s.className = 'kp-beta'; s.textContent = 'BETA'; s.title = 'Poshan Score is a beta, built with parents'; brand.appendChild(s); }
+    var f = document.querySelector('footer');
+    if (f && !f.querySelector('.kp-betafoot')) { var p = document.createElement('p'); p.className = 'kp-betafoot'; p.innerHTML = 'Poshan Score is a <b>beta</b>, built with parents. <a href="/built-with-parents">How it works, and how to help</a>'; f.appendChild(p); }
+  });
+  window.kpReport = function (o) {
+    addCss();
+    var bg = document.createElement('div'); bg.className = 'kprep-bg';
+    bg.innerHTML = '<div class="kprep" role="dialog" aria-modal="true" aria-labelledby="kprh"><h2 id="kprh">Report a mistake</h2><p>' + esc(o && o.name ? o.name : 'This pack') + '. Thank you for helping us get it right.</p>'
+      + '<form><label class="o"><input type="radio" name="r" value="name" checked><span>The name is different from my pack</span></label>'
+      + '<label class="o"><input type="radio" name="r" value="numbers"><span>The numbers do not match the label</span></label>'
+      + '<label class="o"><input type="radio" name="r" value="photo"><span>The photo is wrong</span></label>'
+      + '<label class="o"><input type="radio" name="r" value="other"><span>Something else</span></label>'
+      + '<textarea rows="3" maxlength="600" placeholder="What does your pack say? (optional, except for Something else)" aria-label="What is wrong"></textarea>'
+      + '<input type="email" placeholder="Your email, if you want to hear what we did (optional)" aria-label="Your email, optional">'
+      + '<div class="row"><button type="submit">Send</button><button type="button" class="alt kprc">Close</button></div><div class="msg" role="status"></div></form></div>';
+    function close() { bg.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey); bg.onclick = function (e) { if (e.target === bg) close(); }; bg.querySelector('.kprc').onclick = close;
+    bg.querySelector('form').onsubmit = function (e) {
+      e.preventDefault(); var msg = bg.querySelector('.msg'), reason = bg.querySelector('input[name=r]:checked').value;
+      msg.textContent = 'Sending…';
+      fetch(API + '/api/kp/report', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ reason: reason, note: bg.querySelector('textarea').value, email: bg.querySelector('input[type=email]').value, product_id: o && o.product_id, barcode: o && o.barcode }) })
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (x) { msg.textContent = x[0] ? 'Thank you. We will look at it.' : (x[1].error || 'Something went wrong. Please try again.'); if (x[0]) bg.querySelector('form').querySelector('button[type=submit]').disabled = true; })
+        .catch(function () { msg.textContent = 'No connection. Please try again.'; });
+    };
+    document.body.appendChild(bg); bg.querySelector('input').focus();
+  };
 })();
