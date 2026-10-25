@@ -49,6 +49,7 @@ select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px
 .checks{display:flex;flex-wrap:wrap;gap:6px}
 .checks label{display:flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:14px;cursor:pointer}
 .checks input{accent-color:var(--leaf)}
+.flagbox{margin:0 0 12px;padding:10px 14px;border:2px solid #E5533D;border-radius:12px;background:rgba(229,83,61,.12)}.flagbox b{color:#FF8A75}.flagbox ul{margin:6px 0 0 18px;padding:0}.flagbox li{margin:2px 0}
 .why{font-size:13px;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer}
@@ -263,9 +264,12 @@ function render(){
 function packCard(p){
   const n=p.nutrition||{}, f=(k,l,ph)=>`<label class="pf"><span>${l}</span><input type="number" step="any" min="0" name="${k}" value="${n[k]??''}" placeholder="${ph||''}"></label>`;
   const d=p.score_detail, inp=d?.inputs||{};
-  const score=p.score_status==='exact'
-    ?`<p><b>Poshan Score ${p.kidposhan_score}</b> (${esc(d?.engine?.band||'')}), exact, per 100 g from the label.</p><p class="why">Counted from the ingredient list: ${inp.additives} additive${inp.additives===1?'':'s'}${d?.additives_found?.length?' ('+esc(d.additives_found.join(', '))+')':''}, palm oil ${inp.palmOil?'yes':'no'}, maida ${inp.maida?'yes':'no'}, whole grain first ${inp.wholeGrain?'yes':'no'}.</p>`
-    :`<p class="why">Score pending: enter the label values below (per 100 g, from the pack photo). All five of protein, fibre, added sugars, saturated fat and sodium are needed. Enter 0 for added sugars only if the ingredients list no sugar, jaggery, syrup or honey.</p>`;
+  let flags=[]; try{flags=JSON.parse(p.review_flags||'[]')}catch(e){flags=[]}
+  const flagBox=flags.length?`<div class="flagbox" role="alert"><b>Please check this one</b><ul>${flags.map(f=>'<li>'+esc(f)+'</li>').join('')}</ul></div>`:'';
+  const b46=d?.bands?.['4-6'], fails=(b46?.metrics||[]).filter(m=>m.score===0).map(m=>m.name);
+  const score=flagBox+(p.score_status==='exact'
+    ?`<p><b>Poshan Score ${p.kidposhan_score}</b> (${esc(b46?(b46.capped?'OK, held by a risk check':b46.tier):'')}), exact, for ages 4–6, ${esc(d?.basis||'per serving')}.</p><p class="why">${b46?b46.sum+' of 10 checks pass. ':''}${fails.length?'Fails: '+esc(fails.join(', '))+'.':'No check fails.'}</p>`
+    :`<p class="why">Score pending: enter the label values below (per 100 g, from the pack photo). All five of protein, fibre, added sugars, saturated fat and sodium are needed. Enter 0 for added sugars only if the ingredients list no sugar, jaggery, syrup or honey.</p>`);
   const acts=p.status==='candidate'
     ?`<button class="btn publish" data-pact="approve">Approve</button><button class="btn reject" data-pact="reject">Reject</button>`
     :`<button class="btn undo" data-pact="candidate">Move back to waiting</button>${p.status==='rejected'?'<button class="btn publish" data-pact="approve">Approve</button>':''}`;

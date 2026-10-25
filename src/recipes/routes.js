@@ -30,6 +30,7 @@ import { importOffNext, importOffJob, offBrandJob } from './openfood.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
 import { submitReport, listReports, resolveReport, thankPending, betaStats, BetaError } from './beta.js';
+import { autoReviewPacks, photoCheckPending } from './autoreview.js';
 import { scanLookup, scanSubmit, scanRetake, scanPhoto, readScansPending, pruneScans, whoHash, ScanError } from './scan.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
@@ -176,6 +177,10 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/products' && request.method === 'GET') {
       return json(await listPacks(env, { status: url.searchParams.get('status') || 'candidate', limit: +url.searchParams.get('limit') || 30, offset: +url.searchParams.get('offset') || 0 }));
     }
+    // POST /api/kp/admin/products/auto-review?limit=300   let the rules approve the packs that check out (the cron does this too)
+    if (path === '/api/kp/admin/products/auto-review' && request.method === 'POST') return json(await autoReviewPacks(env, { limit: Math.min(+url.searchParams.get('limit') || 300, 1000) }));
+    // POST /api/kp/admin/products/photo-check?limit=2   compare auto-approved packs' label photos with their stored numbers
+    if (path === '/api/kp/admin/products/photo-check' && request.method === 'POST') return json(await photoCheckPending(env, { limit: Math.min(+url.searchParams.get('limit') || 1, 5) }));
     // POST /api/kp/admin/products/import-off[?brand=maggi]   the next page of popular products from Open Food Facts
     if (path === '/api/kp/admin/products/import-off' && request.method === 'POST') {
       const bj = offBrandJob(url.searchParams.get('brand') || '');
@@ -366,6 +371,8 @@ export async function scheduledRecipes(env, cron) {
   } catch (e) { console.error('rescore-recipes', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
+  try { console.log('auto-review', JSON.stringify(await autoReviewPacks(env, { limit: 300 }))); } catch (e) { console.error('auto-review', e); }
+  try { console.log('photo-check', JSON.stringify(await photoCheckPending(env, { limit: 1 }))); } catch (e) { console.error('photo-check', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }
   try { console.log('autopublish', JSON.stringify(await autoPublishPending(env, { limit: 25 }))); } catch (e) { console.error('autopublish', e); }
   const { results: due } = await env.DB.prepare(
