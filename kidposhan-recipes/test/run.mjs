@@ -70,6 +70,7 @@ db.exec(fs.readFileSync('migrations/0031_open_food_facts.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0032_scans.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0033_reports_contrib.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0034_auto_review.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0035_source_indexes.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
