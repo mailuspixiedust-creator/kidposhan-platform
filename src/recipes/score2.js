@@ -157,7 +157,7 @@ export function methodSpec() {
     bands: BANDS.map((b) => ({ id: b.id, label: b.label, reference: b.ref })),
     nin_bands: ALL_BANDS.map((b) => ({ id: b.id, label: b.label, reference: b.ref })),
     bases: { snack: "A meal passes the sugar, sodium and saturated-fat checks when one serving takes under " + RISK_LINE + "% of the child's day. A snack, sweet or sweet drink is a smaller part of the day, so it passes only under " + RISK_LINE / SNACK_FACTOR + "%.", serving: "Every food, packaged or cooked, is measured per realistic serving, and the full serving is compared with the age band's full daily reference. A pack's label is per 100 g, so it is scaled to the serving size first." },
-    sodium_example: { mg: 793.8, what: 'one 38 g serving of a masala oats sachet', by_age: BANDS.map((b) => { const pct = (793.8 / b.ref.sodium) * 100; return { id: b.id, label: b.label, share: Math.round(pct), score: riskScore(pct) }; }) },
+    sodium_example: { mg: 793.8, what: 'one 38 g serving of a masala oats sachet', by_age: ['1-3', '4-6', '7-9', '10-12', '13-15', '16-18', 'adult:m:sed', 'adult:f:sed'].map((id) => { const b = bandById(id), pct = (793.8 / b.ref.sodium) * 100; return { id: b.id, label: b.label, share: Math.round(pct), score: riskScore(pct) }; }) },
     under_12_months: 'Under 12 months there is no published reference band, so the 1–3 year reference is used.',
     metrics: [
       { n: 1, id: 'sugar', name: 'Added sugar', type: 'risk', measure: "Share of the age band's ideal daily added-sugar limit in one serving", steps: yn('under ' + RISK_LINE + '% of the day (snacks and sweets: under ' + RISK_LINE / SNACK_FACTOR + '%)', 'at or over that line'), source: 'WHO free-sugars guideline (ideal 5% of energy) on ICMR-NIN 2020 energy' },

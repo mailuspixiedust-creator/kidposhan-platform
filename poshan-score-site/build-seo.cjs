@@ -12,11 +12,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 const PAGE_META = {
   'index.html': { path: '/', title: null, desc: "Poshan Score rates kids' food and recipes out of 100 for your child's age, from sugar, salt, saturated fat, fibre, protein and the ingredient list. Independent: no brand pays to be here." },
-  'age-metrics.html': { path: '/age-metrics', desc: "How the Poshan Score works: ten yes-or-no checks, worked out for ages 6 months to 12 years from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed." },
+  'age-metrics.html': { path: '/age-metrics', desc: "How the Poshan Score works: ten yes-or-no checks, worked out for every ICMR-NIN age group, from 6 months to adults, from ICMR-NIN, WHO and FSSAI references. Every threshold and source is listed." },
   'meal-ideas.html': { path: '/meal-ideas', desc: "Recipe ideas for children by age, meal, season and food preference (veg, Jain, non-veg), each with a Poshan Score out of 100. Save the ones you like and plan the week." },
   'products.html': { path: '/products', desc: "Packaged foods for kids scored out of 100 for your child's age: cereals, noodles, biscuits, ready mixes and more. See the sugar, salt and fibre behind each score." },
   'scan.html': { path: '/scan', desc: "Scan the barcode on any packaged food and see its Poshan Score for your child's age. If we do not know the pack yet, photograph the front and back and we will score it." },
-  'why-we-do-this.html': { path: '/why-we-do-this', desc: "Why we built the Poshan Score: a plain, independent way to read what is really on the back of a pack, scored for each age from 6 months to 12 years." },
+  'why-we-do-this.html': { path: '/why-we-do-this', desc: "Why we built the Poshan Score: a plain, independent way to read what is really on the back of a pack, scored for each age group from 6 months to adults." },
   'built-with-parents.html': { path: '/built-with-parents', desc: 'Poshan Score is a beta built with parents: where the numbers come from, what not yet checked means, and how to add a pack or report a mistake.' },
   'privacy.html': { path: '/privacy', desc: 'How KidPoshan handles your name and mobile number: what we keep, why, and how to have it removed.' },
 };
@@ -92,7 +92,7 @@ function productPage(p, slug) {
   const score = Math.round(p.score), nm = p.name.split('|')[0].replace(/\s+/g, ' ').trim();
   const title = `Is ${nm} healthy for kids? Poshan Score ${score}/100`;
   const sodium = p.nutrition_per_100g?.sodium_mg, sugar = p.nutrition_per_100g?.added_sugars_g;
-  const desc = `${nm} scores ${score} out of 100 (${p.capped ? 'held at OK' : p.band}) on the Poshan Score for ${p.age_label}. See the ten-check breakdown, the sugar, salt, fibre and protein per serving, and the score for every age from 6 months to 12 years.`;
+  const desc = `${nm} scores ${score} out of 100 (${p.capped ? 'held at OK' : p.band}) on the Poshan Score for ${p.age_label}. See the ten-check breakdown, the sugar, salt, fibre and protein per serving, and the score for every age group from 6 months to adults.`;
   const metrics = (p.metrics || []).map((m) => `<tr><td>${m.n}. ${esc(m.name)}</td><td class="r">${esc(m.reading)}</td><td class="m"><b>${m.score ? 'Yes' : 'No'}</b></td></tr>`).join('');
   const byAge = Object.entries(p.scores_by_age || {}).map(([a, v]) => `<tr><td>${esc(AGE_LABEL[a] || a)}</td><td class="m">${v == null ? 'Not for under 1' : '<b>' + v + '</b>/100'}</td></tr>`).join('');
   const n = p.nutrition_per_100g || {}, fmt = (v, u) => (v === '' || v == null ? 'not printed' : `${v} ${u}`);
