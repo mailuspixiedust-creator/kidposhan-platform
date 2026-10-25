@@ -6,7 +6,7 @@
 // like every other candidate. Where the label has no "added sugars" line, total sugars stand in and the product says so ("estimated").
 // Politeness: one request per run, a named User-Agent, and a stop when the site says "slow down".
 
-import { ALL_KINDS, kindByKey, scorePack } from './ready.js';
+import { ALL_KINDS, kindByKey, scorePack, isSpiceProduct } from './ready.js';
 
 const OFF = 'https://world.openfoodfacts.org';
 const FIELDS = 'serving_quantity,serving_size,code,product_name,product_name_en,brands,quantity,categories_tags,unique_scans_n,nutriments,ingredients_text,ingredients_text_en,image_front_url,image_nutrition_url,lang';
@@ -125,7 +125,7 @@ export function mapProduct(p, forceKind = null) {
   let sodium = num(n.sodium_100g) != null ? num(n.sodium_100g) * 1000 : (num(n.salt_100g) != null ? num(n.salt_100g) * 400 : null);     // sodium in g -> mg; salt g x 400 = sodium mg
   if ([protein, fibre, sat, sodium].some((v) => v == null) || (added == null && sugars == null)) return { skip: 'label incomplete' };
   if ([protein, fibre, sugars ?? 0, added ?? 0, sat].some((v) => v < 0 || v > 100) || sodium < 0 || sodium > 40000) return { skip: 'values out of range' };
-  const kind = forceKind && kindByKey(forceKind) ? forceKind : kindFor(p.categories_tags || [], name);
+  const kind = isSpiceProduct(name) ? null : forceKind && kindByKey(forceKind) ? forceKind : kindFor(p.categories_tags || [], name);
   if (!kind) return { skip: 'not a kind of food we score' };
   const estimated = added == null;
   const ingredients = splitIngredients(p.ingredients_text_en || p.ingredients_text);

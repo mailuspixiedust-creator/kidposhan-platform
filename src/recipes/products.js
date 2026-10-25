@@ -3,7 +3,7 @@
 // as new products are found and approved. A product with no readable label has no score and is not listed.
 // The score is the version 2 score (score2.js): ten metrics, each 1 to 10, out of 100, worked out for the child's age band.
 
-import { ALL_KINDS, kindByKey, dedupePacks, scorePack } from './ready.js';
+import { ALL_KINDS, kindByKey, dedupePacks, scorePack, isSpiceProduct } from './ready.js';
 import { headlineClaim } from './claims.js';
 import { bandForMonths, bandById, REFERENCE_BAND, totalBand } from './score2.js';
 
@@ -60,6 +60,7 @@ export async function listProducts(env, { age = '', category = '', min = 0, sort
   const all = [];
   for (const p of dedupePacks(results)) {
     const nutrition = JSON.parse(p.nutrition_json || 'null') || {}, ingredients = JSON.parse(p.ingredients_json || '[]'), k = kindByKey(p.kind);
+    if (isSpiceProduct(p.name)) continue;                               // spices and masalas are ingredients, not food we score
     if (age && !offeredFor(p.kind, nutrition, ingredients, age)) continue;
     const sc = scorePack(nutrition, ingredients, p.name, p.kind);
     if (sc.status !== 'exact') continue;
@@ -86,7 +87,7 @@ export async function productDetail(env, id, { age = '' } = {}) {
   return p ? detailFromRow(p, age) : null;
 }
 export function detailFromRow(p, age = '') {
-  if (!p || p.score_status !== 'exact' || p.kidposhan_score == null) return null;
+  if (!p || p.score_status !== 'exact' || p.kidposhan_score == null || isSpiceProduct(p.name)) return null;
   const nutrition = JSON.parse(p.nutrition_json || 'null') || {}, ingredients = JSON.parse(p.ingredients_json || '[]'), k = kindByKey(p.kind);
   const a = age ? ageInfo(age) : ageInfo('4-6y');
   const sc = scorePack(nutrition, ingredients, p.name, p.kind);
