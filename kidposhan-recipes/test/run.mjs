@@ -69,6 +69,8 @@ db.exec(fs.readFileSync('migrations/0030_pageviews.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0031_open_food_facts.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0032_scans.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0033_reports_contrib.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0034_auto_review.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0035_source_indexes.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1459,6 +1461,31 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const RDY2 = await import('../../src/recipes/ready.js');
   ok(['Everest Garam Masala 100g', 'MDH Chana Masala', 'Chilli Powder 200g', '11 ELEVEN SPICES Veg Biryani Masala', 'Sambar Masala'].every((n) => RDY2.isSpiceProduct(n)), 'Spice and masala blends are recognised by name');
   ok(['Maggi Masala Noodles', 'Saffola Masala Oats', 'Kurkure Masala Munch', 'MTR Instant Sambar Mix', 'Instant Masala Khichdi'].every((n) => !RDY2.isSpiceProduct(n)), 'Masala as a flavour of noodles, oats, chips, or an instant meal mix is not treated as a spice');
+}
+// packs that check out go live by themselves; the ones that look wrong wait, with the reasons
+{
+  const AR = await import('../../src/recipes/autoreview.js');
+  const good = { name: 'Kellogg Rolled Oats', kind: 'rolled_oats', image_url: 'https://x/y.jpg', nutrition_json: JSON.stringify({ protein_g: 11, fibre_g: 10, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 1.2, sodium_mg: 5 }), ingredients_json: '["Rolled oats"]' };
+  ok(AR.flagsFor(good).length === 0, 'A pack with a photo, believable numbers and a fitting kind has nothing to flag');
+  ok(AR.flagsFor({ ...good, image_url: null }).some((f) => /no photo/i.test(f)), 'No photo: flagged');
+  ok(AR.flagsFor({ ...good, name: 'MAX PROTEIN Chocolamond Snack Bar', kind: 'chips' }).some((f) => /filed as/.test(f)), 'A snack bar filed as chips: flagged, because the kind sets the serving size');
+  ok(AR.flagsFor({ ...good, nutrition_json: JSON.stringify({ protein_g: 20, fibre_g: 54, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 2, sodium_mg: 268 }) }).some((f) => /Fibre/.test(f)), 'Fibre far too high for a food: flagged');
+  ok(AR.flagsFor({ ...good, ingredients_json: '["Sugar","Wheat flour"]' }).some((f) => /first ingredient/.test(f)), 'Sugar first but added sugars 0: flagged');
+  ok(AR.flagsFor({ ...good, ingredients_json: '["Oats","Salt"]', nutrition_json: JSON.stringify({ protein_g: 11, fibre_g: 10, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 1, sodium_mg: 0 }) }).some((f) => /Salt is in the ingredient list/.test(f)), 'Salt listed but sodium 0: flagged');
+  const nut = JSON.stringify({ protein_g: 11, fibre_g: 10, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 1.2, sodium_mg: 5 });
+  const ins = db.prepare("INSERT INTO kp_ready_products (kind, name, brand, product_url, retailer, image_url, ingredients_json, nutrition_json, kidposhan_score, score_status, status, data_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+  const okId = ins.run('rolled_oats', 'Auto Rolled Oats', 'A', 'https://off/1', 'openfoodfacts', 'https://img/1.jpg', '["Rolled oats"]', nut, 90, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
+  const noPhoto = ins.run('rolled_oats', 'Auto No Photo Oats', 'A', 'https://off/2', 'openfoodfacts', null, '["Rolled oats"]', nut, 90, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
+  const spice = ins.run('pulao_mix', 'Everest Garam Masala', 'E', 'https://off/3', 'openfoodfacts', 'https://img/3.jpg', '["Spices"]', nut, 60, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
+  const stats = await AR.autoReviewPacks(env, { limit: 100 });
+  const row = (id) => db.prepare('SELECT status, auto_approved, review_flags FROM kp_ready_products WHERE id = ?').get(id);
+  ok(row(okId).status === 'approved' && row(okId).auto_approved === 1, 'A clean pack goes live on its own, with its score and photo');
+  ok(row(noPhoto).status === 'candidate' && /no photo/i.test(row(noPhoto).review_flags), 'A pack that needs a person stays waiting, with the reason stored');
+  ok(row(spice).status === 'rejected', 'A spice blend is turned away, not queued');
+  ok(stats.approved >= 1 && stats.flagged >= 1 && stats.spice >= 1, 'The run reports what it did: ' + JSON.stringify(stats));
+  ok(AR.comparePhoto({ protein_g: 20, fibre_g: 27.4, sodium_mg: 268 }, { protein_g: 20.5, fibre_g: 2.7, sodium_mg: 270 }).length === 1 && AR.comparePhoto({ protein_g: 20 }, { protein_g: 20 }).length === 0, 'Photo and data are compared per value; small differences are ignored, a clear mismatch is said in words');
+  const waiting = await (await import('../../src/recipes/ready.js')).listPacks(env, { status: 'candidate', limit: 50 });
+  ok(waiting.items.length > 0 && waiting.items[0].review_flags != null, 'The waiting list puts flagged packs first');
 }
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

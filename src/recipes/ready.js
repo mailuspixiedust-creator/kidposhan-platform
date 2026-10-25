@@ -309,7 +309,7 @@ export async function packsForRecipes(env, ids, { limit = 16 } = {}) {
 export async function listPacks(env, { status = 'candidate', limit = 30, offset = 0 } = {}) {
   if (!['candidate', 'approved', 'rejected'].includes(status)) throw new Error('bad status');
   const { results } = await env.DB.prepare(
-    'SELECT * FROM kp_ready_products WHERE status = ? ORDER BY found_at DESC, id DESC LIMIT ? OFFSET ?'
+    `SELECT * FROM kp_ready_products WHERE status = ? ORDER BY ${status === 'candidate' ? '(review_flags IS NOT NULL) DESC, ' : ''}found_at DESC, id DESC LIMIT ? OFFSET ?`
   ).bind(status, Math.min(limit, 50), offset).all();
   const { n } = await env.DB.prepare('SELECT COUNT(*) AS n FROM kp_ready_products WHERE status = ?').bind(status).first();
   const { results: counts } = await env.DB.prepare('SELECT status, COUNT(*) AS n FROM kp_ready_products GROUP BY status').all();
@@ -326,7 +326,7 @@ export async function reviewPack(env, id, body) {
   if (!status) throw new Error('action must be approve, reject or candidate');
   const row = await env.DB.prepare('SELECT name, kind, ingredients_json, nutrition_json FROM kp_ready_products WHERE id = ?').bind(id).first();
   if (!row) throw new Error('pack not found');
-  const sets = ["status = ?", "reviewed_at = datetime('now')"], args = [status];
+  const sets = ["status = ?", "reviewed_at = datetime('now')", "review_flags = NULL"], args = [status];
   if (body.kind != null) { if (!kindByKey(body.kind)) throw new Error('unknown kind'); sets.push('kind = ?'); args.push(body.kind); }
   if (body.nutrition && typeof body.nutrition === 'object') {
     const f = ['protein_g', 'fibre_g', 'sugars_g', 'added_sugars_g', 'saturated_fat_g', 'sodium_mg'];
