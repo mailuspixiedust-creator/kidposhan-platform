@@ -451,6 +451,23 @@ body.lb-open{overflow:hidden}
 .frow .chip[aria-pressed="true"]::before{content:"✓";text-align:center;font-size:12px;line-height:12px;font-weight:800;background:var(--bg);color:var(--ink);border-color:var(--bg);opacity:1}
 /* ===== save (heart), shuffle, weekly plan ===== */
 .multi-hint{margin:10px 0 0;font-size:13px;color:var(--muted)}
+/* the filters: one tidy column of rows, the age as a line with a bubble that moves along it */
+.filters{grid-template-columns:minmax(0,1fr)!important;max-width:760px;gap:16px}
+.filters .frow{background:var(--paper);border:1.5px solid var(--line);border-radius:18px;padding:14px 0 12px}
+.filters .frow>span{padding:0 18px}
+.ageline{position:relative;margin:4px 14px 0;padding-top:6px;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer}
+.ageline .track{position:absolute;left:6.25%;right:6.25%;top:20px;height:4px;border-radius:4px;background:var(--line)}
+.ageline .stops{display:flex}
+.ageline .stop{flex:1 1 0;min-width:0;background:none;border:0;padding:0 0 4px;display:grid;justify-items:center;gap:7px;position:relative;z-index:1;font:inherit;color:var(--muted);cursor:pointer}
+.ageline .dot{display:block;width:12px;height:12px;margin-top:10px;border-radius:50%;background:var(--paper);border:2.5px solid var(--line);box-sizing:border-box;transition:border-color .2s ease}
+.ageline .stop .l{font-size:12.5px;font-weight:600;line-height:1.15;text-align:center;transition:color .2s ease}
+.ageline .stop[aria-pressed="true"] .l{color:var(--ink);font-weight:800}
+.ageline .stop:hover .dot{border-color:var(--gold)}
+.ageline .stop:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:10px}
+.ageline .bub{position:absolute;top:6px;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:var(--ink);box-shadow:0 8px 16px -8px rgba(34,26,18,.6);z-index:2;pointer-events:none;transition:left .4s cubic-bezier(.3,1.35,.5,1)}
+.ageline .bub::after{content:"";position:absolute;inset:10px;border-radius:50%;background:var(--turmeric)}
+.frow .chip.plain::before{display:none}
+@media(max-width:560px){.ageline{margin:4px 8px 0}.ageline .stop .l{font-size:11.5px}.filters .frow{border-radius:16px}}
 .dishwrap{position:relative;flex:0 0 min(72vw,270px);scroll-snap-align:start;display:flex}
 .dishwrap .dish{flex:1 1 auto;width:100%}
 @media(min-width:760px){.dishwrap{flex-basis:236px}}
@@ -907,9 +924,21 @@ function renderSaved(){
 }
 
 /* ===== menu page ===== */
-function whoRows(){const a=S.age||[];if(a.length!==1||!BAND_OF[a[0]])return '';const adult=a[0]===300;
+const whoNow=()=>{const a=(S.age||[]).map(Number);return a.length===1&&a[0]===300?'adult':S.sex==='m'?'boy':S.sex==='f'?'girl':''};
+function whoFirst(){const w=whoNow();
+  return `<div class="frow"><span id="l-who">Who is it for? <em class="multi-tag">pick one</em></span><div class="scroller" role="group" aria-labelledby="l-who">${[['boy','Boy'],['girl','Girl'],['adult','Adult']].map(([v,l])=>`<button type="button" class="chip plain" data-f="who" data-v="${v}" aria-pressed="${w===v}">${l}</button>`).join('')}</div></div>`}
+function whoRows(){
+  if(whoNow()!=='adult')return '';
   const one=(name,label,arr,cur)=>`<div class="frow"><span id="l-${name}">${label}</span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${(cur||'')===v}">${l}</button>`).join('')}</div></div>`;
-  return one('sex',adult?'Men or women':'Boy or girl',[['','Average'],['m',adult?'Men':'Boys'],['f',adult?'Women':'Girls']],S.sex)+(adult&&(S.sex==='m'||S.sex==='f')?one('work','Kind of work',[['sed','Sedentary'],['mod','Moderate'],['heavy','Heavy']],S.work||'sed'):'')}
+  return one('sex','Men or women <em class="multi-tag">optional</em>',[['m','Men'],['f','Women']],S.sex)+(S.sex==='m'||S.sex==='f'?one('work','Kind of work',[['sed','Sedentary'],['mod','Moderate'],['heavy','Heavy']],S.work||'sed'):'')}
+const AGE_SHORT={9:'6–12 mo',24:'1–3',60:'4–6',96:'7–9',132:'10–12',168:'13–15',204:'16–18',300:'Adults'};
+function ageLine(){
+  if(whoNow()==='adult')return '';
+  const KIDS=AGES.filter(a=>a[0]!==300),cur=(S.age||[]).map(Number).filter(v=>v!==300),n=KIDS.length,pos=v=>(KIDS.findIndex(a=>a[0]===v)+.5)/n*100,prev=window.__bubFrom;
+  const bubs=cur.filter(v=>KIDS.some(a=>a[0]===v)).map(v=>`<i class="bub" data-pos="${pos(v)}" style="left:${cur.length===1&&prev!=null?prev:pos(v)}%"></i>`).join('');
+  window.__bubFrom=cur.length===1?pos(cur[0]):null;
+  return `<div class="frow"><span id="l-age">Age <em class="multi-tag">${S.multi?"tap each child's age":'tap or drag the bubble'}</em></span><div class="ageline" role="group" aria-labelledby="l-age"><div class="track"></div>${bubs}<div class="stops">${KIDS.map(([v])=>`<button type="button" class="stop" data-v="${v}" aria-pressed="${cur.includes(v)}" aria-label="${KIDS.find(a=>a[0]===v)[1]}"><i class="dot"></i><span class="l">${AGE_SHORT[v]}</span></button>`).join('')}</div></div><div class="scroller" style="padding-top:8px"><button type="button" class="chip" data-f="multi" data-v="1" aria-pressed="${!!S.multi}">Choosing for more than one child</button></div></div>`;
+}
 function chipRow(name,label,arr,cur){
   return `<div class="frow"><span id="l-${name}">${label} <em class="multi-tag">choose one or more</em></span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${(cur||[]).map(String).includes(String(v))}">${l}</button>`).join('')}</div></div>`;
 }
@@ -940,8 +969,8 @@ function renderMenu(){
     ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
   if(showFilters){
     html+=`<section class="filters" aria-label="Filters">
-      ${chipRow('age',"Age",AGES,S.age)}${whoRows()}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
-      <p class="multi-hint">You can pick more than one in each row. For ages, we show recipes that suit every child you pick. For meals, seasons and food type, recipes that suit any of them.</p><button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick at least one in each row to continue'}</button></section>`;
+      ${whoFirst()}${ageLine()}${whoRows()}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
+      <p class="multi-hint">Meals, seasons and food types: pick more than one if you like, and we show recipes that suit any of them. Age: pick one, or switch on "more than one child" to see recipes that suit every child you pick.</p><button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick at least one in each row to continue'}</button></section>`;
   } else {
     html+=`<div class="summary"><p>${S.pref.map(v=>lab(PREF,v)).join(' + ')}, ${S.occ.map(v=>lab(OCC,v)).join(' + ')}, ${S.age.map(v=>lab(AGES,v)).join(' + ')}, ${S.season.map(v=>lab(SEA,v).toLowerCase()).join(' + ')}</p><button id="edit">Change</button></div>`;
   }
@@ -967,7 +996,23 @@ function renderMenu(){
   }
   app.innerHTML=html;
   loadMenuPacks();
+  app.querySelectorAll('.ageline .bub').forEach(b=>requestAnimationFrame(()=>requestAnimationFrame(()=>{b.style.left=b.dataset.pos+'%'})));
+  {const line=app.querySelector('.ageline');
+   const pick=v=>{const cur=(S.age||[]).map(Number);S.age=S.multi?(cur.includes(v)?cur.filter(x=>x!==v):[...cur,v]):[v];S.results=null;S.more=null;persist();renderMenu();const nb=app.querySelector(`.stop[data-v="${v}"]`);nb&&nb.focus({preventScroll:true})};
+   if(line){
+     line.querySelectorAll('.stop').forEach(b=>b.onclick=e=>{if(S.multi||e.detail===0)pick(+b.dataset.v)});      // multi: a tap toggles; keyboard: Enter or Space
+     if(!S.multi){let drag=false,idx=-1;const KIDS=AGES.filter(a=>a[0]!==300),at=x=>{const r=line.getBoundingClientRect();return Math.max(0,Math.min(KIDS.length-1,Math.floor((x-r.left)/r.width*KIDS.length)))};
+       const mv=e=>{if(!drag)return;idx=at(e.clientX);const b=line.querySelector('.bub');if(b)b.style.left=((idx+.5)/KIDS.length*100)+'%'};
+       line.addEventListener('pointerdown',e=>{if(e.button>0)return;drag=true;try{line.setPointerCapture(e.pointerId)}catch(x){}mv(e)});
+       line.addEventListener('pointermove',mv);
+       line.addEventListener('pointerup',()=>{if(!drag)return;drag=false;if(idx>=0)pick(KIDS[idx][0])});
+       line.addEventListener('pointercancel',()=>{drag=false;renderMenu()})}}}
   app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const f=b.dataset.f;
+    if(f==='who'){const v=b.dataset.v,w=whoNow();
+      if(v==='adult'){S.age=[300];S.sex='';S.work='';S.multi=false}
+      else{if((S.age||[]).map(Number).includes(300))S.age=[60];S.sex=w===v?'':v==='boy'?'m':'f';S.work=''}
+      S.results=null;S.more=null;persist();renderMenu();const nb=app.querySelector(`.chip[data-f="who"][data-v="${v}"]`);nb&&nb.focus();return}
+    if(f==='multi'){S.multi=!S.multi;if(!S.multi&&(S.age||[]).length>1)S.age=[Math.min(...S.age.map(Number))];persist();renderMenu();return}
     if(f==='sex'||f==='work'){S[f]=b.dataset.v;S.results=null;S.more=null;persist();renderMenu();const nb=app.querySelector(`.chip[data-f="${f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();return}
     const v=f==='age'?+b.dataset.v:b.dataset.v,cur=S[f]||[];
     let next=cur.includes(v)?cur.filter(x=>x!==v):[...cur,v];

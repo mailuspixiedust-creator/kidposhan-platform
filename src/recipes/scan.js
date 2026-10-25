@@ -4,7 +4,7 @@
 // after the owner approves it. Nothing personal is kept: the scan log holds a one-day hash of the connection, used to limit how many
 // a phone can send in an hour.
 
-import { ALL_KINDS, kindByKey, scorePack } from './ready.js';
+import { ALL_KINDS, kindByKey, scorePack, isSpiceProduct } from './ready.js';
 import { detailFromRow, isAgeId } from './products.js';
 import { mapProduct, store, lookupOff } from './openfood.js';
 import { readPhotoLabel } from './label.js';
@@ -94,7 +94,7 @@ export async function scanLookup(env, rawCode, { age = '', who = null, fetchFn =
       const hit = saved && found(saved, age);
       if (hit) return { ...hit, source: 'openfoodfacts' };
     } else if (m.skip === 'not a kind of food we score') {
-      if (NOT_SCORED.test((got.product.categories_tags || []).join(' ').toLowerCase())) return { status: 'not_scored', barcode: code, message: 'This looks like a food we do not score (for example spices, oils, tea, coffee, meat or supplements).' };
+      if (NOT_SCORED.test((got.product.categories_tags || []).join(' ').toLowerCase()) || isSpiceProduct(got.product.product_name)) return { status: 'not_scored', barcode: code, message: 'This looks like a food we do not score (for example spices, oils, tea, coffee, meat or supplements).' };
       // the label is complete but we cannot tell which kind of food it is: the parent chooses the closest kind
       return { status: 'choose_kind', barcode: code, kinds: kindList(), prefill: { brand: cleanText(String(got.product.brands || '').split(',')[0], 60), name: cleanText(got.product.product_name_en || got.product.product_name, 120) },
         message: 'We could not tell what kind of food this is. Choose the closest kind and we will score it.' };
@@ -147,6 +147,7 @@ export async function scanSubmit(env, body, { who, origin, age = '' }) {
   const brand = cleanText(body.brand, 60), name = cleanText(body.name, 120);
   if (brand.length < 2) throw new ScanError('Please type the brand.');
   if (name.length < 3) throw new ScanError('Please type the name of the product.');
+  if (isSpiceProduct(name)) throw new ScanError('This looks like a spice or masala. We score meals, snacks and ready-to-eat foods, not ingredients.');
   const front = photoOf(body.front, 'front'), back = photoOf(body.back, 'back'), ingr = body.ingredients ? photoOf(body.ingredients, 'ingredients') : null;
   if (body.consent !== true) throw new ScanError('Please tick the box to say these photos are yours to share.');
   const email = cleanEmail(body.email);

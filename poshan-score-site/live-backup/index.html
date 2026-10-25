@@ -392,9 +392,10 @@
   </div>
 
   <div class="tf-head"><h2>Tomorrow's <em>tiffin ideas</em></h2><select id="tfAge" aria-label="Child's age"></select></div>
-  <p class="tf-sub">From various cooks and cookbooks, each credited to the person who wrote it. Scored for your child's age.</p>
+  <p class="tf-sub">From various cooks and cookbooks, each credited to the person who wrote it. Scored for the age you pick. <b>Tap the heart on any recipe to save it.</b></p>
   <div class="tf-grid" id="tfGrid" role="list" aria-live="polite"></div>
-  <a class="plan-btn" href="meal-ideas.html">Plan today's meals</a>
+  <p class="tf-more" style="margin:18px 0 0;max-width:640px;color:var(--ink-dim)"><b id="nRecipes" style="color:var(--ink)">Hundreds of</b> recipes, by age, meal, season and food preference. Save the ones you like, then put them into a plan for the week: breakfast, lunch, a 4 PM snack and dinner, for every day.</p>
+  <a class="plan-btn" href="meal-ideas.html">Browse recipes and plan your week</a>
 
   <div class="stats3" aria-label="What is scored">
     <div class="stat3"><b id="nProducts">…</b><span>kids' foods scored</span></div>
@@ -492,7 +493,7 @@ window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};   // the site build fills t
   tiffin();
 
 
-  fetch(API + '/api/kp/stats').then((r) => r.json()).then((d) => { $('nProducts').textContent = Number(d.products).toLocaleString('en-IN'); $('nBrands').textContent = d.brands_paying; }).catch(() => { $('nProducts').textContent = '40+'; });
+  fetch(API + '/api/kp/stats').then((r) => r.json()).then((d) => { $('nProducts').textContent = Number(d.products).toLocaleString('en-IN'); $('nBrands').textContent = d.brands_paying; if (d.recipes) $('nRecipes').textContent = Number(d.recipes).toLocaleString('en-IN'); }).catch(() => { $('nProducts').textContent = '40+'; });
 
   // front of pack versus back of pack: a real product, read from its label
   fetch(API + '/api/kp/search?q=chocos&age_months=60').then((r) => r.json()).then(async (s) => {

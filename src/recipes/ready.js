@@ -138,6 +138,10 @@ export const SERVING_G = {
 export const SNACK_KINDS = new Set(['kids_biscuits', 'millet_cookies', 'rusk_toast', 'chips', 'namkeen', 'roasted_snacks', 'snack_bars', 'dried_fruit', 'popcorn_makhana', 'chocolate', 'candy_toffee',
   'ice_cream', 'cake_pastry', 'sweets_mithai', 'papad', 'choco_spread', 'jam', 'sweeteners', 'condensed_milk', 'soft_drink', 'fruit_juice', 'flavoured_milk', 'drink_mix', 'health_drink',
   'custard_powder', 'dessert_mix', 'cake_mix', 'kheer_mix', 'halwa_mix']);
+// Spices, masalas and seasoning blends are ingredients, not meals, snacks or ready-to-eat food: they are never scored or listed.
+// ("Masala" as a flavour of noodles, oats or chips is fine: the pattern asks for a spice blend, not the flavour word.)
+const SPICE_BLEND = /\b(garam|chaat|chat|kitchen king|sabzi|sabji|biryani|pulao|pav bhaji|sambar|sambhar|rasam|tikka|tandoori|curry|chole|chana|rajma|meat|chicken|fish|egg|paneer|kasuri|tea|chai)\s+masala\b|\bmasala\s+(powder|mix|blend|paste)\b|\b(spices?|seasonings?)\b(?!.*\b(oats|noodles|chips|namkeen|popcorn)\b)|\b(rasam|sambar|sambhar|curry|chilli|chili|turmeric|haldi|jeera|cumin|coriander|dhania|pepper)\s+(powder|masala)\b/i;
+export const isSpiceProduct = (name) => SPICE_BLEND.test(String(name || ''));
 export const SERVING_BASIS = new Set(["kids_biscuits","millet_cookies","breakfast_cereal","chips","namkeen","roasted_snacks","popcorn_makhana","dried_fruit","nuts_seeds","fruit_juice","flavoured_milk","plain_milk","plant_milk","yoghurt","cheese","butter","jam","peanut_butter","nut_butter","dips_dressings","vermicelli_pasta","millet_pasta","white_rice","brown_rice","ice_cream","chocolate","candy_toffee","cake_pastry","whole_wheat_bread","tomato_puree","ready_meals","pancake_mix","snack_bars","rolled_oats","millet_porridge","ketchup","mayonnaise","instant_soup"]);
 export const servingFor = (kind) => SERVING_G[kind] || 50;
 

@@ -1454,5 +1454,11 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const dd = await (await handleRecipesApi(new Request(`https://w/api/kp/recipes/${idA}?age_months=300&band=adult:m:sed`), env, ctx)).json();
   ok(dd.score?.age_band === 'adult:m:sed' && dd.score?.age_band_label === 'Men, sedentary work' && dd.poshan_score === 100, 'A recipe\'s page shows the score and group label for the chosen band: ' + dd.score?.age_band_label);
 }
+// spices and masalas are ingredients, not meals, snacks or ready-to-eat food
+{
+  const RDY2 = await import('../../src/recipes/ready.js');
+  ok(['Everest Garam Masala 100g', 'MDH Chana Masala', 'Chilli Powder 200g', '11 ELEVEN SPICES Veg Biryani Masala', 'Sambar Masala'].every((n) => RDY2.isSpiceProduct(n)), 'Spice and masala blends are recognised by name');
+  ok(['Maggi Masala Noodles', 'Saffola Masala Oats', 'Kurkure Masala Munch', 'MTR Instant Sambar Mix', 'Instant Masala Khichdi'].every((n) => !RDY2.isSpiceProduct(n)), 'Masala as a flavour of noodles, oats, chips, or an instant meal mix is not treated as a spice');
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);
