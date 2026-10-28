@@ -75,7 +75,7 @@ export async function listProducts(env, { age = '', category = '', min = 0, sort
   return {
     total: items.length, in_catalogue: all.length, age: a.id, age_label: a.label,
     categories: Object.entries(categories).sort((x, y) => x[0].localeCompare(y[0])).map(([name, n]) => ({ name, n })),
-    items: items.slice(0, Math.min(Math.max(+limit || 60, 1), unchecked ? 3000 : 200)),
+    items: items.slice(0, Math.min(Math.max(+limit || 60, 1), unchecked ? 3000 : 1000)),
   };
 }
 

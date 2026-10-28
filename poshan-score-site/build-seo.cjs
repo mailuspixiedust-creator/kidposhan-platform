@@ -164,17 +164,20 @@ async function run(out) {
   const urls = Object.values(PAGE_META).map((m) => ({ loc: SITE + (m.path === '/' ? '/' : m.path), pr: m.path === '/' ? '1.0' : '0.8' }));
   const map = {};
   try {
-    const list = await getJson(`${PLATFORM}/api/kp/products?age=4-6y&limit=300`);
-    fs.mkdirSync(path.join(out, 'products'), { recursive: true });
-    for (const it of list.items) {
+    const list = await getJson(`${PLATFORM}/api/kp/products?age=4-6y&limit=1000`);
+    const dir = path.join(out, 'products');
+    fs.mkdirSync(dir, { recursive: true });
+    for (const f of fs.readdirSync(dir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(dir, f));       // pages of packs that are no longer listed must not linger
+    const one = async (it) => {
       try {
         const d = await getJson(`${PLATFORM}/api/kp/products/${it.id}?age=4-6y`);
         const slug = slugOf({ id: it.id, name: it.name });
         const pg = productPage(d, slug);
-        fs.writeFileSync(path.join(out, 'products', slug + '.html'), pg.html);
+        fs.writeFileSync(path.join(dir, slug + '.html'), pg.html);
         map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7' });
       } catch (e) { console.warn('product page skipped', it.id, e.message); }
-    }
+    };
+    for (let i = 0; i < list.items.length; i += 8) await Promise.all(list.items.slice(i, i + 8).map(one));       // eight at a time
   } catch (e) { console.warn('no product pages this build:', e.message); }
   // the Products page links each card to its own page (a card for a product added since this build still opens the pop-up)
   for (const name of ['products.html', 'index.html']) {
