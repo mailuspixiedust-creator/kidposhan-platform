@@ -123,7 +123,7 @@ export async function routeRecipes(request, env, ctx) {
   const visitors = await routeVisitors(request, env, url, path);
   if (visitors) return visitors;
 
-  if (request.method === 'GET' && (path === '/api/kp/recipes' || /^\/api\/kp\/recipes\/\d+$/.test(path))) {
+  if (request.method === 'GET' && (path === '/api/kp/recipes' || path === '/api/kp/recipes-index' || /^\/api\/kp\/recipes\/\d+$/.test(path))) {
     return withCors(request, await handleRecipesApi(request, env, ctx));
   }
 

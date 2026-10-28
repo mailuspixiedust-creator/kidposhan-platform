@@ -1487,5 +1487,19 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const waiting = await (await import('../../src/recipes/ready.js')).listPacks(env, { status: 'candidate', limit: 50 });
   ok(waiting.items.length > 0 && waiting.items[0].review_flags != null, 'The waiting list puts flagged packs first');
 }
+// recipe pages for search engines: a list of every visible recipe, and per-age scores on a recipe
+{
+  const idA = mkRecipe('https://seo.example/a', { status: 'approved', name: 'Seo Test Pulao Recipe' });
+  db.prepare('UPDATE kp_recipes SET poshan_score = 80, score_status = ?, total_minutes = 30, score_hidden = 0, score_breakdown_json = ? WHERE id = ?').run('estimated', JSON.stringify({ bands: { '4-6': { total: 80, tier: 'Good', capped: false, metrics: [] }, 'adult:m:sed': { total: 100, tier: 'Good', capped: false, metrics: [] }, '13-15': { total: 70, tier: 'OK', capped: false, metrics: [] } } }), idA);
+  const hidden = mkRecipe('https://seo.example/h', { status: 'approved', name: 'Seo Hidden Score Dish' });
+  db.prepare('UPDATE kp_recipes SET poshan_score = 90, total_minutes = 30, score_hidden = 1 WHERE id = ?').run(hidden);
+  const ix = await (await handleRecipesApi(new Request('https://w/api/kp/recipes-index'), env, ctx)).json();
+  ok(ix.items.some((x) => x.id === idA && x.name === 'Seo Test Pulao Recipe' && x.score === 80) && !ix.items.some((x) => x.id === hidden) && ix.total === ix.items.length, 'The recipe index lists every visible, scored recipe and leaves out one whose score is hidden: ' + ix.total);
+  const dl = await (await handleRecipesApi(new Request(`https://w/api/kp/recipes/${idA}?lite=1`), env, ctx)).json();
+  ok(dl.scores_by_age && dl.scores_by_age['4-6y'] === 80 && dl.scores_by_age['13-15y'] === 70 && dl.scores_by_age['adult'] === undefined && dl.score?.value === 80, 'A recipe carries its score for each age group that has been worked out: ' + JSON.stringify(dl.scores_by_age));
+  ok(dl.ingredients.every((i) => Array.isArray(i.buy) && i.buy.length === 0), 'With lite=1 the ingredients carry no shop links (a static page has no use for them)');
+  const viaRouter = await routeRecipes(new Request('https://w/api/kp/recipes-index', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  ok(viaRouter.status === 200 && (await viaRouter.json()).total >= 1, 'The recipe index is reachable through the real router, not only the handler');
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

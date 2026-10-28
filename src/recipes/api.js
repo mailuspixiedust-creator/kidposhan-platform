@@ -214,7 +214,20 @@ export function mayoFor(text) {
   return String(text ?? '').replace(/((?:eggless|egg[- ]free|vegan|veg(?:etarian)?)\s+)?\bmayonnaise\b/gi, (m, pre, offset, whole) => (pre ? m : offset === 0 || /[.!?]\s*$/.test(whole.slice(0, offset)) ? 'Eggless mayonnaise' : 'eggless mayonnaise'));
 }
 
-export async function recipeDetail(env, id, { pref = '', age = null, band = '' } = {}) {
+const AGE_GROUP_BAND = { '1-3y': '1-3', '4-6y': '4-6', '7-9y': '7-9', '10-12y': '10-12', '13-15y': '13-15', '16-18y': '16-18', adult: 'adult' };
+
+// Every recipe a parent can see, in brief: the site build makes a page for each one and the Recipes index page lists them.
+export async function recipesIndex(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT r.id, r.name, s.world AS world, r.diet, r.total_minutes, r.poshan_score, s.name AS source_name,
+            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions
+       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
+      WHERE r.review_status IN ${VISIBLE} AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL ORDER BY r.id`
+  ).all();
+  return { total: results.length, items: results.map((r) => ({ id: r.id, name: r.name, world: r.world, diet: r.diet, minutes: r.total_minutes, score: r.poshan_score, by: creditName(r.source_name), occasions: r.occasions ? r.occasions.split(',') : [] })) };
+}
+
+export async function recipeDetail(env, id, { pref = '', age = null, band = '', lite = false } = {}) {
   const r = await env.DB.prepare(
     `SELECT r.*, s.name AS source_name, s.rights_status, s.photos_hidden, s.world
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
@@ -238,7 +251,7 @@ export async function recipeDetail(env, id, { pref = '', age = null, band = '' }
       is_pantry: !!i.is_pantry,
       default_state: i.is_pantry ? 'at_home' : null, // UI: pantry staples pre-ticked "At home"
       // the store links are Indian apps: recipes from other parts of the world get none
-      buy: i.ingredient_key === 'water' || r.world !== 'india' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
+      buy: lite || i.ingredient_key === 'water' || r.world !== 'india' ? [] : await buyLinksFor(env, { key: i.ingredient_key, name: label }),
     });
   }
   // The author's own steps are always the ones shown, set out as points (a long paragraph becomes one point per sentence), credited and
@@ -269,6 +282,8 @@ export async function recipeDetail(env, id, { pref = '', age = null, band = '' }
     age_max_months: r.age_max_months,
     // Score parents may see: exact always; estimated only after the owner approved it.
     poshan_score: scoreVisible ? scoreValue : null,
+    // the score for every age group (the pages' "at every age" table); a group not yet worked out for this recipe is left out
+    scores_by_age: scoreVisible ? Object.fromEntries(Object.entries(AGE_GROUP_BAND).filter(([, b]) => detail.bands?.[b]).map(([k, b]) => [k, detail.bands[b].total])) : null,
     score: scoreVisible ? { value: scoreValue, kind: r.score_status, band: forBand?.tier || bandOf(scoreValue), age_band: bandId, age_band_label: bandById(bandId).label, metrics: forBand?.metrics || null, capped: !!forBand?.capped, basis: detail.per_serving_basis ? `per serving (${detail.per_serving_basis} servings), against the day's reference` : null, inputs: detail.inputs || null, sources: detail.sources || null } : null,
     source: { name: creditName(r.source_name), url: r.source_url, rights_status: r.rights_status },
     kid_note: hasChilli(cleaned) && (age == null || age <= 72) ? KID_CHILLI_NOTE : null,
@@ -286,11 +301,15 @@ export async function recipeDetail(env, id, { pref = '', age = null, band = '' }
 
 export async function handleRecipesApi(request, env, ctx) {
   const url = new URL(request.url);
+  if (url.pathname === '/api/kp/recipes-index') {
+    const out = await recipesIndex(env);
+    return new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600', 'access-control-allow-origin': '*' } });
+  }
   const m = url.pathname.match(/^\/api\/kp\/recipes\/(\d+)$/);
   if (m) {
     const pref = url.searchParams.get('pref') || '';
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
-    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '', age: Number.isFinite(ageQ) ? ageQ : null, band: url.searchParams.get('band') || '' });
+    const d = await recipeDetail(env, +m[1], { pref: ['veg', 'jain', 'nonveg'].includes(pref) ? pref : '', age: Number.isFinite(ageQ) ? ageQ : null, band: url.searchParams.get('band') || '', lite: url.searchParams.get('lite') === '1' });
     return d ? json(d) : json({ error: 'Recipe not found' }, 404);
   }
   const q = readParams(url);

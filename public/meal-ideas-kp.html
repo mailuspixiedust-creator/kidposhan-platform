@@ -953,7 +953,7 @@ function renderMenu(){
   const ready=S.age.length&&S.occ.length&&S.season.length&&S.pref.length, showFilters=!S.results||S.editing;
   let html=`<section class="menu-hero pad ${S.results&&!S.editing?'compact':''}"><div class="hero-copy"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
     <h1 class="ask ${S.results&&!S.editing?'small':''}">What's on the plate today?</h1>
-    ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
+    ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy. <a href="/recipes">Browse every recipe</a>.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
   if(showFilters){
     html+=`<section class="filters" aria-label="Filters">
       ${whoFirst()}${ageLine()}${whoRows()}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
