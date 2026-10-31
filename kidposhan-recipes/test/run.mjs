@@ -1596,5 +1596,16 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const sc = (await SR3.searchAll(env, 'tangy meal for 9 year')).recipes.map((r) => r.score);
   ok(sc.length >= 2 && sc.every((v, i) => i === 0 || sc[i - 1] >= v), 'Recipes in a taste search run from the highest score down: ' + sc.join());
 }
+// the recipe list carries what the site build needs for collection pages, similar recipes and honest dates
+{
+  const idT = mkRecipe('https://idx.example/t', { status: 'approved', name: 'Index Tangy Dish', agemin: 24, agemax: 144 });
+  db.prepare('UPDATE kp_recipes SET poshan_score = 80, total_minutes = 20, score_hidden = 0, updated_at = ? WHERE id = ?').run('2026-09-30 10:00:00', idT);
+  db.prepare("INSERT OR REPLACE INTO kp_recipe_tastes (recipe_id, taste, n) VALUES (?, 'tangy', 4), (?, 'crunchy', 3)").run(idT, idT);
+  const ix2 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes-index'), env, ctx)).json();
+  const row = ix2.items.find((x) => x.id === idT);
+  ok(row && row.tastes.tangy === 4 && row.tastes.crunchy === 3 && row.age_min === 24 && row.age_max === 144 && row.updated === '2026-09-30', 'The recipe list carries each recipe\'s tastes, its age range and the date it last changed: ' + JSON.stringify(row && { t: row.tastes, a: [row.age_min, row.age_max], u: row.updated }));
+  const prods = await (await import('../../src/recipes/products.js')).listProducts(env, { limit: 5 });
+  ok(prods.items.length === 0 || 'updated' in prods.items[0], 'Each product in the list says when it last changed');
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

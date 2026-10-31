@@ -377,7 +377,7 @@ export async function scheduledRecipes(env, cron) {
   } catch (e) { console.error('rescore-recipes', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
-  try { const t = await tastesBackfill(env, { limit: 250 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }
+  try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }
   try { console.log('kind-check', JSON.stringify(await kindCheckPending(env, { limit: 12 }))); } catch (e) { console.error('kind-check', e); }
   try { console.log('auto-review', JSON.stringify(await autoReviewPacks(env, { limit: 300 }))); } catch (e) { console.error('auto-review', e); }
   try { console.log('photo-check', JSON.stringify(await photoCheckPending(env, { limit: 1 }))); } catch (e) { console.error('photo-check', e); }

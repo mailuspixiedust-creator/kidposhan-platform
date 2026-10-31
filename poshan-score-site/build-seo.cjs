@@ -150,6 +150,7 @@ fetch('${PLATFORM}/api/kp/products/${p.id}').then(function(r){return r.json()}).
 }
 
 // ---- recipes: a page for every recipe, and an index page that links to all of them ----
+const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const MEAL_LABEL = { breakfast: 'Breakfast', lunchbox: 'School lunchbox', lunch: 'Lunch', snack_4pm: '4 PM snack', dinner: 'Dinner' };
 const DIET_WORD = { veg: 'Vegetarian', jain: 'Jain', egg: 'Egg', nonveg: 'Non-vegetarian' };
 const recName = (n) => String(n || 'Recipe').split('|')[0].replace(/\s+/g, ' ').replace(/\s+recipes?\s*$/i, '').trim();
@@ -164,7 +165,7 @@ main{max-width:760px;margin:0 auto;padding:22px 18px 60px}
 h1{font-size:clamp(26px,6vw,36px);line-height:1.15;margin:6px 0 8px}h2{font-size:20px;margin:28px 0 8px}
 .crumb{font-size:13px;color:var(--dim)}.crumb a{color:var(--dim)}
 .hero{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin:14px 0}
-.hero img{width:100%;max-height:340px;object-fit:cover;border-radius:16px;border:1px solid var(--line)}
+.hero img{width:100%;height:auto;aspect-ratio:760/340;max-height:340px;object-fit:cover;border-radius:16px;border:1px solid var(--line)}
 .facts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}.facts span{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13.5px;color:var(--dim)}
 table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}td.m{text-align:right;white-space:nowrap}
 ul.ing{padding-left:20px}ul.ing li{margin:4px 0}ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
@@ -177,9 +178,26 @@ ul.ing{padding-left:20px}ul.ing li{margin:4px 0}ol.steps{padding-left:22px}ol.st
 const NAV = '<nav><a class="brand" href="/">Poshan Score <small>by KidPoshan</small></a><a href="/recipes">Recipes</a><a href="/products">Products</a><a href="/meal-ideas">Meal Ideas</a><a href="/age-metrics">Age &amp; Metrics</a></nav>';
 const bandColor = (band, capped) => TIER_COLOR[capped ? 'OK' : band] || TIER_COLOR.Good;
 
-function recipePage(d, slug) {
+function recipePage(d, slug, extra = {}) {
   const url = `${SITE}/recipes/${slug}`, nm = recName(d.name), sc = d.score || {}, score = Math.round(sc.value ?? d.poshan_score);
   const credit = d.source?.name || 'the recipe creator';
+  // what the score says for this dish, from its own checks and its score at every age
+  const checks = sc.metrics || [], failed = checks.filter((m) => m.score === 0).map((m) => m.name.toLowerCase()), passed = checks.filter((m) => m.score === 1).length;
+  const ages = Object.entries(d.scores_by_age || {}), top = ages.length ? Math.max(...ages.map(([, v]) => v)) : null, low = ages.length ? Math.min(...ages.map(([, v]) => v)) : null;
+  const topAges = ages.filter(([, v]) => v === top).map(([a]) => (AGE_LABEL[a] || a).toLowerCase());
+  const val = (id) => { const m = checks.find((x) => x.id === id); return m && m.value != null ? Number(m.value) : null; };
+  const nutr = { protein: val('protein'), fibre: val('fibre'), satfat: val('satfat'), sugar: val('sugar'), sodium: val('sodium') };
+  const est = sc.kind !== 'exact';
+  const faq = [
+    [`Is ${nm} healthy for kids?`, `${nm} scores ${score} out of 100 (${sc.capped ? 'OK, held by a risk check' : sc.band}) for ${sc.age_band_label || 'ages 4 to 6'}. It passes ${passed} of the 10 checks${failed.length ? ` and loses points on ${failed.slice(0, 4).join(', ')}` : ''}.`],
+    ...(ages.length > 1 ? [[`What age is ${nm} best for?`, `It scores highest, ${top} out of 100, for ${topAges.slice(0, 3).join(' and ')}${low != null && low < top ? `, and lowest, ${low}, for ${(ages.find(([, v]) => v === low) || [''])[0] ? (AGE_LABEL[(ages.find(([, v]) => v === low) || [''])[0]] || '').toLowerCase() : 'the youngest ages'}` : ''}. The same dish scores differently as a child grows, because the daily limits for sugar, salt and saturated fat grow with them.`]] : []),
+    ['How is the Poshan Score worked out?', 'Ten yes-or-no checks on one serving: added sugar, sodium, saturated fat, trans fat, fibre, protein, preservatives, artificial additives, the first ingredient, and whether it is high in fat, sugar or salt. Each passed check is worth 10 points. The limits come from ICMR-NIN 2020, WHO and FSSAI and change with the age.'],
+  ];
+  const nutrRows = [['Protein', nutr.protein, 'g'], ['Fibre', nutr.fibre, 'g'], ['Saturated fat', nutr.satfat, 'g'], ['Added sugar', nutr.sugar, 'g'], ['Sodium', nutr.sodium, 'mg']].filter((x) => x[1] != null);
+  const fitHtml = `${nutrRows.length ? `<h2>Per serving</h2><table>${nutrRows.map(([k, v, u]) => `<tr><td>${k}</td><td class="m">${Math.round(v * 10) / 10} ${u}</td></tr>`).join('')}</table><p class="fine">${est ? 'Estimated from the ingredients' : 'From the recipe page'}, for one serving${d.servings ? ' (the recipe serves ' + esc(String(d.servings)) + ')' : ''}.</p>` : ''}`;
+  const moreHtml = `<div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
+${(extra.similar || []).length ? `<h2>More like this</h2><ul class="ing">${extra.similar.map((x) => `<li><a href="/recipes/${x.slug}">${esc(x.name)}</a> <span class="fine">· ${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></li>`).join('')}</ul>` : ''}
+${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.map((c) => `<a href="/ideas/${c.slug}">${esc(c.h1)}</a>`).join(' · ')}</p>` : ''}`;
   const diet = DIET_WORD[d.diet] || '', meals = (d.meals || []).map((o) => MEAL_LABEL[o]).filter(Boolean);
   // search results show about 60 characters: a long name is cut at a word, and a dish that several creators share is told apart by its creator
   let shortNm = nm;
@@ -201,25 +219,30 @@ function recipePage(d, slug) {
   const ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: nm, image: d.image_url ? [d.image_url] : undefined, author: { '@type': 'Person', name: credit }, description: desc, url,
     totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ings : undefined,
     recipeInstructions: steps.length ? steps.map((st) => ({ '@type': 'HowToStep', text: st.text })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
+  if (nutrRows.length) ld.nutrition = { '@type': 'NutritionInformation', servingSize: 'one serving', ...(nutr.protein != null ? { proteinContent: `${nutr.protein} g` } : {}), ...(nutr.fibre != null ? { fiberContent: `${nutr.fibre} g` } : {}), ...(nutr.satfat != null ? { saturatedFatContent: `${nutr.satfat} g` } : {}), ...(nutr.sodium != null ? { sodiumContent: `${nutr.sodium} mg` } : {}) };
+  const ldFaq = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+  const ldCrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', item: SITE + '/' }, { name: 'Recipes', item: SITE + '/recipes' }, ...(extra.mealCrumb ? [{ name: cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')), item: `${SITE}/ideas/${extra.mealCrumb.slug}` }] : []), { name: nm, item: url }].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })) };
   const facts = [d.total_minutes ? '⏱ ' + timeWord(d.total_minutes) : '', d.servings ? 'Serves ' + d.servings : '', diet, ...meals, d.age_min_months ? 'From ' + (d.age_min_months < 12 ? d.age_min_months + ' months' : Math.floor(d.age_min_months / 12) + ' years') : ''].filter(Boolean).map((f) => `<span>${esc(f)}</span>`).join('');
   let html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en-IN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
-<script type="application/ld+json">${JSON.stringify(ld)}</script>
+${[ld, ldFaq, ldCrumb].map((o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join('')}
 <style>${RECIPE_CSS}</style></head><body>
 ${NAV}
 <main>
-<p class="crumb"><a href="/">Home</a> › <a href="/recipes">Recipes</a> › ${esc(nm)}</p>
+<p class="crumb"><a href="/">Home</a> › <a href="/recipes">Recipes</a> › ${extra.mealCrumb ? `<a href="/ideas/${extra.mealCrumb.slug}">${esc(cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')))}</a> › ` : ''}${esc(nm)}</p>
 <h1>${esc(nm)}</h1>
 <p class="fine">Recipe by ${d.source?.url ? `<a href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(credit)}</a>` : esc(credit)}</p>
-${d.image_url ? `<div class="hero"><img src="${esc(d.image_url)}" alt="${esc(nm)}" loading="eager" referrerpolicy="no-referrer"><span class="fine">Photo: ${esc(credit)}</span></div>` : ''}
+${d.image_url ? `<div class="hero"><img src="${esc(d.image_url)}" alt="${esc(nm)}" width="760" height="340" loading="eager" fetchpriority="high" decoding="async" referrerpolicy="no-referrer"><span class="fine">Photo: ${esc(credit)}</span></div>` : ''}
 <div class="facts">${facts}</div>
 <div id="kpm" style="margin:18px 0 6px"></div>
 <p>${esc(nm)} scores <b>${score}</b> out of 100 (${esc(sc.capped ? 'OK, held by a risk check' : sc.band)}) for ${esc(sc.age_band_label || 'ages 4–6')}, worked out for one serving. The same dish scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${d.kid_note ? `<p class="note">${esc(d.kid_note)}</p>` : ''}
 <h2>The score at every age</h2><table>${byAge || '<tr><td>Open the recipe to see the score for your child\'s age.</td></tr>'}</table>
+${fitHtml}
 ${ings.length ? `<h2>Ingredients</h2><ul class="ing">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
 ${stepsHtml ? `<h2>Method</h2>${stepsHtml}<p class="fine">Method by ${esc(credit)}${d.source?.url ? `. <a href="${esc(d.source.url)}" target="_blank" rel="noopener">See the original recipe</a>` : ''}.</p>` : (d.source?.url ? `<p><a class="cta alt" href="${esc(d.source.url)}" target="_blank" rel="noopener">See the method on ${esc(credit)}</a></p>` : '')}
+${moreHtml}
 <p style="margin-top:22px"><a class="cta" href="/meal-ideas#/r/${d.id}">Save it, check it for your child's age and plan your week</a><a class="cta alt" href="/recipes">More recipes</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice. Recipe text and photos belong to their creators and link back to the original.</p>
 </main><script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;document.getElementById('kpm').innerHTML=m({score:${score},band:${JSON.stringify(sc.band)},capped:${!!sc.capped},why:[],legend:true});m.animate(document)})();</script><script src="/kp-visits.js" defer></script></body></html>`;
@@ -245,7 +268,7 @@ ${NAV}
 <p class="crumb"><a href="/">Home</a> › Recipes</p>
 <h1>Recipes for kids, scored for your child's age</h1>
 <p>${items.length} recipes from various cooks and cookbooks, each credited to the person who wrote it. Every recipe has a Poshan Score out of 100, worked out for one serving and for every age group from toddlers to adults. Open one to see the ingredients and the score for your child's age, save it, and plan your week.</p>
-<p><a class="cta" href="/meal-ideas">Find recipes for my child's age, meal and season</a></p>
+<p><a class="cta" href="/meal-ideas">Find recipes for my child's age, meal and season</a><a class="cta alt" href="/ideas">Browse by taste, meal and age</a></p>
 ${sections}
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice.</p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
@@ -278,7 +301,7 @@ async function run(out) {
         const slug = slugOf({ id: it.id, name: it.name });
         const pg = productPage(d, slug);
         fs.writeFileSync(path.join(dir, slug + '.html'), pg.html);
-        map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7' }); packsData.push({ item: it, detail: d });
+        map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7', lm: it.updated }); packsData.push({ item: it, detail: d });
       } catch (e) { console.warn('product page skipped', it.id, e.message); }
     };
     for (let i = 0; i < list.items.length; i += 8) await Promise.all(list.items.slice(i, i + 8).map(one));       // eight at a time
@@ -298,36 +321,63 @@ async function run(out) {
     for (const f of best.files) fs.writeFileSync(path.join(out, f.path), f.html);
     urls.push(...best.urls); nBest = best.count;
   } catch (e) { console.warn('no ranking pages this build:', e.message); }
-  // 4. a page for every recipe, and the Recipes index that links to them all
-  let nRecipes = 0;
+  // 4. a page for every recipe, the collection pages ("tangy lunchbox ideas for kids") that link to them, and the Recipes index
+  let nRecipes = 0, nIdeas = 0;
   try {
     const idx = await getJson(`${PLATFORM}/api/kp/recipes-index`);
-    const rdir = path.join(out, 'recipes');
-    fs.mkdirSync(rdir, { recursive: true });
+    const rdir = path.join(out, 'recipes'), idir = path.join(out, 'ideas');
+    fs.mkdirSync(rdir, { recursive: true }); fs.mkdirSync(idir, { recursive: true });
     for (const f of fs.readdirSync(rdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(rdir, f));
-    const done = [];
+    for (const f of fs.readdirSync(idir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(idir, f));
     const nameCount = {};
     for (const it of idx.items) { const k = recName(it.name).toLowerCase(); nameCount[k] = (nameCount[k] || 0) + 1; }
-    const oneRecipe = async (it) => {
+    // pass 1: every recipe's details
+    const have = [];
+    const fetchRecipe = async (it) => {
       try {
         const d = await getJson(`${PLATFORM}/api/kp/recipes/${it.id}?lite=1`);
         if (!d || !d.score) return;
         d.meals = it.occasions || [];
         d.sharedName = nameCount[recName(d.name).toLowerCase()] > 1;
-        const slug = slugOf({ id: it.id, name: recName(d.name) });
-        const pg = recipePage(d, slug);
-        fs.writeFileSync(path.join(rdir, slug + '.html'), pg.html);
-        urls.push({ loc: pg.url, pr: '0.6' }); done.push(it); nRecipes++;
-      } catch (e) { console.warn('recipe page skipped', it.id, e.message); }
+        have.push({ it, d, slug: slugOf({ id: it.id, name: recName(d.name) }) });
+      } catch (e) { console.warn('recipe skipped', it.id, e.message); }
     };
-    for (let i = 0; i < idx.items.length; i += 8) await Promise.all(idx.items.slice(i, i + 8).map(oneRecipe));
-    const hub = recipesIndexPage(done);
+    for (let i = 0; i < idx.items.length; i += 8) await Promise.all(idx.items.slice(i, i + 8).map(fetchRecipe));
+    have.sort((a, b) => a.it.id - b.it.id);
+    // pass 2: the collection pages, which need every recipe's score for every age
+    let ideas = { files: [], urls: [], membership: new Map(), count: 0 };
+    try {
+      const sm = await getJson(`${PLATFORM}/api/kp/score-method`);
+      const refs = Object.fromEntries((sm.nin_bands || []).map((b) => [b.id, b.reference]));
+      ideas = require('./build-ideas.cjs').build({ recipes: have, refs, ctx: { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord } });
+      for (const f of ideas.files) fs.writeFileSync(path.join(out, f.path), f.html);
+      urls.push(...ideas.urls); nIdeas = ideas.count;
+    } catch (e) { console.warn('no collection pages this build:', e.message); }
+    // pass 3: the recipe pages, each with similar recipes and the collections it is on
+    const MEAL_ORDER = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
+    for (const r of have) {
+      const mine = r.it.tastes || {}, myMeal = MEAL_ORDER.find((o) => (r.it.occasions || []).includes(o));
+      const sim = have.filter((o) => o !== r && o.d.poshan_score >= 50).map((o) => {
+        const shared = Object.keys(mine).filter((t) => (o.it.tastes || {})[t]).length;
+        const sameMeal = myMeal && (o.it.occasions || []).includes(myMeal) ? 1 : 0;
+        return { o, rank: shared * 3 + sameMeal * 2 + (o.it.diet === r.it.diet ? 1 : 0) };
+      }).filter((x) => x.rank >= 4).sort((a, b) => b.rank - a.rank || b.o.it.score - a.o.it.score || a.o.it.id - b.o.it.id).slice(0, 6)
+        .map((x) => ({ slug: x.o.slug, name: recName(x.o.d.name), score: Math.round(x.o.d.score.value ?? x.o.it.score), by: x.o.it.by }));
+      const cols = (ideas.membership.get(r.it.id) || []).filter((p) => p.age.generic).slice(0, 8).map((p) => ({ slug: p.slug, h1: p.h1 }));
+      const crumb = (ideas.membership.get(r.it.id) || []).find((p) => p.kind === 'meal' && p.age.generic && p.meal && (myMeal === 'snack_4pm' ? p.meal.id === 'snack' : p.meal.id === myMeal));
+      const pg = recipePage(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug, h1: crumb.h1 } : null });
+      fs.writeFileSync(path.join(rdir, r.slug + '.html'), pg.html);
+      urls.push({ loc: pg.url, pr: '0.6', lm: r.it.updated }); nRecipes++;
+    }
+    const hub = recipesIndexPage(have.map((r) => r.it));
     fs.writeFileSync(path.join(out, 'recipes.html'), hub.html);
-    urls.push({ loc: hub.url, pr: '0.8' });
+    urls.push({ loc: hub.url, pr: '0.8', lm: have.map((r) => r.it.updated).filter(Boolean).sort().pop() || null });
+    // which recipe has a page of its own: search results link to the page when it exists, and to the planner when it does not
+    fs.writeFileSync(path.join(out, 'recipe-pages.js'), `window.KP_RECIPE_PAGES=${JSON.stringify(Object.fromEntries(have.map((r) => [r.it.id, r.slug])))};\n`);
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
-  fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
-  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nBest} ranking pages, sitemap with ${urls.length} addresses`);
+  fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
+  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, sitemap with ${urls.length} addresses`);
 }
 
-module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage };
+module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage, get ctx() { return { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord }; } };

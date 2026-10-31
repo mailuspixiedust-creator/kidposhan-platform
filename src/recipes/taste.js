@@ -94,7 +94,7 @@ export function parseQuery(q) {
 const MAX_IDS_PER_QUERY = 50;
 // One recipe's tags, kept for search. Runs a few recipes per cron run until every recipe has been looked at; a new recipe is picked up by itself.
 export async function tastesBackfill(env, { limit = 80 } = {}) {
-  const { results } = await env.DB.prepare(`SELECT id, name FROM kp_recipes WHERE taste_checked_at IS NULL AND review_status = 'approved' ORDER BY id LIMIT ?`).bind(Math.min(limit, 300)).all();
+  const { results } = await env.DB.prepare(`SELECT id, name FROM kp_recipes WHERE taste_checked_at IS NULL AND review_status = 'approved' ORDER BY id LIMIT ?`).bind(Math.min(limit, 600)).all();
   if (!results.length) return { looked: 0 };
   const ids = results.map((r) => r.id);
   // the live database allows only 100 values in one query, so the ingredient lines are fetched 50 recipes at a time

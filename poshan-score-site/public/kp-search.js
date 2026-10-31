@@ -29,6 +29,14 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var nice = function (n) { var t = String(n || '').split('|')[0].replace(/\(.*?\)/g, '').replace(/\brecipes?\b/ig, '').replace(/\s+/g, ' ').trim(); return t || String(n || ''); };
   var onMeal = /meal-ideas/.test(location.pathname);
+  // A recipe that has a page of its own is linked to that page (so Google and parents land on it); one added since the last site build opens in the planner.
+  var mapP;
+  function ensureMap() {
+    if (window.KP_RECIPE_PAGES) return Promise.resolve();
+    if (!mapP) mapP = new Promise(function (res) { var sc = document.createElement('script'); sc.src = '/recipe-pages.js'; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); });
+    return mapP;
+  }
+  function recipeHref(id) { var m = window.KP_RECIPE_PAGES || {}; return m[id] ? '/recipes/' + m[id] : '/meal-ideas#/r/' + id; }
   // the age (in months) chosen on the Meal Ideas page, if any: scores in the results are for that age
   function chosenAge() { try { var c = JSON.parse(localStorage.getItem('kp_choices') || '{}'); var a = (c.age || []).filter(Number.isFinite); return a.length ? Math.min.apply(null, a) : null; } catch (e) { return null; } }
 
@@ -52,11 +60,11 @@
     function run() {
       var q = input.value.trim(); if (q.length < 2) { intro(); return; }
       var my = ++seq; out.innerHTML = '<p class="msg">Searching…</p>';
-      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '') + (only === 'recipes' ? '&only=recipes' : '')).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '') + (only === 'recipes' ? '&only=recipes' : '')).then(function (r) { return r.json(); }).then(function (d) { return ensureMap().then(function () { return d; }); }).then(function (d) {
         if (my !== seq) return;
         var h = d.age_label && ((d.recipes && d.recipes.length) || (d.products && d.products.length)) ? '<p class="msg" style="padding-bottom:0">Scores are for ' + esc(d.age_label) + '. Pick your child\'s age on Meal Ideas or Products to change it.</p>' : '';
         if (d.understood) h = ((d.recipes && d.recipes.length) || (d.products && d.products.length) ? '<p class="msg" style="padding-bottom:0">Showing <b>' + esc(d.understood.text) + '</b>. Scores are for that age. Best score first, among the ones that fit.</p>' : '<p class="msg">We found no recipe that fits <b>' + esc(d.understood.text) + '</b>. Try leaving out the taste or the meal, or a different age.</p><div class="eg">' + EXAMPLES.slice(0, 4).map(function (e) { return '<button type="button" data-q="' + esc(e) + '">' + esc(e) + '</button>'; }).join('') + '</div>');
-        if (d.recipes && d.recipes.length) h += '<h3>Recipes</h3><ul>' + d.recipes.map(function (r) { return row('/meal-ideas#/r/' + r.id, r.image_url, nice(r.name), r.total_minutes ? (r.total_minutes >= 240 ? 'Make ahead' : r.total_minutes + ' min') : '', r.score, band(r.score, r.capped)); }).join('') + '</ul>';
+        if (d.recipes && d.recipes.length) h += '<h3>Recipes</h3><ul>' + d.recipes.map(function (r) { return row(recipeHref(r.id), r.image_url, nice(r.name), r.total_minutes ? (r.total_minutes >= 240 ? 'Make ahead' : r.total_minutes + ' min') : '', r.score, band(r.score, r.capped)); }).join('') + '</ul>';
         if (d.products && d.products.length) h += '<h3>Products</h3><ul>' + d.products.map(function (p) { return row('/products?open=' + p.id, p.image_url, p.name, [p.brand, p.category, p.unchecked ? 'not yet checked' : ''].filter(Boolean).join(' · '), p.score, p.band); }).join('') + '</ul>';
         out.innerHTML = h || '<p class="msg">We have not scored "' + esc(q) + '" yet. We are adding the best-known kids\' foods first, and what you search for helps us choose. Try one word, like "oats" or "ragi".</p>';
       }).catch(function () { if (my === seq) out.innerHTML = '<p class="msg">Search is not available just now. Please try again.</p>'; });
