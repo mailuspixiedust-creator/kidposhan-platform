@@ -978,7 +978,8 @@ function renderMenu(){
   if(S.error) html+=`<p class="note">${esc(S.error)}</p>`;
   if(S.results&&!S.editing){
     const r=S.results;
-    const worldShelf=(w,t)=>{const g=((S.more||{})[w]||[]);if(!g.length)return '';return `<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div><div class="carousel" role="list">${g.map(dishCard).join('')}</div>`};
+    const byScore=(a,b)=>(Number(b.score)||0)-(Number(a.score)||0);      // every row of recipes: the highest Poshan Score on the left
+    const worldShelf=(w,t)=>{const g=((S.more||{})[w]||[]).slice().sort(byScore);if(!g.length)return '';return `<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div><div class="carousel" role="list">${g.map(dishCard).join('')}</div>`};
     const moreHTML=worldShelf('asia','More Asian recipes')+worldShelf('europe','European recipes');
     if(!r.length) html+=`<p class="hint">No safe matches yet for this age and preference. Try another meal.</p>`+moreHTML;
     else{
@@ -986,7 +987,7 @@ function renderMenu(){
       html+=`<div class="shuffle-row"><button class="kbtn alt" id="shuffle" type="button">⟲ Shuffle ideas</button><span>A random pick from recipes scoring 70 or more. Press Shuffle for a new set.</span></div>`;
       html+=`<div class="legend pad" aria-label="Poshan Score bands"><span class="lg" data-band="Good">80+ Good</span><span class="lg" data-band="OK">50–79 OK</span><span class="lg" data-band="Do not use">Below 50 Do not use</span></div>`;
       for(const [m,t] of [['exact','Best for today'],['any_season','Good any season'],['related','More ideas to try']]){
-        const g=r.filter(x=>x.match===m); if(!g.length) continue;
+        const g=r.filter(x=>x.match===m).sort(byScore); if(!g.length) continue;
         html+=`<div class="shelf-head"><h2>${t}</h2><span>${g.length} ${g.length===1?'idea':'ideas'}</span></div>
           <div class="carousel" role="list">${g.map(dishCard).join('')}</div>`;
       }

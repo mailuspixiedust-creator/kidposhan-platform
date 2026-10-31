@@ -91,14 +91,19 @@ export function parseQuery(q) {
   return out;
 }
 
+const MAX_IDS_PER_QUERY = 50;
 // One recipe's tags, kept for search. Runs a few recipes per cron run until every recipe has been looked at; a new recipe is picked up by itself.
 export async function tastesBackfill(env, { limit = 80 } = {}) {
   const { results } = await env.DB.prepare(`SELECT id, name FROM kp_recipes WHERE taste_checked_at IS NULL AND review_status = 'approved' ORDER BY id LIMIT ?`).bind(Math.min(limit, 300)).all();
   if (!results.length) return { looked: 0 };
   const ids = results.map((r) => r.id);
-  const { results: ings } = await env.DB.prepare(`SELECT recipe_id, name, raw_text FROM kp_recipe_ingredients WHERE recipe_id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all();
+  // the live database allows only 100 values in one query, so the ingredient lines are fetched 50 recipes at a time
   const byRecipe = new Map();
-  for (const i of ings) { if (!byRecipe.has(i.recipe_id)) byRecipe.set(i.recipe_id, []); byRecipe.get(i.recipe_id).push(`${i.name || ''} ${i.raw_text || ''}`); }
+  for (let i = 0; i < ids.length; i += MAX_IDS_PER_QUERY) {
+    const part = ids.slice(i, i + MAX_IDS_PER_QUERY);
+    const { results: ings } = await env.DB.prepare(`SELECT recipe_id, name, raw_text FROM kp_recipe_ingredients WHERE recipe_id IN (${part.map(() => '?').join(',')})`).bind(...part).all();
+    for (const x of ings) { if (!byRecipe.has(x.recipe_id)) byRecipe.set(x.recipe_id, []); byRecipe.get(x.recipe_id).push(`${x.name || ''} ${x.raw_text || ''}`); }
+  }
   const stmts = []; let tagged = 0;
   for (const r of results) {
     const tags = tagRecipe(r.name, byRecipe.get(r.id) || []);

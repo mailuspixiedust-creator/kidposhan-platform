@@ -32,7 +32,7 @@
   // the age (in months) chosen on the Meal Ideas page, if any: scores in the results are for that age
   function chosenAge() { try { var c = JSON.parse(localStorage.getItem('kp_choices') || '{}'); var a = (c.age || []).filter(Number.isFinite); return a.length ? Math.min.apply(null, a) : null; } catch (e) { return null; } }
 
-  function open(opener, prefill) {
+  function open(opener, prefill, only) {
     var bg = document.createElement('div'); bg.className = 'kps-bg';
     bg.innerHTML = '<div class="kps" role="dialog" aria-modal="true" aria-label="Search recipes and products"><form role="search"><input type="search" name="q" placeholder="Try: tangy lunchbox for 9 year, or ragi dosa" aria-label="Search" autocomplete="off" maxlength="80"><button class="x" type="button" aria-label="Close search">×</button></form><div class="out" aria-live="polite"></div></div>';
     document.body.appendChild(bg);
@@ -52,7 +52,7 @@
     function run() {
       var q = input.value.trim(); if (q.length < 2) { intro(); return; }
       var my = ++seq; out.innerHTML = '<p class="msg">Searching…</p>';
-      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '')).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '') + (only === 'recipes' ? '&only=recipes' : '')).then(function (r) { return r.json(); }).then(function (d) {
         if (my !== seq) return;
         var h = d.age_label && ((d.recipes && d.recipes.length) || (d.products && d.products.length)) ? '<p class="msg" style="padding-bottom:0">Scores are for ' + esc(d.age_label) + '. Pick your child\'s age on Meal Ideas or Products to change it.</p>' : '';
         if (d.understood) h = ((d.recipes && d.recipes.length) || (d.products && d.products.length) ? '<p class="msg" style="padding-bottom:0">Showing <b>' + esc(d.understood.text) + '</b>. Scores are for that age. Best score first, among the ones that fit.</p>' : '<p class="msg">We found no recipe that fits <b>' + esc(d.understood.text) + '</b>. Try leaving out the taste or the meal, or a different age.</p><div class="eg">' + EXAMPLES.slice(0, 4).map(function (e) { return '<button type="button" data-q="' + esc(e) + '">' + esc(e) + '</button>'; }).join('') + '</div>');
@@ -64,7 +64,8 @@
     input.focus();
     if (prefill) { input.value = prefill; run(); } else intro();
   }
-  window.kpSearch = { open: function (q, opener) { open(opener || null, q); } };
+  // open(q, opener, { only: 'recipes' }) leaves the packs out
+  window.kpSearch = { open: function (q, opener, opts) { open(opener || null, q, opts && opts.only); } };
 
   function init() {
     var nav = document.querySelector('nav'); if (!nav || document.querySelector('.kps-btn')) return;

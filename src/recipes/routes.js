@@ -149,7 +149,7 @@ export async function routeRecipes(request, env, ctx) {
   // One search box for the whole site: GET /api/kp/search?q=saffola
   if (request.method === 'GET' && path === '/api/kp/search') {
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
-    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 1200 ? ageQ : null });
+    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 1200 ? ageQ : null, only: url.searchParams.get('only') === 'recipes' ? 'recipes' : null, limit: Math.min(Math.max(+url.searchParams.get('limit') || 6, 1), 12) });
     return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }));
   }
   // The scoring method itself, written from the same tables the engine uses: the Age & Metrics page shows exactly this

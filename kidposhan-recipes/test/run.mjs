@@ -1572,5 +1572,29 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const r5 = await SR.searchAll(env, 'tangy meal', { age: 36 });
   ok(r5.understood.age_months === 36 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used');
 }
+// the live database allows only 100 values in one query: tagging many recipes at once must not break it
+{
+  const TS2 = await import('../../src/recipes/taste.js');
+  db.prepare('UPDATE kp_recipes SET taste_checked_at = datetime(\'now\') WHERE taste_checked_at IS NULL').run();
+  const many = [];
+  for (let i = 0; i < 130; i++) { const id = mkRecipe('https://bulk.example/' + i, { status: 'approved', name: 'Bulk Lemon Dish ' + i }); many.push(id); }
+  db.prepare(`UPDATE kp_recipes SET taste_checked_at = NULL WHERE id IN (${many.join(',')})`).run();
+  const limited = { ...env, DB: { batch: (s) => env.DB.batch(s), prepare: (sql) => { const st = env.DB.prepare(sql); return { bind: (...a) => { if (a.length > 100) throw new Error('D1_ERROR: too many SQL variables'); return st.bind(...a); }, first: (...x) => st.first(...x), all: (...x) => st.all(...x), run: (...x) => st.run(...x) }; } } };
+  let res, err = null;
+  try { res = await TS2.tastesBackfill(limited, { limit: 130 }); } catch (e) { err = e.message; }
+  ok(!err && res.looked === 130, 'Tagging 130 recipes in one run works under the live database\'s 100-value limit: ' + (err || JSON.stringify(res)));
+  ok(db.prepare(`SELECT COUNT(*) AS n FROM kp_recipes WHERE id IN (${many.join(',')}) AND taste_checked_at IS NOT NULL`).get().n === 130, 'Every one of them is marked as tagged');
+}
+// the search in the recipes area leaves packs out, and results run from the highest score down
+{
+  const SR3 = await import('../../src/recipes/search.js');
+  const both = await SR3.searchAll(env, 'sweet snack for 5 year');
+  const only = await SR3.searchAll(env, 'sweet snack for 5 year', { only: 'recipes' });
+  ok(Array.isArray(only.products) && only.products.length === 0, 'Asked for recipes only, the results hold no packs (the same search without that may: ' + both.products.length + ')');
+  const plain = await SR3.searchAll(env, 'oats', { only: 'recipes' });
+  ok(plain.products.length === 0, 'A plain name search for recipes only leaves packs out too');
+  const sc = (await SR3.searchAll(env, 'tangy meal for 9 year')).recipes.map((r) => r.score);
+  ok(sc.length >= 2 && sc.every((v, i) => i === 0 || sc[i - 1] >= v), 'Recipes in a taste search run from the highest score down: ' + sc.join());
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

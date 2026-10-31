@@ -305,6 +305,16 @@
   .tf-head h2{ margin:0; font-family:var(--font-display); font-weight:400; font-size:clamp(32px,6.5vw,48px); line-height:1.06; letter-spacing:-0.01em; }
   .tf-head h2 em{ font-style:italic; color:var(--gold); }
   .tf-sub{ margin:-4px 0 14px; font-size:14px; color:var(--ink-dim); }
+  .tf-status{ margin:0 0 12px; font-size:14.5px; color:var(--ink-dim); }
+  .tf-status b{ color:var(--ink); }
+  .tf-status button{ border:0; background:none; padding:0; margin-left:6px; font:600 14.5px/1.2 var(--font-body); color:#3F6B3C; text-decoration:underline; cursor:pointer; }
+  .tf-search{ display:flex; gap:8px; margin:0 0 10px; max-width:640px; }
+  .tf-search input{ flex:1; min-width:0; font:500 16px/1.2 var(--font-body); padding:13px 18px; border:1.5px solid var(--card-line); border-radius:999px; background:var(--card); color:var(--ink); }
+  .tf-search input:focus{ outline:3px solid #3F6B3C; outline-offset:1px; }
+  .tf-search button{ flex:none; border:0; border-radius:999px; background:#3F6B3C; color:#fff; font:700 15px/1 var(--font-body); padding:0 22px; cursor:pointer; }
+  .tf-eg{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+  .tf-eg button{ font:500 13.5px/1 var(--font-body); padding:8px 13px; border-radius:999px; border:1px solid var(--card-line); background:var(--card); color:var(--ink); cursor:pointer; }
+  .tf-eg button:hover{ border-color:var(--gold); }
   .tf-head select{ border:1px solid var(--card-line); background:var(--card); border-radius:999px; padding:8px 14px; font:600 13.5px/1 var(--font-body); color:var(--ink); }
   .tf-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
   .tf-card{ background:var(--card); border:1px solid var(--card-line); border-radius:16px; overflow:hidden; text-decoration:none; color:inherit; display:block; }
@@ -383,14 +393,17 @@
     <p class="lede">Scan any packaged food. See its real score for your child's age, and how much of the thing it brags about is actually inside.</p>
     <style>.scan-cta{display:inline-flex;align-items:center;gap:10px;background:#3F6B3C;color:#fff;text-decoration:none;font-weight:800;font-size:18px;border-radius:16px;padding:16px 26px;margin:2px 0 14px;box-shadow:0 10px 24px -14px rgba(40,70,38,.8)}.scan-cta:hover{background:#355c33}.scan-or{font-size:14px;color:var(--ink-dim,#6B5D4B);margin:0 0 8px}.meter-demo{width:100%;max-width:420px;margin:0 auto;text-align:center}.meter-demo .md-cap{font:600 14px var(--font-body,sans-serif);color:#6B5D4B;margin-top:4px;min-height:20px}.meter-demo .md-ex{font:600 11px var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#B5790A}</style>
     <a class="scan-cta" href="scan.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M7 9v6M10 9v6M13 9v6M16 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Scan a pack</a>
-    <p class="scan-or">or type a food or brand</p>
+    <p class="scan-or">or search: a food or brand, or describe what you want</p>
     <form class="check-form" id="checkForm" role="search">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      <input id="checkInput" type="search" placeholder="Chocos, oats, ragi mix…" autocomplete="off" aria-label="Search a food or recipe" enterkeyhint="search">
+      <input id="checkInput" type="search" placeholder="Chocos, oats, or tangy lunch for 9 year…" autocomplete="off" aria-label="Search a food or recipe, or describe a taste, a meal and an age" enterkeyhint="search">
       <button type="submit">Check</button>
     </form>
     <div class="checking"><span>Parents are checking:</span>
       <button type="button" class="chip" data-q="Chocos">Chocos</button><button type="button" class="chip" data-q="Masala oats">Masala oats</button><button type="button" class="chip" data-q="Corn flakes">Corn flakes</button><button type="button" class="chip" data-q="Ragi dosa mix">Ragi dosa mix</button>
+    </div>
+    <div class="checking"><span>Or describe it:</span>
+      <button type="button" class="chip" data-q="tangy meal for 9 year">tangy meal for 9 year</button><button type="button" class="chip" data-q="sweet snack for 5 year">sweet snack for 5 year</button><button type="button" class="chip" data-q="mild dinner for toddler">mild dinner for toddler</button>
     </div>
   </div>
 
@@ -417,6 +430,9 @@
 
   <div class="tf-head"><h2>Tomorrow's <em>tiffin ideas</em></h2><select id="tfAge" aria-label="Child's age"></select></div>
   <p class="tf-sub">From various cooks and cookbooks, each credited to the person who wrote it. Scored for the age you pick. <b>Tap the heart on any recipe to save it.</b></p>
+  <form class="tf-search" id="tfSearch" role="search"><input type="search" id="tfQ" name="q" placeholder="Describe what you want: tangy lunchbox for 9 year" aria-label="Search recipes by taste, meal and age, or by name" maxlength="80" autocomplete="off"><button type="submit">Search</button></form>
+  <div class="tf-eg" id="tfEg" aria-label="Examples"><button type="button">tangy meal for 9 year</button><button type="button">sweet snack for 5 year</button><button type="button">mild dinner for toddler</button><button type="button">spicy veg lunch for 12 year</button><button type="button">crunchy snack</button></div>
+  <p class="tf-status" id="tfStatus" hidden></p>
   <div class="tf-grid" id="tfGrid" role="list" aria-live="polite"></div>
   <p class="tf-more" style="margin:18px 0 0;max-width:640px;color:var(--ink-dim)"><b id="nRecipes" style="color:var(--ink)">Hundreds of</b> recipes, by age, meal, season and food preference. Save the ones you like, then put them into a plan for the week: breakfast, lunch, a 4 PM snack and dinner, for every day.</p>
   <a class="plan-btn" href="meal-ideas.html">Browse recipes and plan your week</a>
@@ -492,6 +508,27 @@ window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fi
   const nice = (n) => { const t = String(n || '').split('|')[0].replace(/\(.*?\)/g, '').replace(/\brecipes?\b/ig, '').replace(/\s+/g, ' ').trim(); return t || String(n || ''); };
   const bandOf = (v, c) => (c ? 'OK' : v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use');
   const openSearch = (q) => { if (window.kpSearch) window.kpSearch.open(q || '', null); else location.href = 'products.html'; };
+  // the search box in the recipes area: the same search as the Search button, with what was typed
+  // the box under the tiffin ideas finds recipes (never packs) and swaps the cards below it: no pop-up
+  async function tfFind(q) {
+    const g = $('tfGrid'), st = $('tfStatus');
+    g.innerHTML = '<div class="tf-card"><div class="ph"></div><div class="tx"><b>Searching…</b></div></div>'; st.hidden = true;
+    const back = () => { st.hidden = true; $('tfQ').value = ''; tiffin(); };
+    try {
+      const r = await fetch(API + '/api/kp/search?only=recipes&limit=9&age_months=' + age + '&q=' + encodeURIComponent(q));
+      if (!r.ok) throw 0;
+      const d = await r.json();
+      const list = (d.recipes || []).slice(0, 9);
+      const what = d.understood ? d.understood.text : '"' + q + '"' + (d.age_label ? ' for ' + d.age_label : '');
+      st.innerHTML = list.length ? 'Showing <b>' + esc(what) + '</b>, best score first. <button type="button" id="tfBack">Back to tomorrow\'s ideas</button>'
+        : 'No recipe fits <b>' + esc(what) + '</b> yet. Try another taste, meal or age. <button type="button" id="tfBack">Back to tomorrow\'s ideas</button>';
+      st.hidden = false; $('tfBack').onclick = back;
+      g.innerHTML = list.map((x) => card(x, x.source_name)).join('');
+    } catch (e) { g.innerHTML = '<p class="home-note">Could not search just now. Please try again.</p>'; }
+  }
+  $('tfSearch').onsubmit = (e) => { e.preventDefault(); const q = $('tfQ').value.trim(); if (q.length >= 2) tfFind(q); else $('tfQ').focus(); };
+  $('tfEg').onclick = (e) => { const b = e.target.closest('button'); if (b) { $('tfQ').value = b.textContent; tfFind(b.textContent); } };
+  $('tfAge').addEventListener('change', () => { $('tfStatus').hidden = true; });
   $('checkForm').addEventListener('submit', (e) => { e.preventDefault(); openSearch($('checkInput').value); });
   document.querySelectorAll('.checking .chip').forEach((b) => { b.onclick = () => openSearch(b.dataset.q); });
 
@@ -505,21 +542,23 @@ window.KP_PRODUCT_PAGES={"3":"3-foodrx-instant-ragi-dosa-mix-high-protein-and-fi
   const seasonNow = () => { const m = new Date().getMonth() + 1; return m >= 3 && m <= 6 ? 'summer' : m >= 7 && m <= 9 ? 'monsoon' : 'winter'; };
 
   // tomorrow's tiffin ideas: real lunch-box recipes for that age, best scores first
+  const card = (x, cook) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx">' + (cook ? '<span class="by">By ' + esc(cook) + '</span>' : '') + '<b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead || x.total_minutes >= 240 ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.score != null ? x.score : x.poshan_score, x.capped) + '">' + Math.round(x.score != null ? x.score : x.poshan_score) + '</em></div></a>';
   function tiffin() {
     const g = $('tfGrid'); g.innerHTML = '<div class="tf-card"><div class="ph"></div><div class="tx"><b>Loading…</b></div></div>';
     const pref = (choices.pref && choices.pref.length) ? choices.pref.join(',') : 'veg';
-    const card = (x, cook) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx">' + (cook ? '<span class="by">By ' + esc(cook) + '</span>' : '') + '<b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead || x.total_minutes >= 240 ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.score != null ? x.score : x.poshan_score, x.capped) + '">' + Math.round(x.score != null ? x.score : x.poshan_score) + '</em></div></a>';
     // one lunch-box recipe from each of several different cooks and cookbooks; if there are too few, the best-scored lunch-box recipes fill the row
     fetch(API + '/api/kp/cooks?age_months=' + age + '&occasion=lunchbox&limit=6&pref=' + encodeURIComponent(pref))
       .then((r) => { if (!r.ok) throw 0; return r.json(); })
       .then(async (d) => {
-        let html = (d.cooks || []).map((x) => card(x, x.cook)).join('');
-        if ((d.cooks || []).length < 3) {
+        const items = (d.cooks || []).map((x) => ({ x, by: x.cook }));
+        if (items.length < 3) {
           const r = await fetch(API + '/api/kp/recipes?age_months=' + age + '&occasion=lunchbox&season=' + seasonNow() + '&pref=' + encodeURIComponent(pref));
           const more = (await r.json()).results || [];
-          const have = new Set((d.cooks || []).map((x) => x.id));
-          html += more.filter((x) => !have.has(x.id)).slice(0, 6 - (d.cooks || []).length).map((x) => card(x, x.source_name)).join('');
+          const have = new Set(items.map((i) => i.x.id));
+          more.filter((x) => !have.has(x.id)).slice(0, 6 - items.length).forEach((x) => items.push({ x, by: x.source_name }));
         }
+        items.sort((a, b) => (Number(b.x.score ?? b.x.poshan_score) || 0) - (Number(a.x.score ?? a.x.poshan_score) || 0));      // the highest Poshan Score on the left
+        const html = items.map((i) => card(i.x, i.by)).join('');
         g.innerHTML = html || '<p class="home-note">No lunch-box ideas for this age yet. Try Meal Ideas.</p>'; })
       .catch(() => { g.innerHTML = '<p class="home-note">Could not load the ideas just now. Open Meal Ideas instead.</p>'; });
   }
