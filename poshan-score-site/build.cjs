@@ -16,7 +16,7 @@ for (const name of fs.readdirSync(path.join(root, 'live-backup'))) {
   if (name === 'browse.html' || name === 'cereals.html') continue;   // retired: both now redirect to /products
   let h = strip(fs.readFileSync(path.join(root, 'live-backup', name), 'utf8'));
   // The original pages each listed a slightly different set of pages (only the home page had "Methodology"). Every page now lists the same six (Browse and Cereal Aisle were retired: the Products page replaces them).
-  const PAGES = [['index.html', 'Home'], ['age-metrics.html#ten-metrics', 'Methodology'], ['age-metrics.html', 'Age &amp; Metrics'], ['meal-ideas.html', 'Meal Ideas'], ['recipes.html', 'Recipes'], ['products.html', 'Products'], ['scan.html', 'Scan a pack'], ['why-we-do-this.html', 'Why We Do This']];
+  const PAGES = [['index.html', 'Home'], ['age-metrics.html#ten-metrics', 'Methodology'], ['age-metrics.html', 'Age &amp; Metrics'], ['meal-ideas.html', 'Meal Ideas'], ['recipes.html', 'Recipes'], ['best.html', 'Rankings'], ['products.html', 'Products'], ['scan.html', 'Scan a pack'], ['why-we-do-this.html', 'Why We Do This']];
   const menu = PAGES.map(([href, label]) => `<a href="${href}"${href === name ? ' aria-current="page"' : ''}>${label}</a>`).join('\n    ');
   let swapped = 0;
   h = h.replace(/(<div class="nav-links">)[\s\S]*?(<\/div>)/, (m, o, c) => { swapped++; return o + '\n    ' + menu + '\n  ' + c; });

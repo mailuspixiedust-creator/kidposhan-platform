@@ -31,6 +31,8 @@ import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from '.
 import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
 import { submitReport, listReports, resolveReport, thankPending, betaStats, BetaError } from './beta.js';
 import { autoReviewPacks, photoCheckPending } from './autoreview.js';
+import { kindCheckPending } from './kindcheck.js';
+import { tastesBackfill } from './taste.js';
 import { scanLookup, scanSubmit, scanRetake, scanPhoto, readScansPending, pruneScans, whoHash, ScanError } from './scan.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
@@ -147,7 +149,7 @@ export async function routeRecipes(request, env, ctx) {
   // One search box for the whole site: GET /api/kp/search?q=saffola
   if (request.method === 'GET' && path === '/api/kp/search') {
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
-    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 1200 ? ageQ : null });
+    const out = await searchAll(env, (url.searchParams.get('q') || '').slice(0, 80), { age: Number.isFinite(ageQ) && ageQ >= 6 && ageQ <= 1200 ? ageQ : null, only: url.searchParams.get('only') === 'recipes' ? 'recipes' : null, limit: Math.min(Math.max(+url.searchParams.get('limit') || 6, 1), 12) });
     return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }));
   }
   // The scoring method itself, written from the same tables the engine uses: the Age & Metrics page shows exactly this
@@ -177,6 +179,10 @@ export async function routeRecipes(request, env, ctx) {
     if (path === '/api/kp/admin/products' && request.method === 'GET') {
       return json(await listPacks(env, { status: url.searchParams.get('status') || 'candidate', limit: +url.searchParams.get('limit') || 30, offset: +url.searchParams.get('offset') || 0 }));
     }
+    // POST /api/kp/admin/recipes/tastes?limit=80   work out the tastes of recipes that have none yet (the cron does this too)
+    if (path === '/api/kp/admin/recipes/tastes' && request.method === 'POST') return json(await tastesBackfill(env, { limit: Math.min(+url.searchParams.get('limit') || 80, 300) }));
+    // POST /api/kp/admin/products/kind-check?limit=12   check that packs are filed under the right kind of food (the cron does this too)
+    if (path === '/api/kp/admin/products/kind-check' && request.method === 'POST') return json(await kindCheckPending(env, { limit: Math.min(+url.searchParams.get('limit') || 12, 50) }));
     // POST /api/kp/admin/products/auto-review?limit=300   let the rules approve the packs that check out (the cron does this too)
     if (path === '/api/kp/admin/products/auto-review' && request.method === 'POST') return json(await autoReviewPacks(env, { limit: Math.min(+url.searchParams.get('limit') || 300, 1000) }));
     // POST /api/kp/admin/products/photo-check?limit=2   compare auto-approved packs' label photos with their stored numbers
@@ -371,6 +377,8 @@ export async function scheduledRecipes(env, cron) {
   } catch (e) { console.error('rescore-recipes', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
+  try { const t = await tastesBackfill(env, { limit: 250 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }
+  try { console.log('kind-check', JSON.stringify(await kindCheckPending(env, { limit: 12 }))); } catch (e) { console.error('kind-check', e); }
   try { console.log('auto-review', JSON.stringify(await autoReviewPacks(env, { limit: 300 }))); } catch (e) { console.error('auto-review', e); }
   try { console.log('photo-check', JSON.stringify(await photoCheckPending(env, { limit: 1 }))); } catch (e) { console.error('photo-check', e); }
   try { console.log('photo-size', JSON.stringify(await sizePending(env, { limit: 8 }))); } catch (e) { console.error('photo-size', e); }

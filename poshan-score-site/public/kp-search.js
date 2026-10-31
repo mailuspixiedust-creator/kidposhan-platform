@@ -8,7 +8,7 @@
     + '@media(max-width:560px){.nav-cta,.nb-cta{display:none!important}.brand-name,.nb-name{font-size:16px!important}.brand-mark,.nb-mark{flex-shrink:0}nav{gap:8px}}'
     + '@media(max-width:520px){.kps-btn span{display:none}.kps-btn{padding:0 11px}}'
     + '.kps-bg{position:fixed;inset:0;z-index:400;background:rgba(20,15,8,.55);display:flex;justify-content:center;align-items:flex-start;padding:12px;box-sizing:border-box}'
-    + '.kps{width:min(620px,100%);max-height:calc(100vh - 24px);overflow:auto;background:#FDFBF6;color:#221A12;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);font-family:system-ui,-apple-system,Segoe UI,sans-serif}'
+    + '.kps{width:min(620px,100%);max-height:calc(100vh - 24px);overflow:auto;overflow-x:hidden;background:#FDFBF6;color:#221A12;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);font-family:system-ui,-apple-system,Segoe UI,sans-serif}'
     + '.kps form{display:flex;gap:8px;padding:14px;border-bottom:1px solid #E7DFCE;position:sticky;top:0;background:#FDFBF6}'
     + '.kps input{flex:1;min-width:0;font:inherit;font-size:17px;padding:11px 14px;border:1.5px solid #D9CFB8;border-radius:12px;background:#fff;color:#221A12}'
     + '.kps input:focus{outline:3px solid #3F6B3C;outline-offset:1px}'
@@ -21,7 +21,8 @@
     + '.kps .nm{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.25}.kps .nm small{display:block;font-weight:400;color:#6B5D4B;font-size:12.5px;margin-top:2px}'
     + '.kps .sc{min-width:42px;text-align:center;border-radius:999px;padding:5px 8px;font:800 14px/1 system-ui,sans-serif;color:#fff;background:#3F6B3C}'
     + '.kps .sc[data-b="OK"]{background:#B5790A}.kps .sc[data-b="Do not use"]{background:#A6402A}'
-    + '.kps .msg{padding:18px 16px;color:#6B5D4B;font-size:14.5px}';
+    + '.kps .msg{padding:18px 16px;color:#6B5D4B;font-size:14.5px}'
+    + '.kps .eg{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}.kps .eg button{font:inherit;font-size:14px;padding:7px 13px;border-radius:999px;border:1.5px solid #D9CFB8;background:#fff;color:#221A12;cursor:pointer}.kps .eg button:hover{border-color:#B5790A;background:#FFF8E6}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
   var band = function (v, capped) { return capped ? 'OK' : v >= 80 ? 'Good' : v >= 50 ? 'OK' : 'Do not use'; };
@@ -31,9 +32,9 @@
   // the age (in months) chosen on the Meal Ideas page, if any: scores in the results are for that age
   function chosenAge() { try { var c = JSON.parse(localStorage.getItem('kp_choices') || '{}'); var a = (c.age || []).filter(Number.isFinite); return a.length ? Math.min.apply(null, a) : null; } catch (e) { return null; } }
 
-  function open(opener, prefill) {
+  function open(opener, prefill, only) {
     var bg = document.createElement('div'); bg.className = 'kps-bg';
-    bg.innerHTML = '<div class="kps" role="dialog" aria-modal="true" aria-label="Search recipes and products"><form role="search"><input type="search" name="q" placeholder="Search recipes and products, e.g. ragi dosa or Saffola" aria-label="Search" autocomplete="off" maxlength="80"><button class="x" type="button" aria-label="Close search">×</button></form><div class="out" aria-live="polite"><p class="msg">Type at least two letters.</p></div></div>';
+    bg.innerHTML = '<div class="kps" role="dialog" aria-modal="true" aria-label="Search recipes and products"><form role="search"><input type="search" name="q" placeholder="Try: tangy lunchbox for 9 year, or ragi dosa" aria-label="Search" autocomplete="off" maxlength="80"><button class="x" type="button" aria-label="Close search">×</button></form><div class="out" aria-live="polite"></div></div>';
     document.body.appendChild(bg);
     var input = bg.querySelector('input'), out = bg.querySelector('.out'), timer = 0, seq = 0;
     var close = function () { bg.remove(); document.removeEventListener('keydown', onKey); opener && opener.focus && opener.focus(); };
@@ -45,21 +46,26 @@
     input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 250); });
     out.addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && onMeal && /meal-ideas.*#\/r\//.test(a.getAttribute('href'))) { e.preventDefault(); location.hash = a.getAttribute('href').split('#')[1]; close(); } });
     function row(href, img, name, sub, score, b) { return '<li><a href="' + esc(href) + '"><span class="th"' + (img ? ' style="background-image:url(\'' + esc(img) + '\')"' : '') + '></span><span class="nm">' + esc(name) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span>' + (score != null ? '<span class="sc" data-b="' + b + '">' + Math.round(score) + '</span>' : '') + '</a></li>'; }
+    var EXAMPLES = ['tangy meal for 9 year', 'sweet snack for 5 year', 'mild dinner for toddler', 'spicy veg lunch for 12 year', 'crunchy snack', 'creamy breakfast for 4 year'];
+    function intro() { out.innerHTML = '<p class="msg">Search by name, or describe what you want in your own words: a taste, a meal and your child\'s age.</p><div class="eg">' + EXAMPLES.map(function (e) { return '<button type="button" data-q="' + esc(e) + '">' + esc(e) + '</button>'; }).join('') + '</div>'; }
+    out.addEventListener('click', function (e) { var b = e.target.closest('.eg button'); if (b) { input.value = b.getAttribute('data-q'); run(); input.focus(); } });
     function run() {
-      var q = input.value.trim(); if (q.length < 2) { out.innerHTML = '<p class="msg">Type at least two letters.</p>'; return; }
+      var q = input.value.trim(); if (q.length < 2) { intro(); return; }
       var my = ++seq; out.innerHTML = '<p class="msg">Searching…</p>';
-      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '')).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '') + (only === 'recipes' ? '&only=recipes' : '')).then(function (r) { return r.json(); }).then(function (d) {
         if (my !== seq) return;
         var h = d.age_label && ((d.recipes && d.recipes.length) || (d.products && d.products.length)) ? '<p class="msg" style="padding-bottom:0">Scores are for ' + esc(d.age_label) + '. Pick your child\'s age on Meal Ideas or Products to change it.</p>' : '';
+        if (d.understood) h = ((d.recipes && d.recipes.length) || (d.products && d.products.length) ? '<p class="msg" style="padding-bottom:0">Showing <b>' + esc(d.understood.text) + '</b>. Scores are for that age. Best score first, among the ones that fit.</p>' : '<p class="msg">We found no recipe that fits <b>' + esc(d.understood.text) + '</b>. Try leaving out the taste or the meal, or a different age.</p><div class="eg">' + EXAMPLES.slice(0, 4).map(function (e) { return '<button type="button" data-q="' + esc(e) + '">' + esc(e) + '</button>'; }).join('') + '</div>');
         if (d.recipes && d.recipes.length) h += '<h3>Recipes</h3><ul>' + d.recipes.map(function (r) { return row('/meal-ideas#/r/' + r.id, r.image_url, nice(r.name), r.total_minutes ? (r.total_minutes >= 240 ? 'Make ahead' : r.total_minutes + ' min') : '', r.score, band(r.score, r.capped)); }).join('') + '</ul>';
         if (d.products && d.products.length) h += '<h3>Products</h3><ul>' + d.products.map(function (p) { return row('/products?open=' + p.id, p.image_url, p.name, [p.brand, p.category, p.unchecked ? 'not yet checked' : ''].filter(Boolean).join(' · '), p.score, p.band); }).join('') + '</ul>';
         out.innerHTML = h || '<p class="msg">We have not scored "' + esc(q) + '" yet. We are adding the best-known kids\' foods first, and what you search for helps us choose. Try one word, like "oats" or "ragi".</p>';
       }).catch(function () { if (my === seq) out.innerHTML = '<p class="msg">Search is not available just now. Please try again.</p>'; });
     }
     input.focus();
-    if (prefill) { input.value = prefill; run(); }
+    if (prefill) { input.value = prefill; run(); } else intro();
   }
-  window.kpSearch = { open: function (q, opener) { open(opener || null, q); } };
+  // open(q, opener, { only: 'recipes' }) leaves the packs out
+  window.kpSearch = { open: function (q, opener, opts) { open(opener || null, q, opts && opts.only); } };
 
   function init() {
     var nav = document.querySelector('nav'); if (!nav || document.querySelector('.kps-btn')) return;

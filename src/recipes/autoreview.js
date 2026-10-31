@@ -40,7 +40,7 @@ export function flagsFor(p) {
 export async function autoReviewPacks(env, { limit = 300 } = {}) {
   const { results } = await env.DB.prepare(
     `SELECT id, kind, name, image_url, nutrition_json, ingredients_json FROM kp_ready_products
-      WHERE status = 'candidate' AND score_status = 'exact' AND kidposhan_score IS NOT NULL AND auto_checked_at IS NULL AND reviewed_at IS NULL ORDER BY id LIMIT ?`
+      WHERE status = 'candidate' AND score_status = 'exact' AND kidposhan_score IS NOT NULL AND auto_checked_at IS NULL AND reviewed_at IS NULL AND kind_checked_at IS NOT NULL ORDER BY id LIMIT ?`
   ).bind(limit).all();
   const stats = { looked: results.length, approved: 0, flagged: 0, spice: 0 };
   const up = [];
