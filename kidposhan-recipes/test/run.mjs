@@ -71,6 +71,8 @@ db.exec(fs.readFileSync('migrations/0032_scans.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0033_reports_contrib.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0034_auto_review.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0035_source_indexes.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0036_kind_check.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0037_tastes.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1477,6 +1479,7 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const okId = ins.run('rolled_oats', 'Auto Rolled Oats', 'A', 'https://off/1', 'openfoodfacts', 'https://img/1.jpg', '["Rolled oats"]', nut, 90, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
   const noPhoto = ins.run('rolled_oats', 'Auto No Photo Oats', 'A', 'https://off/2', 'openfoodfacts', null, '["Rolled oats"]', nut, 90, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
   const spice = ins.run('pulao_mix', 'Everest Garam Masala', 'E', 'https://off/3', 'openfoodfacts', 'https://img/3.jpg', '["Spices"]', nut, 60, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
+  db.prepare("UPDATE kp_ready_products SET kind_checked_at = datetime('now') WHERE id IN (?, ?, ?)").run(okId, noPhoto, spice);
   const stats = await AR.autoReviewPacks(env, { limit: 100 });
   const row = (id) => db.prepare('SELECT status, auto_approved, review_flags FROM kp_ready_products WHERE id = ?').get(id);
   ok(row(okId).status === 'approved' && row(okId).auto_approved === 1, 'A clean pack goes live on its own, with its score and photo');
@@ -1500,6 +1503,74 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(dl.ingredients.every((i) => Array.isArray(i.buy) && i.buy.length === 0), 'With lite=1 the ingredients carry no shop links (a static page has no use for them)');
   const viaRouter = await routeRecipes(new Request('https://w/api/kp/recipes-index', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
   ok(viaRouter.status === 200 && (await viaRouter.json()).total >= 1, 'The recipe index is reachable through the real router, not only the handler');
+}
+// is each pack filed under the right kind of food? two models must agree before anything is changed
+{
+  const KC = await import('../../src/recipes/kindcheck.js');
+  const A = (kind, c = 'high') => ({ kind, confidence: c });
+  ok(KC.parseAnswer('{"kind":"whole_wheat_atta","confidence":"high"}')?.kind === 'whole_wheat_atta' && KC.parseAnswer('sure! {"kind":"none","confidence":"low"}')?.kind === 'none' && KC.parseAnswer('{"kind":"made_up_kind","confidence":"high"}') === null && KC.parseAnswer('no json') === null, 'The answer is read from JSON, and an invented kind is refused');
+  ok(KC.decide('kids_biscuits', [A('whole_wheat_atta'), A('whole_wheat_atta')]).action === 'change' && KC.decide('kids_biscuits', [A('whole_wheat_atta'), A('whole_wheat_atta')]).kind === 'whole_wheat_atta', 'Both models sure of the same different kind: the pack is moved');
+  ok(KC.decide('kids_biscuits', [A('whole_wheat_atta'), A('chips')]).action === 'flag', 'The two models disagree with each other and neither backs the filed kind: put to the owner');
+  ok(KC.decide('kids_biscuits', [A('whole_wheat_atta'), A('kids_biscuits')]).action === 'ok', 'One model backs the filed kind: left alone');
+  ok(KC.decide('kids_biscuits', [A('whole_wheat_atta'), A('whole_wheat_atta', 'low')]).action === 'flag', 'Both agree but one is unsure: put to the owner, not changed');
+  ok(KC.decide('instant_noodles', [A('noodles'), A('vermicelli_pasta')]).action === 'ok' && KC.decide('chips', [A('namkeen'), A('namkeen')]).action === 'ok', 'Close kinds (noodles, pasta, chips, namkeen) are not treated as mistakes');
+  ok(KC.decide('chips', [A('none'), A('none')]).action === 'flag' && KC.decide('chips', [null, null]).action === 'skip', 'Not any kind of food: flagged; no readable answer: skipped');
+  ok(KC.plainName('Maggi Masala Noodles', 'instant_noodles') && KC.plainName("Kellogg's Chocos", 'breakfast_cereal') && !KC.plainName('Cadbury Dairy Milk', 'plain_milk') && !KC.plainName('Fortune ata 5kg', 'kids_biscuits'), 'A name that plainly says what the pack is is trusted; a milk-sounding chocolate or atta filed as biscuits is not');
+  const kins = db.prepare("INSERT INTO kp_ready_products (kind, name, brand, product_url, retailer, image_url, ingredients_json, nutrition_json, kidposhan_score, score_status, status, data_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+  const nut2 = JSON.stringify({ protein_g: 11, fibre_g: 10, sugars_g: 1, added_sugars_g: 0, saturated_fat_g: 1.2, sodium_mg: 5 });
+  const wrong = kins.run('kids_biscuits', 'Zeta Chakki Fresh Atta 5kg', 'Zeta', 'https://off/k1', 'openfoodfacts', 'https://img/k1.jpg', '["Whole wheat"]', nut2, 80, 'exact', 'approved', 'openfoodfacts').lastInsertRowid;
+  const plain = kins.run('instant_noodles', 'Zeta Veg Noodles', 'Zeta', 'https://off/k2', 'openfoodfacts', 'https://img/k2.jpg', '["Wheat flour"]', nut2, 80, 'exact', 'approved', 'openfoodfacts').lastInsertRowid;
+  const unsure = kins.run('chips', 'Zeta Mystery Crunch', 'Zeta', 'https://off/k3', 'openfoodfacts', 'https://img/k3.jpg', '["Rice"]', nut2, 80, 'exact', 'approved', 'openfoodfacts').lastInsertRowid;
+  let calls = 0; const askedNames = [];
+  const aiEnv = { ...env, AI: { run: async (model, body) => { calls++; const nm = body.messages[1].content; askedNames.push(nm); const kind = /Atta/.test(nm) ? 'whole_wheat_atta' : calls % 2 ? 'dips_dressings' : 'pickle_chutney'; return { choices: [{ message: { content: JSON.stringify({ kind, confidence: 'high' }) } }] }; } } };
+  const st = await KC.kindCheckPending(aiEnv, { limit: 20 });
+  const rk = (id) => db.prepare('SELECT kind, status, kind_note, review_flags, kind_checked_at, kidposhan_score FROM kp_ready_products WHERE id = ?').get(id);
+  ok(rk(wrong).kind === 'whole_wheat_atta' && /Moved from/.test(rk(wrong).kind_note) && rk(wrong).kind_checked_at && rk(wrong).status === 'approved', 'A pack both models agree is atta is moved out of biscuits, rescored, and the change is noted: ' + rk(wrong).kind);
+  ok(rk(plain).kind === 'instant_noodles' && rk(plain).kind_checked_at && st.trusted >= 1, 'A pack whose name plainly says noodles is trusted without asking the models');
+  ok(rk(unsure).status === 'candidate' && /may be/.test(rk(unsure).review_flags) && rk(unsure).kind === 'chips', 'Two models that disagree send a live pack back to the owner with the reason, and the kind is not changed');
+  ok(st.moved >= 1 && st.flagged >= 1 && st.looked >= 2, 'The run reports what it did: ' + JSON.stringify(st));
+  askedNames.length = 0;
+  await KC.kindCheckPending(aiEnv, { limit: 50 });
+  ok(!askedNames.some((n) => /Zeta Chakki|Zeta Mystery|Zeta Veg Noodles/.test(n)), 'A pack that has been checked is not asked about again');
+  const gate = kins.run('rolled_oats', 'Zeta Gate Oats', 'Zeta', 'https://off/k4', 'openfoodfacts', 'https://img/k4.jpg', '["Oats"]', nut2, 80, 'exact', 'candidate', 'openfoodfacts').lastInsertRowid;
+  await (await import('../../src/recipes/autoreview.js')).autoReviewPacks(env, { limit: 100 });
+  ok(db.prepare('SELECT status FROM kp_ready_products WHERE id = ?').get(gate).status === 'candidate', 'A waiting pack whose kind has not been checked is not approved automatically');
+}
+// search by taste: "tangy meal for 9 year"
+{
+  const TS = await import('../../src/recipes/taste.js');
+  const SR = await import('../../src/recipes/search.js');
+  const pq = TS.parseQuery('tangy meal for 9 year');
+  ok(pq.tastes.join() === 'tangy' && pq.ageMonths === 108 && pq.meals.includes('dinner') && pq.meals.includes('lunch') && pq.words.length === 0 && pq.smart, 'The query "tangy meal for 9 year" is read as taste tangy, a meal, age 9: ' + JSON.stringify({ t: pq.tastes, a: pq.ageMonths, m: pq.meals.length }));
+  const pq2 = TS.parseQuery('not spicy veg breakfast 18 months'); const pq3 = TS.parseQuery('chatpata tiffin for 10'); const pq4 = TS.parseQuery('Saffola oats');
+  ok(pq2.mild && pq2.diet === 'veg' && pq2.meals.join() === 'breakfast' && pq2.ageMonths === 18 && pq3.tastes.includes('tangy') && pq3.tastes.includes('spicy') && pq3.ageMonths === 120 && !pq4.smart && pq4.words.join() === 'saffola,oats', 'Not spicy, veg, a meal and an age in months; chatpata is tangy and spicy; a plain name search is left alone');
+  ok(TS.tagRecipe('Lemon Rice', ['2 lemons juice', 'tamarind paste', '1 cup rice']).tangy >= 2 && !TS.tagRecipe('Plain Rice', ['1 cup rice', 'salt']).tangy && TS.tagRecipe('Chocolate Chip Cookies', ['sugar', 'chocolate chips']).sweet >= 3 && !TS.tagRecipe('Daal Khichdi', ['rice', 'moong dal', 'turmeric']).spicy, 'A recipe is tagged from its name and ingredients; a plain one gets no tags');
+  const mk = (name, ings, score) => {
+    const id = mkRecipe('https://taste.example/' + name.replace(/\W+/g, '-'), { status: 'approved', name, agemin: 12, agemax: 144 });
+    db.prepare('UPDATE kp_recipes SET poshan_score = ?, score_status = ?, total_minutes = 25, score_hidden = 0, score_79 = ?, score_46 = ?, score_13 = ?, score_1012 = ?, taste_checked_at = NULL WHERE id = ?').run(score, 'estimated', score, score, score, score, id);
+    db.prepare('DELETE FROM kp_recipe_ingredients WHERE recipe_id = ?').run(id);
+    ings.forEach((l, n) => db.prepare('INSERT INTO kp_recipe_ingredients (recipe_id, position, raw_text, name) VALUES (?,?,?,?)').run(id, n, l, l));
+    return id;
+  };
+  const tang = mk('Zesty Lemon Rice Bowl', ['2 lemons juice', '1 tsp tamarind paste', '1 cup rice'], 90);
+  const tang2 = mk('Tamarind Veg Pulao Meal', ['tamarind', 'lemon juice', 'rice', 'peas'], 70);
+  const plainR = mk('Plain Rice Meal', ['1 cup rice', 'salt'], 95);
+  const sweetR = mk('Jaggery Kheer Treat', ['jaggery', 'milk', 'rice'], 85);
+  const spicyR = mk('Schezwan Fried Rice Meal', ['schezwan sauce', 'red chilli powder', 'rice'], 80);
+  const lowT = mk('Very Tangy Lemon Pickle Rice', ['lemon', 'pickle', 'rice'], 30);
+  const bf = await TS.tastesBackfill(env, { limit: 300 });
+  ok(bf.looked >= 6, 'The backfill works out the tastes of recipes that have none yet: ' + JSON.stringify(bf));
+  const r1 = await SR.searchAll(env, 'tangy meal for 9 year');
+  const ids = r1.recipes.map((r) => r.id);
+  ok(ids.includes(tang) && ids.includes(tang2) && !ids.includes(plainR) && !ids.includes(sweetR) && !ids.includes(lowT), 'Tangy recipes are found for a 9 year old; plain and sweet ones, and one whose score is too low, are not: ' + ids.join());
+  ok(ids.indexOf(tang) < ids.indexOf(tang2) || r1.recipes.find((r) => r.id === tang).score >= r1.recipes.find((r) => r.id === tang2).score, 'The higher-scoring tangy recipe comes first when they are equally tangy');
+  ok(r1.understood && r1.understood.age_months === 108 && /7–9/.test(r1.understood.age_label) && /tangy/.test(r1.understood.text), 'The answer says what was understood: ' + (r1.understood && r1.understood.text));
+  const r2 = await SR.searchAll(env, 'sweet dinner for 9 year'), r3 = await SR.searchAll(env, 'mild meal for 9 year');
+  ok(!r2.recipes.some((r) => r.id === tang) && r3.recipes.some((r) => r.id === plainR) && !r3.recipes.some((r) => r.id === spicyR), 'Mild leaves out spicy recipes; the taste asked for decides what is found');
+  const r4 = await SR.searchAll(env, 'tangy pulao for 9 year');
+  ok(r4.recipes.length >= 1 && r4.recipes.every((r) => /pulao/i.test(r.name)), 'A dish word alongside the taste narrows the results to it');
+  const r5 = await SR.searchAll(env, 'tangy meal', { age: 36 });
+  ok(r5.understood.age_months === 36 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used');
 }
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

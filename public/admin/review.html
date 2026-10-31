@@ -265,7 +265,8 @@ function packCard(p){
   const n=p.nutrition||{}, f=(k,l,ph)=>`<label class="pf"><span>${l}</span><input type="number" step="any" min="0" name="${k}" value="${n[k]??''}" placeholder="${ph||''}"></label>`;
   const d=p.score_detail, inp=d?.inputs||{};
   let flags=[]; try{flags=JSON.parse(p.review_flags||'[]')}catch(e){flags=[]}
-  const flagBox=flags.length?`<div class="flagbox" role="alert"><b>Please check this one</b><ul>${flags.map(f=>'<li>'+esc(f)+'</li>').join('')}</ul></div>`:'';
+  const kindNote=p.kind_note?`<p class="why">${esc(p.kind_note)}</p>`:'';
+  const flagBox=kindNote+(flags.length?`<div class="flagbox" role="alert"><b>Please check this one</b><ul>${flags.map(f=>'<li>'+esc(f)+'</li>').join('')}</ul></div>`:'');
   const b46=d?.bands?.['4-6'], fails=(b46?.metrics||[]).filter(m=>m.score===0).map(m=>m.name);
   const score=flagBox+(p.score_status==='exact'
     ?`<p><b>Poshan Score ${p.kidposhan_score}</b> (${esc(b46?(b46.capped?'OK, held by a risk check':b46.tier):'')}), exact, for ages 4–6, ${esc(d?.basis||'per serving')}.</p><p class="why">${b46?b46.sum+' of 10 checks pass. ':''}${fails.length?'Fails: '+esc(fails.join(', '))+'.':'No check fails.'}</p>`

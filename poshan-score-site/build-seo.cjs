@@ -266,7 +266,7 @@ async function run(out) {
   fs.writeFileSync(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /bot\n\nSitemap: ${SITE}/sitemap.xml\n`);
   // 3. a page for every scored product
   const urls = Object.values(PAGE_META).map((m) => ({ loc: SITE + (m.path === '/' ? '/' : m.path), pr: m.path === '/' ? '1.0' : '0.8' }));
-  const map = {};
+  const map = {}, packsData = [];
   try {
     const list = await getJson(`${PLATFORM}/api/kp/products?age=4-6y&limit=1000`);
     const dir = path.join(out, 'products');
@@ -278,7 +278,7 @@ async function run(out) {
         const slug = slugOf({ id: it.id, name: it.name });
         const pg = productPage(d, slug);
         fs.writeFileSync(path.join(dir, slug + '.html'), pg.html);
-        map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7' });
+        map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7' }); packsData.push({ item: it, detail: d });
       } catch (e) { console.warn('product page skipped', it.id, e.message); }
     };
     for (let i = 0; i < list.items.length; i += 8) await Promise.all(list.items.slice(i, i + 8).map(one));       // eight at a time
@@ -288,6 +288,16 @@ async function run(out) {
     const pf = path.join(out, name);
     if (fs.existsSync(pf)) { let h = fs.readFileSync(pf, 'utf8'); h = h.replace('window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};', 'window.KP_PRODUCT_PAGES=' + JSON.stringify(map) + ';'); fs.writeFileSync(pf, h); }
   }
+  // 3b. a ranking page for each kind of food that has enough scored packs, and the index that links to them
+  let nBest = 0;
+  try {
+    const best = require('./build-best.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
+    const bdir = path.join(out, 'best');
+    fs.mkdirSync(bdir, { recursive: true });
+    for (const f of fs.readdirSync(bdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(bdir, f));
+    for (const f of best.files) fs.writeFileSync(path.join(out, f.path), f.html);
+    urls.push(...best.urls); nBest = best.count;
+  } catch (e) { console.warn('no ranking pages this build:', e.message); }
   // 4. a page for every recipe, and the Recipes index that links to them all
   let nRecipes = 0;
   try {
@@ -317,7 +327,7 @@ async function run(out) {
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
-  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, sitemap with ${urls.length} addresses`);
+  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nBest} ranking pages, sitemap with ${urls.length} addresses`);
 }
 
 module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage };

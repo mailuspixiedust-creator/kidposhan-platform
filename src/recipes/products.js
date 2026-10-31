@@ -53,7 +53,7 @@ export function packShots(p) {
 
 export async function listProducts(env, { age = '', category = '', min = 0, sort = 'score', limit = 60, unchecked = false } = {}) {
   const { results } = await env.DB.prepare(
-    `SELECT id, kind, name, brand, pack_size, image_url, label_image_url, gallery_json, retailer, product_url, kidposhan_score, score_status, nutrition_json, ingredients_json, status, data_source
+    `SELECT id, kind, name, brand, pack_size, image_url, label_image_url, gallery_json, retailer, product_url, kidposhan_score, score_status, nutrition_json, ingredients_json, status, data_source, kind_checked_at
        FROM kp_ready_products WHERE (status = 'approved' OR (? = 1 AND status = 'candidate' AND data_source IN ('openfoodfacts', 'scan'))) AND score_status = 'exact' AND kidposhan_score IS NOT NULL`
   ).bind(unchecked ? 1 : 0).all();
   const a = age ? ageInfo(age) : ageInfo('4-6y');                       // no age chosen: the reference band (4-6 years)
@@ -66,7 +66,7 @@ export async function listProducts(env, { age = '', category = '', min = 0, sort
     if (sc.status !== 'exact') continue;
     const b = sc.detail.bands[a.band];
     all.push({ id: p.id, kind: p.kind, category: k?.category || 'Other', kind_label: k?.label || p.kind, name: p.name, brand: p.brand, pack_size: p.pack_size,
-      ...packShots(p), retailer: p.retailer, url: p.product_url, score: b.total, band: b.tier, age: a.id, capped: b.capped, unchecked: p.status !== 'approved', source: p.data_source || null });
+      ...packShots(p), retailer: p.retailer, url: p.product_url, score: b.total, band: b.tier, age: a.id, capped: b.capped, unchecked: p.status !== 'approved', kind_checked: !!p.kind_checked_at, source: p.data_source || null });
   }
   const categories = {};
   for (const p of all) categories[p.category] = (categories[p.category] || 0) + 1;

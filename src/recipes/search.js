@@ -6,6 +6,7 @@ import { bandForMonths } from './score2.js';
 import { bandScoreSql, capSqlFor } from './score.js';
 import { isPrepRecipe } from './api.js';
 import { creditName, isRealMeal } from './clean.js';
+import { parseQuery, nameHasTaste, MEAL_LABEL } from './taste.js';
 
 export const tokens = (q) => String(q || '').toLowerCase().replace(/[^a-z0-9ऀ-ॿ\s'&-]/g, ' ').split(/\s+/).map((t) => t.replace(/^['-]+|['-]+$/g, '')).filter((t) => t.length >= 2).slice(0, 5);
 const like = (t) => '%' + t.replace(/[%_\\]/g, (c) => '\\' + c) + '%';
@@ -18,8 +19,66 @@ export async function recordMiss(env, term) {
   await env.DB.prepare('INSERT INTO kp_search_misses (term, n, last_at) VALUES (?, 1, ?) ON CONFLICT(term) DO UPDATE SET n = n + 1, last_at = excluded.last_at').bind(t, Math.floor(Date.now() / 1000)).run();
 }
 
+const DIETS_OF = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'], egg: ['egg'] };
+const yearsWord = (m) => (m >= 24 && m % 12 === 0 ? `${m / 12} year${m / 12 === 1 ? '' : 's'}` : m < 24 ? `${m} months` : `${(m / 12).toFixed(1)} years`);
+
+// A search in plain words, "tangy meal for 9 year": the taste, the meal, the diet and the age are read out of it and the recipes are found by taste,
+// best score for that age first. Whatever is left over ("rice", "dosa") must appear in the recipe's name.
+async function smartSearch(env, q, pq, ageMonths, limit) {
+  const band = bandForMonths(ageMonths), ageInfo = resolveAge(ageIdForMonths(ageMonths));
+  const ageLabel = ageMonths >= 156 || ageMonths < 12 ? ageInfo.label : band.label;
+  const scoreE = bandScoreSql(band.id), capE = capSqlFor(band.id);
+  const args = [], where = [];
+  where.push(`r.age_min_months <= ?`, `r.age_max_months >= ?`); args.push(ageMonths, Math.min(144, ageMonths));
+  if (pq.diet) { const d = DIETS_OF[pq.diet] || []; where.push(`r.diet IN (${d.map(() => '?').join(',')})`); args.push(...d); }
+  if (pq.meals.length) { where.push(`EXISTS (SELECT 1 FROM kp_recipe_occasions o WHERE o.recipe_id = r.id AND o.occasion IN (${pq.meals.map(() => '?').join(',')}))`); args.push(...pq.meals); }
+  let tasteSum = '0';
+  if (pq.tastes.length) {
+    const ph = pq.tastes.map(() => '?').join(',');
+    where.push(`EXISTS (SELECT 1 FROM kp_recipe_tastes t WHERE t.recipe_id = r.id AND t.taste IN (${ph}))`); args.push(...pq.tastes);
+    tasteSum = `(SELECT COALESCE(SUM(t.n), 0) FROM kp_recipe_tastes t WHERE t.recipe_id = r.id AND t.taste IN (${ph}))`;
+  }
+  if (pq.mild) where.push(`NOT EXISTS (SELECT 1 FROM kp_recipe_tastes t WHERE t.recipe_id = r.id AND t.taste = 'spicy')`);
+  for (const w of pq.words) { where.push("LOWER(r.name) LIKE ? ESCAPE '\\'"); args.push(like(w)); }
+  const { results } = await env.DB.prepare(
+    `SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, ${scoreE} AS score, ${capE} AS capped, ${tasteSum} AS taste
+       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
+      WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL AND ${scoreE} >= 50 AND ${where.join(' AND ')}
+      ORDER BY taste DESC, ${scoreE} DESC, r.id LIMIT 60`
+  ).bind(...bindOrder(pq, args, tasteSum !== '0')).all();
+  const wantsMeal = pq.meals.some((m) => m !== 'snack_4pm');
+  const recipes = results.filter((r) => !isPrepRecipe(r.name) && (!wantsMeal || isRealMeal(r.name))).slice(0, Math.max(limit, 10)).map((r) => ({ ...r, capped: !!r.capped }));
+  // products only for a snack, or for a brand or dish typed alongside ("tangy chips"); a tangy meal has no packs to offer
+  let products = [];
+  const snacky = pq.meals.includes('snack_4pm') || pq.words.length;
+  if (snacky) {
+    const all = (await listProducts(env, { age: ageInfo.id, limit: 3000, unchecked: false })).items;
+    products = all.filter((p) => {
+      const hay = [p.name, p.brand, p.kind_label, p.category].join(' ').toLowerCase();
+      if (pq.words.length && !pq.words.every((w) => hay.includes(w))) return false;
+      return !pq.tastes.length || pq.tastes.some((t) => nameHasTaste(p.name, t));
+    }).slice(0, limit).map((p) => ({ id: p.id, name: p.name, brand: p.brand, image_url: p.image_url, score: p.score, band: p.band, capped: p.capped, category: p.category, unchecked: !!p.unchecked, source: p.source }));
+  }
+  const bits = [...pq.tastes, ...(pq.mild ? ['mild, not spicy'] : []), pq.meals.length ? (pq.mealWord === 'meal' || pq.meals.length > 2 ? 'meal' : MEAL_LABEL[pq.meals[0]] || pq.mealWord) : 'recipes', ...(pq.diet ? [pq.diet === 'nonveg' ? 'non-veg' : pq.diet] : [])];
+  const understood = { tastes: pq.tastes, mild: pq.mild, meals: pq.meals, diet: pq.diet, age_months: ageMonths, age_label: ageLabel, text: `${bits.join(' · ')} for ${yearsWord(ageMonths)} (${ageLabel})`, left_over: pq.words };
+  if (!recipes.length && !products.length) await recordMiss(env, String(q || '').toLowerCase());
+  return { q: String(q || ''), age_label: ageLabel, understood, recipes, products };
+}
+
+// the bind values in the order the query uses them: the taste sum (in the select), then the where clause
+function bindOrder(pq, args, hasTaste) { return hasTaste ? [...pq.tastes, ...args] : args; }
+
 // age: the child's age in months (when the visitor has chosen one): scores are for that age, and the answer says which
 export async function searchAll(env, q, { limit = 6, age = null } = {}) {
+  const pq = parseQuery(q);
+  if (pq.smart) {
+    const am = pq.ageMonths != null ? pq.ageMonths : Number.isFinite(age) ? age : 60;      // "for 9 year" beats the age chosen on the page
+    if (pq.tastes.length || pq.mild || pq.meals.length || pq.diet || pq.ageMonths != null) {
+      const out = await smartSearch(env, q, pq, am, limit);
+      // an age on its own ("oats for 9 year") with nothing found: fall through to the ordinary name search
+      if (out.recipes.length || out.products.length || pq.tastes.length || pq.mild || pq.meals.length) return out;
+    }
+  }
   const words = tokens(q);
   const band = bandForMonths(Number.isFinite(age) ? age : 60);
   const ageInfo = resolveAge(Number.isFinite(age) ? ageIdForMonths(age) : '4-6y');
