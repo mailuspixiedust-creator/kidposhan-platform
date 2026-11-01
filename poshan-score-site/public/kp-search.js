@@ -22,6 +22,11 @@
     + '.kps .sc{min-width:42px;text-align:center;border-radius:999px;padding:5px 8px;font:800 14px/1 system-ui,sans-serif;color:#fff;background:#3F6B3C}'
     + '.kps .sc[data-b="OK"]{background:#B5790A}.kps .sc[data-b="Do not use"]{background:#A6402A}'
     + '.kps .msg{padding:18px 16px;color:#6B5D4B;font-size:14.5px}'
+    + '.kps .rc{padding:6px 16px 16px}.kps .rc-head{display:flex;gap:12px;align-items:center;margin:10px 0}.kps .rc-head img{width:64px;height:64px;object-fit:cover;border-radius:12px;flex:none}.kps .rc-head b{display:block;font-size:16px;line-height:1.25}.kps .rc-head small{color:#6B5D4B}'
+    + '.kps .rc-age{display:flex;gap:8px;align-items:center;font-size:14px;color:#6B5D4B;margin:4px 0}.kps .rc-age select{font:inherit;padding:6px 10px;border:1.5px solid #D9CFB8;border-radius:10px;background:#fff;color:#221A12}'
+    + '.kps .rc-meter{margin:6px 0 10px}.kps .rc-num{text-align:center}.kps .rc-num b{display:inline-grid;place-items:center;width:74px;height:74px;border-radius:50%;background:#3F6B3C;color:#fff;font-size:28px}.kps .rc-num[data-b="OK"] b{background:#B5790A}.kps .rc-num[data-b="Do not use"] b{background:#A6402A}.kps .rc-num span{display:block;font-weight:700;margin-top:4px}'
+    + '.kps .rc-checks{list-style:none;margin:0;padding:0}.kps .rc-checks li{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid #E7DFCE;font-size:14.5px}.kps .rc-checks li b{flex:none;min-width:34px;text-align:center;border-radius:999px;padding:2px 8px;font-size:12.5px;color:#fff;background:#3F6B3C}.kps .rc-checks li.n b{background:#A6402A}.kps .rc-checks small{display:block;color:#6B5D4B;font-size:12.5px}'
+    + '.kps .rc-how{margin:10px 0;font-size:13.5px;color:#6B5D4B}.kps .rc-how summary{cursor:pointer;font-weight:600;color:#221A12}.kps .rc-fine{font-size:12.5px;color:#6B5D4B;margin:10px 0 0}.kps .rc-fine a{color:#2F5A2C}'
     + '.kps .eg{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}.kps .eg button{font:inherit;font-size:14px;padding:7px 13px;border-radius:999px;border:1.5px solid #D9CFB8;background:#fff;color:#221A12;cursor:pointer}.kps .eg button:hover{border-color:#B5790A;background:#FFF8E6}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
@@ -51,14 +56,50 @@
     bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
     bg.querySelector('.x').onclick = close;
     bg.querySelector('form').onsubmit = function (e) { e.preventDefault(); run(); };
-    input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 250); });
+    input.addEventListener('input', function () { clearTimeout(timer); if (isLink(input.value.trim())) { seq++; out.innerHTML = '<p class="msg">Press Enter to check this recipe link.</p>'; return; } timer = setTimeout(run, 250); });
     out.addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && onMeal && /meal-ideas.*#\/r\//.test(a.getAttribute('href'))) { e.preventDefault(); location.hash = a.getAttribute('href').split('#')[1]; close(); } });
     function row(href, img, name, sub, score, b) { return '<li><a href="' + esc(href) + '"><span class="th"' + (img ? ' style="background-image:url(\'' + esc(img) + '\')"' : '') + '></span><span class="nm">' + esc(name) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span>' + (score != null ? '<span class="sc" data-b="' + b + '">' + Math.round(score) + '</span>' : '') + '</a></li>'; }
     var EXAMPLES = ['tangy meal for 9 year', 'sweet snack for 5 year', 'mild dinner for toddler', 'spicy veg lunch for 12 year', 'crunchy snack', 'creamy breakfast for 4 year'];
     function intro() { out.innerHTML = '<p class="msg">Search by name, or describe what you want in your own words: a taste, a meal and your child\'s age.</p><div class="eg">' + EXAMPLES.map(function (e) { return '<button type="button" data-q="' + esc(e) + '">' + esc(e) + '</button>'; }).join('') + '</div>'; }
     out.addEventListener('click', function (e) { var b = e.target.closest('.eg button'); if (b) { input.value = b.getAttribute('data-q'); run(); input.focus(); } });
+    // A pasted recipe link: read the page and show its Poshan Score, the ten checks and the score at every age.
+    function isLink(q) { return /^(https?:\/\/|www\.)\S+$/i.test(q) || /^[\w-]+(\.[\w-]+)+\/\S+$/.test(q); }
+    var AGE_GROUPS = [['1-3', '1–3 years'], ['4-6', '4–6 years'], ['7-9', '7–9 years'], ['10-12', '10–12 years'], ['13-15', '13–15 years'], ['16-18', '16–18 years'], ['adult', 'Adults']];
+    function bandOfMonths(m) { return m == null ? '4-6' : m < 48 ? '1-3' : m < 84 ? '4-6' : m < 120 ? '7-9' : m < 156 ? '10-12' : m < 192 ? '13-15' : m < 228 ? '16-18' : 'adult'; }
+    function showLinkResult(d, band) {
+      var b = d.bands[band] || d.bands['4-6'], tier = b.capped ? 'OK' : b.tier;
+      var why = (b.metrics || []).filter(function (m) { return ['sugar', 'sodium', 'satfat', 'trans'].indexOf(m.id) >= 0 && m.score === 0; }).map(function (m) { return { sugar: 'added sugar', sodium: 'sodium', satfat: 'saturated fat', trans: 'trans fat' }[m.id]; });
+      var meter = window.kpMeter ? window.kpMeter({ score: b.total, band: b.tier, capped: b.capped, why: why, legend: false }) : '<div class="rc-num" data-b="' + esc(tier) + '"><b>' + esc(b.total) + '</b><span>' + esc(tier) + '</span></div>';
+      var checks = (b.metrics || []).map(function (m) { return '<li class="' + (m.score ? 'y' : 'n') + '"><b>' + (m.score ? 'Yes' : 'No') + '</b><span>' + esc(m.name) + '<small>' + esc(m.reading || '') + '</small></span></li>'; }).join('');
+      return { meter: meter, checks: checks };
+    }
+    function renderLink(d, band) {
+      var r = showLinkResult(d, band);
+      var how = d.score_kind === 'estimated' ? 'Estimated from the ingredient list: each ingredient is weighed, and the sugar, salt, saturated fat, fibre and protein of one serving are added up.' : 'Worked out from the nutrition figures the recipe page gives.';
+      var det = '<details class="rc-how"><summary>How this was worked out</summary><p>' + esc(how) + '</p>' + (d.servings ? '<p>' + esc(String(d.servings)) + '.</p>' : '') + (d.assumptions && d.assumptions.length ? '<p>Assumptions: ' + d.assumptions.map(esc).join('; ') + '.</p>' : '') + (d.unweighed && d.unweighed.length ? '<p>Not weighed: ' + d.unweighed.map(esc).join('; ') + '.</p>' : '') + '</details>';
+      return '<div class="rc"><div class="rc-head">' + (d.image_url ? '<img src="' + esc(d.image_url) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : '') + '<div><b>' + esc(d.name) + '</b><small>' + esc(d.host) + ' · ' + esc(d.ingredients_total) + ' ingredients, ' + esc(d.ingredients_weighed) + '% weighed</small></div></div>'
+        + '<label class="rc-age">Score for <select id="rcAge">' + AGE_GROUPS.map(function (g) { return '<option value="' + g[0] + '"' + (g[0] === band ? ' selected' : '') + '>' + g[1] + '</option>'; }).join('') + '</select></label>'
+        + '<div class="rc-meter">' + r.meter + '</div><ul class="rc-checks">' + r.checks + '</ul>' + det
+        + '<p class="rc-fine">An independent estimate, not a certification and not medical advice. <a href="' + esc(d.url) + '" target="_blank" rel="noopener">Open the original recipe</a></p></div>';
+    }
+    function runLink(q) {
+      var my = ++seq; out.innerHTML = '<p class="msg">Reading the recipe… this can take a few seconds.</p>';
+      fetch(API + '/api/kp/recipe-check?url=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
+        if (my !== seq) return;
+        if (!d.ok) {
+          out.innerHTML = '<p class="msg">' + esc(d.message || 'We could not check that link.') + (d.link ? ' <a href="' + esc(d.link) + '">Open it</a>.' : '') + '</p>' + (d.unweighed && d.unweighed.length ? '<p class="msg" style="padding-top:0">Not weighed: ' + d.unweighed.map(esc).join('; ') + '.</p>' : '');
+          return;
+        }
+        var band = bandOfMonths(chosenAge());
+        out.innerHTML = renderLink(d, band);
+        if (window.kpMeter && window.kpMeter.animate) window.kpMeter.animate(out);
+        var sel = out.querySelector('#rcAge');
+        sel.onchange = function () { out.innerHTML = renderLink(d, sel.value); if (window.kpMeter && window.kpMeter.animate) window.kpMeter.animate(out); out.querySelector('#rcAge').onchange = sel.onchange; };
+      }).catch(function () { if (my === seq) out.innerHTML = '<p class="msg">Recipe checking is not available just now. Please try again.</p>'; });
+    }
     function run() {
       var q = input.value.trim(); if (q.length < 2) { intro(); return; }
+      if (isLink(q)) { runLink(q); return; }
       var my = ++seq; out.innerHTML = '<p class="msg">Searching…</p>';
       fetch(API + '/api/kp/search?q=' + encodeURIComponent(q) + (chosenAge() ? '&age_months=' + chosenAge() : '') + (only === 'recipes' ? '&only=recipes' : '')).then(function (r) { return r.json(); }).then(function (d) { return ensureMap().then(function () { return d; }); }).then(function (d) {
         if (my !== seq) return;

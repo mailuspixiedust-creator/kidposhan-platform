@@ -33,6 +33,7 @@ import { submitReport, listReports, resolveReport, thankPending, betaStats, Beta
 import { autoReviewPacks, photoCheckPending } from './autoreview.js';
 import { kindCheckPending } from './kindcheck.js';
 import { tastesBackfill } from './taste.js';
+import { checkRecipeLink } from './linkcheck.js';
 import { scanLookup, scanSubmit, scanRetake, scanPhoto, readScansPending, pruneScans, whoHash, ScanError } from './scan.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
@@ -145,6 +146,11 @@ export async function routeRecipes(request, env, ctx) {
   // The landing page's numbers
   if (request.method === 'GET' && path === '/api/kp/stats') {
     return withCors(request, new Response(JSON.stringify({ ...(await siteStats(env)), beta: await betaStats(env) }), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }));
+  }
+  // Paste a recipe's link, get its Poshan Score: GET /api/kp/recipe-check?url=https://...
+  if (request.method === 'GET' && path === '/api/kp/recipe-check') {
+    const out = await checkRecipeLink(env, url.searchParams.get('url') || '', { who: await whoHash(request) });
+    return withCors(request, new Response(JSON.stringify(out), { status: typeof out.status === 'number' ? out.status : 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } }));
   }
   // One search box for the whole site: GET /api/kp/search?q=saffola
   if (request.method === 'GET' && path === '/api/kp/search') {

@@ -355,13 +355,18 @@ async function run(out) {
     } catch (e) { console.warn('no collection pages this build:', e.message); }
     // pass 3: the recipe pages, each with similar recipes and the collections it is on
     const MEAL_ORDER = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
+    // the words that say what a dish is (paneer, rice, dosa), not how it is cooked or sold, are what makes two recipes similar
+    const GENERIC = new Set(['recipe', 'recipes', 'easy', 'instant', 'style', 'homemade', 'with', 'kids', 'kid', 'healthy', 'simple', 'quick', 'best', 'indian', 'from', 'pressure', 'cooker', 'make', 'how', 'for', 'and', 'the', 'mix', 'veg', 'vegetable', 'vegetables', 'pot', 'baby', 'toddlers', 'toddler', 'lunch', 'tiffin', 'box', 'lunchbox', 'snack', 'breakfast', 'dinner', 'minute', 'minutes', 'authentic', 'traditional', 'restaurant', 'tasty', 'delicious', 'special', 'no', 'onion', 'garlic']);
+    const dishWords = (name) => new Set(String(name || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter((w) => w.length >= 4 && !GENERIC.has(w)).map((w) => w.replace(/s$/, '')));
+    for (const r of have) r.words = dishWords(recName(r.d.name));
     for (const r of have) {
       const mine = r.it.tastes || {}, myMeal = MEAL_ORDER.find((o) => (r.it.occasions || []).includes(o));
       const sim = have.filter((o) => o !== r && o.d.poshan_score >= 50).map((o) => {
         const shared = Object.keys(mine).filter((t) => (o.it.tastes || {})[t]).length;
         const sameMeal = myMeal && (o.it.occasions || []).includes(myMeal) ? 1 : 0;
-        return { o, rank: shared * 3 + sameMeal * 2 + (o.it.diet === r.it.diet ? 1 : 0) };
-      }).filter((x) => x.rank >= 4).sort((a, b) => b.rank - a.rank || b.o.it.score - a.o.it.score || a.o.it.id - b.o.it.id).slice(0, 6)
+        const sharedWords = [...r.words].filter((w) => o.words.has(w)).length;
+        return { o, rank: shared * 3 + Math.min(sharedWords, 2) * 3 + sameMeal * 2 + (o.it.diet === r.it.diet ? 1 : 0) };
+      }).filter((x) => x.rank >= 5).sort((a, b) => b.rank - a.rank || b.o.it.score - a.o.it.score || a.o.it.id - b.o.it.id).slice(0, 6)
         .map((x) => ({ slug: x.o.slug, name: recName(x.o.d.name), score: Math.round(x.o.d.score.value ?? x.o.it.score), by: x.o.it.by }));
       const cols = (ideas.membership.get(r.it.id) || []).filter((p) => p.age.generic).slice(0, 8).map((p) => ({ slug: p.slug, h1: p.h1 }));
       const crumb = (ideas.membership.get(r.it.id) || []).find((p) => p.kind === 'meal' && p.age.generic && p.meal && (myMeal === 'snack_4pm' ? p.meal.id === 'snack' : p.meal.id === myMeal));
