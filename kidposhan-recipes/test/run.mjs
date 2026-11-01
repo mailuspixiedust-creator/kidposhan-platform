@@ -1596,5 +1596,55 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const sc = (await SR3.searchAll(env, 'tangy meal for 9 year')).recipes.map((r) => r.score);
   ok(sc.length >= 2 && sc.every((v, i) => i === 0 || sc[i - 1] >= v), 'Recipes in a taste search run from the highest score down: ' + sc.join());
 }
+// the recipe list carries what the site build needs for collection pages, similar recipes and honest dates
+{
+  const idT = mkRecipe('https://idx.example/t', { status: 'approved', name: 'Index Tangy Dish', agemin: 24, agemax: 144 });
+  db.prepare('UPDATE kp_recipes SET poshan_score = 80, total_minutes = 20, score_hidden = 0, updated_at = ? WHERE id = ?').run('2026-09-30 10:00:00', idT);
+  db.prepare("INSERT OR REPLACE INTO kp_recipe_tastes (recipe_id, taste, n) VALUES (?, 'tangy', 4), (?, 'crunchy', 3)").run(idT, idT);
+  const ix2 = await (await handleRecipesApi(new Request('https://w/api/kp/recipes-index'), env, ctx)).json();
+  const row = ix2.items.find((x) => x.id === idT);
+  ok(row && row.tastes.tangy === 4 && row.tastes.crunchy === 3 && row.age_min === 24 && row.age_max === 144 && row.updated === '2026-09-30', 'The recipe list carries each recipe\'s tastes, its age range and the date it last changed: ' + JSON.stringify(row && { t: row.tastes, a: [row.age_min, row.age_max], u: row.updated }));
+  const prods = await (await import('../../src/recipes/products.js')).listProducts(env, { limit: 5 });
+  ok(prods.items.length === 0 || 'updated' in prods.items[0], 'Each product in the list says when it last changed');
+}
+// paste a recipe link, get its Poshan Score
+{
+  const LC = await import('../../src/recipes/linkcheck.js');
+  ok(LC.cleanUrl('www.example-recipes.com/recipes/dal') && LC.cleanUrl(' https://blog.food.in/a b/c ') && !LC.cleanUrl('') && !LC.cleanUrl('http://localhost/x') && !LC.cleanUrl('http://192.168.1.5/recipe') && !LC.cleanUrl('ftp://food.com/x') && !LC.cleanUrl('javascript:alert(1)') && !LC.cleanUrl('https://food.com:8080/x') && !LC.cleanUrl('https://user:pw@food.com/x') && !LC.cleanUrl('https://intranet/x'), 'Links are tidied; local addresses, IP numbers, other ports, logins and non-web links are refused');
+  const goodHtml = `<html><head><script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Recipe', name: 'Test Veg Rice Bowl', image: 'https://img.example/rice.jpg', recipeYield: '4 servings', recipeIngredient: ['1 cup basmati rice', '1 cup green peas', '2 carrots, chopped', '1 medium onion', '1 tbsp sunflower oil', '1 tsp cumin seeds', '1 lemon, juiced', 'salt to taste', '2 tbsp roasted peanuts'], recipeInstructions: [{ '@type': 'HowToStep', text: 'Cook the rice.' }] })}</script></head><body><h1>Test Veg Rice Bowl</h1></body></html>`;
+  const noRecipeHtml = '<html><head><title>Food blog home</title></head><body><h1>Welcome</h1><p>Posts</p></body></html>';
+  const fakes = { robotsBody: 'User-agent: *\nAllow: /', pages: { '/rice': goodHtml, '/home': noRecipeHtml } };
+  const realFetch = globalThis.fetch, seen = [];
+  globalThis.fetch = async (u) => {
+    const url = new URL(String(u)); seen.push(url.href);
+    if (url.pathname === '/robots.txt') return new Response(url.hostname === 'closed.example.org' ? 'User-agent: *\nDisallow: /' : fakes.robotsBody, { status: 200 });
+    const html = fakes.pages[url.pathname]; if (!html) return new Response('nope', { status: 404 });
+    return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  };
+  const e2 = { ...env, CRAWL_MIN_GAP_MS: 0 };
+  try {
+    const good = await LC.checkRecipeLink(e2, 'https://recipes.example.org/rice', { who: 'whoA' });
+    ok(good.ok === true && good.name === 'Test Veg Rice Bowl' && good.host === 'recipes.example.org' && typeof good.score === 'number' && good.score % 10 === 0, 'A recipe link is read and scored: ' + (good.ok ? good.name + ' ' + good.score + ' (' + good.status + ')' : good.reason + ' ' + good.message));
+    ok(good.ok && Object.keys(good.bands).join() === '1-3,4-6,7-9,10-12,13-15,16-18,adult' && good.bands['4-6'].metrics.length === 10 && good.bands['4-6'].total === good.score, 'The answer has the score and the ten checks for every age group, and 4-6 is the reference');
+    ok(good.ok && good.ingredients_total === 9 && good.ingredients_weighed >= 75 && good.per_serving && good.image_url === 'https://img.example/rice.jpg', 'It says how many ingredients it found and weighed, the per-serving amounts, and where the photo is');
+    ok(!JSON.stringify(good).includes('Cook the rice'), 'The method text is not passed on or kept');
+    const robots = await LC.checkRecipeLink(e2, 'https://closed.example.org/rice', { who: 'whoB' });
+    ok(robots.ok === false && robots.reason === 'robots', 'A site that asks programs not to read it is not read: ' + robots.reason);
+    const none = await LC.checkRecipeLink(e2, 'https://recipes.example.org/home', { who: 'whoB' });
+    ok(none.ok === false && none.reason === 'not_recipe', 'A page with no recipe says so: ' + none.reason);
+    const missing = await LC.checkRecipeLink(e2, 'https://recipes.example.org/gone', { who: 'whoB' });
+    ok(missing.ok === false && missing.reason === 'fetch', 'A page that cannot be opened says so: ' + missing.reason);
+    const own = await LC.checkRecipeLink(e2, 'https://www.kidposhan.in/recipes/237-mixed-dal-chillas', { who: 'whoB' });
+    ok(own.ok === false && own.reason === 'own' && own.link === '/recipes/237-mixed-dal-chillas' && !seen.some((x) => x.includes('kidposhan.in')), 'A link to a recipe already on this site is not fetched: it points to that recipe');
+    const bad = await LC.checkRecipeLink(e2, 'http://192.168.0.1/admin', { who: 'whoB' });
+    ok(bad.ok === false && bad.reason === 'bad_url' && !seen.some((x) => x.includes('192.168')), 'An unsafe address is refused without being fetched');
+    let last;
+    for (let i = 0; i < 14; i++) last = await LC.checkRecipeLink(e2, 'https://recipes.example.org/rice', { who: 'whoLimit' });
+    ok(last.ok === false && last.reason === 'rate' && last.status === 429, 'One visitor can check only so many links an hour: ' + last.reason);
+    const viaRouter = await routeRecipes(new Request('https://w/api/kp/recipe-check?url=' + encodeURIComponent('https://recipes.example.org/rice'), { headers: { origin: 'https://www.kidposhan.in', 'cf-connecting-ip': '203.0.113.9' } }), e2, ctx);
+    const vj = await viaRouter.json();
+    ok(viaRouter.status === 200 && vj.ok === true && vj.score === good.score, 'The same answer comes through the real address /api/kp/recipe-check');
+  } finally { globalThis.fetch = realFetch; }
+}
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

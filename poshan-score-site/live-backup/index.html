@@ -118,6 +118,8 @@
     font-size:clamp(38px, 8vw, 62px); line-height:1.04; margin:0 0 22px; color:var(--ink);
   }
   h1 em{ font-style:italic; color:var(--gold); }
+  h1 em.g{ color:#3F6B3C; }
+  .h1-end{ display:block; margin-top:6px; font-size:.62em; line-height:1.2; letter-spacing:0; color:var(--ink-dim); }
 
   .lede{
     font-size:16.5px; line-height:1.65; color:var(--ink-dim); max-width:46ch; margin:0 0 30px;
@@ -325,6 +327,24 @@
     .plan-btn{ display:block; text-align:center; }
   }
   @media(min-width:701px){ .tf-card:nth-child(n+4){ display:none; } }
+  @media(max-width:700px){
+    .hero{ padding:26px 18px 8px; gap:26px; }
+    .hero-text{ text-align:center; }
+    .eyebrow{ justify-content:center; font-size:10.5px; margin-bottom:14px; }
+    .eyebrow::before{ display:none; }
+    h1{ font-size:clamp(27px, 7.8vw, 36px); line-height:1.12; margin-bottom:14px; }
+    h1 em{ display:inline-block; }
+    .h1-end{ font-size:.58em; margin-top:10px; }
+    .lede{ font-size:15.5px; line-height:1.6; margin:0 auto 22px; }
+    .scan-cta{ display:flex !important; justify-content:center; width:100%; box-sizing:border-box; font-size:17px !important; padding:16px 20px !important; margin:0 0 18px !important; }
+    .scan-or{ font-size:13.5px; line-height:1.9; }
+    .check-form{ margin:0 auto; max-width:none; }
+    .check-form button{ padding:12px 16px; }
+    .checking{ justify-content:center; margin-top:16px; }
+    .checking > span{ flex:0 0 100%; text-align:center; }
+    .hero-visual{ min-height:0; background:linear-gradient(180deg,#FFF8E8,#FBF1DA); border:1px solid #EADFC4; border-radius:24px; padding:18px 12px 14px; box-shadow:0 18px 36px -26px rgba(74,52,35,.5); }
+    .meter-demo{ max-width:340px; }
+  }
   .tf-card .by{ grid-column:1/-1; font-size:12px; font-family:var(--font-mono); letter-spacing:.04em; color:var(--gold); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
@@ -364,22 +384,19 @@
 
 <header class="hero">
   <div class="hero-text">
-    <div class="eyebrow">Govt-benchmarked &nbsp;·&nbsp; Ingredient-first</div>
-    <h1>Every pack says <em>healthy.</em><br>We read the back.</h1>
-    <p class="lede">Scan any packaged food. See its real score for your child's age, and how much of the thing it brags about is actually inside.</p>
-    <style>.scan-cta{display:inline-flex;align-items:center;gap:10px;background:#3F6B3C;color:#fff;text-decoration:none;font-weight:800;font-size:18px;border-radius:16px;padding:16px 26px;margin:2px 0 14px;box-shadow:0 10px 24px -14px rgba(40,70,38,.8)}.scan-cta:hover{background:#355c33}.scan-or{font-size:14px;color:var(--ink-dim,#6B5D4B);margin:0 0 8px}.meter-demo{width:100%;max-width:420px;margin:0 auto;text-align:center}.meter-demo .md-cap{font:600 14px var(--font-body,sans-serif);color:#6B5D4B;margin-top:4px;min-height:20px}.meter-demo .md-ex{font:600 11px var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#B5790A}</style>
+    <div class="eyebrow">ICMR-NIN benchmarked &nbsp;·&nbsp; Packs &amp; recipes</div>
+    <h1>Every pack says <em>healthy.</em><br>Every recipe says <em class="g">wholesome.</em><br><span class="h1-end">We read what is really inside.</span></h1>
+    <p class="lede">Scan a pack or paste any recipe link. See its <b>real score for your child's age</b>, and how much of what it brags about is actually inside.</p>
+    <style>.scan-cta{display:inline-flex;align-items:center;gap:10px;background:#3F6B3C;color:#fff;text-decoration:none;font-weight:800;font-size:18px;border-radius:16px;padding:16px 26px;margin:2px 0 14px;box-shadow:0 10px 24px -14px rgba(40,70,38,.8)}.scan-cta:hover{background:#355c33}.scan-or{font-size:15.5px;font-weight:700;color:var(--ink-dim,#6B5D4B);margin:0 0 10px}.scan-or span{white-space:nowrap;font-weight:800;padding:1px 7px;border-radius:8px}.scan-or .c1{color:#2F6B2C;background:#E3F0DE}.scan-or .c2{color:#A6402A;background:#F8E3DC}.scan-or .c3{color:#8A5A00;background:#FBEBC6}.meter-demo{width:100%;max-width:420px;margin:0 auto;text-align:center}.meter-demo .md-cap{font:600 14px var(--font-body,sans-serif);color:#6B5D4B;margin-top:4px;min-height:20px}.meter-demo .md-ex{font:600 11px var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#B5790A}</style>
     <a class="scan-cta" href="scan.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M7 9v6M10 9v6M13 9v6M16 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Scan a pack</a>
-    <p class="scan-or">or search: a food or brand, or describe what you want</p>
+    <p class="scan-or">Type a <span class="c1">food</span> · a <span class="c2">brand</span> · or a <span class="c3">recipe link</span></p>
     <form class="check-form" id="checkForm" role="search">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      <input id="checkInput" type="search" placeholder="Chocos, oats, or tangy lunch for 9 year…" autocomplete="off" aria-label="Search a food or recipe, or describe a taste, a meal and an age" enterkeyhint="search">
+      <input id="checkInput" type="search" placeholder="Chocos, oats, or a recipe link…" autocomplete="off" aria-label="Search a food or recipe, or paste a recipe link" enterkeyhint="search">
       <button type="submit">Check</button>
     </form>
     <div class="checking"><span>Parents are checking:</span>
       <button type="button" class="chip" data-q="Chocos">Chocos</button><button type="button" class="chip" data-q="Masala oats">Masala oats</button><button type="button" class="chip" data-q="Corn flakes">Corn flakes</button><button type="button" class="chip" data-q="Ragi dosa mix">Ragi dosa mix</button>
-    </div>
-    <div class="checking"><span>Or describe it:</span>
-      <button type="button" class="chip" data-q="tangy meal for 9 year">tangy meal for 9 year</button><button type="button" class="chip" data-q="sweet snack for 5 year">sweet snack for 5 year</button><button type="button" class="chip" data-q="mild dinner for toddler">mild dinner for toddler</button>
     </div>
   </div>
 
@@ -412,7 +429,7 @@
   <div class="tf-grid" id="tfGrid" role="list" aria-live="polite"></div>
   <p class="tf-more" style="margin:18px 0 0;max-width:640px;color:var(--ink-dim)"><b id="nRecipes" style="color:var(--ink)">Hundreds of</b> recipes, by age, meal, season and food preference. Save the ones you like, then put them into a plan for the week: breakfast, lunch, a 4 PM snack and dinner, for every day.</p>
   <a class="plan-btn" href="meal-ideas.html">Browse recipes and plan your week</a>
-  <p class="tf-more" style="margin:10px 0 0;color:var(--ink-dim)"><a href="recipes.html">See every recipe</a>, each with its own page and score.</p>
+  <p class="tf-more" style="margin:10px 0 0;color:var(--ink-dim)"><a href="recipes.html">See every recipe</a>, each with its own page and score, or <a href="ideas.html">browse ideas by taste, meal and age</a>.</p>
 
   <div class="stats3" aria-label="What is scored">
     <div class="stat3"><b id="nProducts">…</b><span>kids' foods scored</span></div>
@@ -467,6 +484,7 @@
   Benchmarked against <b>ICMR-NIN 2020</b> and <b>FSSAI</b> · Poshan Score is an independent rating, not a certification · No brand pays to be here
 </footer>
 
+<script src="recipe-pages.js"></script>
 <script>
 const API = 'https://kidposhan-platform.mailus-pixiedust.workers.dev';
 window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};   // the site build fills this in: product id -> the address of its own page
@@ -510,7 +528,8 @@ window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};   // the site build fills t
   const seasonNow = () => { const m = new Date().getMonth() + 1; return m >= 3 && m <= 6 ? 'summer' : m >= 7 && m <= 9 ? 'monsoon' : 'winter'; };
 
   // tomorrow's tiffin ideas: real lunch-box recipes for that age, best scores first
-  const card = (x, cook) => '<a class="tf-card" role="listitem" href="meal-ideas.html#/r/' + x.id + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx">' + (cook ? '<span class="by">By ' + esc(cook) + '</span>' : '') + '<b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead || x.total_minutes >= 240 ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.score != null ? x.score : x.poshan_score, x.capped) + '">' + Math.round(x.score != null ? x.score : x.poshan_score) + '</em></div></a>';
+  const recipeHref = (id) => { const m = window.KP_RECIPE_PAGES || {}; return m[id] ? 'recipes/' + m[id] : 'meal-ideas.html#/r/' + id; };
+  const card = (x, cook) => '<a class="tf-card" role="listitem" href="' + recipeHref(x.id) + '"><div class="ph"' + (x.image_url ? ' style="background-image:url(\'' + esc(x.image_url) + '\')"' : '') + '></div><div class="tx">' + (cook ? '<span class="by">By ' + esc(cook) + '</span>' : '') + '<b>' + esc(nice(x.name)) + '</b><span>' + (x.make_ahead || x.total_minutes >= 240 ? 'Make ahead' : x.total_minutes + ' min') + '</span><em data-b="' + bandOf(x.score != null ? x.score : x.poshan_score, x.capped) + '">' + Math.round(x.score != null ? x.score : x.poshan_score) + '</em></div></a>';
   function tiffin() {
     const g = $('tfGrid'); g.innerHTML = '<div class="tf-card"><div class="ph"></div><div class="tx"><b>Loading…</b></div></div>';
     const pref = (choices.pref && choices.pref.length) ? choices.pref.join(',') : 'veg';

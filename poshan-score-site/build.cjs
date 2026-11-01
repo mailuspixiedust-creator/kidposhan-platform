@@ -106,6 +106,8 @@ for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html'))) {
   for (const src of ['kp-meter.js', 'kp-visits.js', 'kp-search.js']) if (!h.includes(src)) h = h.replace('</body>', `<script src="/${src}" defer></script>\n</body>`);
   fs.writeFileSync(path.join(out, f), h);
 }
+// Google Search Console ownership file: it must stay on the site for the property to stay verified
+fs.writeFileSync(path.join(out, 'google24dab9c09cbed455.html'), 'google-site-verification: google24dab9c09cbed455.html');
 
 fs.writeFileSync(path.join(root, 'wrangler.toml'), `# Same Worker that serves www.kidposhan.in: static pages only (no script, no bindings).
 name = "poshan-score"

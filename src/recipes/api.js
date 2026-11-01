@@ -219,12 +219,15 @@ const AGE_GROUP_BAND = { '1-3y': '1-3', '4-6y': '4-6', '7-9y': '7-9', '10-12y': 
 // Every recipe a parent can see, in brief: the site build makes a page for each one and the Recipes index page lists them.
 export async function recipesIndex(env) {
   const { results } = await env.DB.prepare(
-    `SELECT r.id, r.name, s.world AS world, r.diet, r.total_minutes, r.poshan_score, s.name AS source_name,
+    `SELECT r.id, r.name, s.world AS world, r.diet, r.total_minutes, r.poshan_score, s.name AS source_name, r.age_min_months, r.age_max_months, r.updated_at, r.created_at,
+            (SELECT group_concat(taste || ':' || n) FROM kp_recipe_tastes WHERE recipe_id = r.id) AS tastes,
             (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.review_status IN ${VISIBLE} AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL ORDER BY r.id`
   ).all();
-  return { total: results.length, items: results.map((r) => ({ id: r.id, name: r.name, world: r.world, diet: r.diet, minutes: r.total_minutes, score: r.poshan_score, by: creditName(r.source_name), occasions: r.occasions ? r.occasions.split(',') : [] })) };
+  return { total: results.length, items: results.map((r) => ({ id: r.id, name: r.name, world: r.world, diet: r.diet, minutes: r.total_minutes, score: r.poshan_score, by: creditName(r.source_name), occasions: r.occasions ? r.occasions.split(',') : [],
+    age_min: r.age_min_months, age_max: r.age_max_months, updated: String(r.updated_at || r.created_at || '').slice(0, 10) || null,
+    tastes: Object.fromEntries(String(r.tastes || '').split(',').filter(Boolean).map((t) => { const [k, n] = t.split(':'); return [k, +n]; })) })) };
 }
 
 export async function recipeDetail(env, id, { pref = '', age = null, band = '', lite = false } = {}) {

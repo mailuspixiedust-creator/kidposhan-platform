@@ -33,6 +33,7 @@ import { submitReport, listReports, resolveReport, thankPending, betaStats, Beta
 import { autoReviewPacks, photoCheckPending } from './autoreview.js';
 import { kindCheckPending } from './kindcheck.js';
 import { tastesBackfill } from './taste.js';
+import { checkRecipeLink } from './linkcheck.js';
 import { scanLookup, scanSubmit, scanRetake, scanPhoto, readScansPending, pruneScans, whoHash, ScanError } from './scan.js';
 import { methodSpec } from './score2.js';
 import { rescoreAllPacks } from './ready.js';
@@ -145,6 +146,11 @@ export async function routeRecipes(request, env, ctx) {
   // The landing page's numbers
   if (request.method === 'GET' && path === '/api/kp/stats') {
     return withCors(request, new Response(JSON.stringify({ ...(await siteStats(env)), beta: await betaStats(env) }), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }));
+  }
+  // Paste a recipe's link, get its Poshan Score: GET /api/kp/recipe-check?url=https://...
+  if (request.method === 'GET' && path === '/api/kp/recipe-check') {
+    const out = await checkRecipeLink(env, url.searchParams.get('url') || '', { who: await whoHash(request) });
+    return withCors(request, new Response(JSON.stringify(out), { status: typeof out.status === 'number' ? out.status : 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } }));
   }
   // One search box for the whole site: GET /api/kp/search?q=saffola
   if (request.method === 'GET' && path === '/api/kp/search') {
@@ -377,7 +383,7 @@ export async function scheduledRecipes(env, cron) {
   } catch (e) { console.error('rescore-recipes', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
-  try { const t = await tastesBackfill(env, { limit: 250 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }
+  try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }
   try { console.log('kind-check', JSON.stringify(await kindCheckPending(env, { limit: 12 }))); } catch (e) { console.error('kind-check', e); }
   try { console.log('auto-review', JSON.stringify(await autoReviewPacks(env, { limit: 300 }))); } catch (e) { console.error('auto-review', e); }
   try { console.log('photo-check', JSON.stringify(await photoCheckPending(env, { limit: 1 }))); } catch (e) { console.error('photo-check', e); }
