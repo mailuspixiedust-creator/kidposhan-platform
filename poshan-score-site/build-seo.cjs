@@ -313,9 +313,18 @@ async function run(out) {
     if (fs.existsSync(pf)) { let h = fs.readFileSync(pf, 'utf8'); h = h.replace('window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};', 'window.KP_PRODUCT_PAGES=' + JSON.stringify(map) + ';'); fs.writeFileSync(pf, h); }
   }
   // 3b. a ranking page for each kind of food that has enough scored packs, and the index that links to them
-  let nBest = 0;
+  let nBest = 0, nBrands = 0, brandLinks = [];
+  // 3a. a page for each health-drink brand with at least two scored packs ("Is Bournvita healthy for kids?"), and the page that lists them
   try {
-    const best = require('./build-best.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
+    const brands = require('./build-brands.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
+    const brdir = path.join(out, 'brands');
+    fs.mkdirSync(brdir, { recursive: true });
+    for (const f of fs.readdirSync(brdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(brdir, f));
+    for (const f of brands.files) fs.writeFileSync(path.join(out, f.path), f.html);
+    urls.push(...brands.urls); nBrands = brands.count; brandLinks = brands.links;
+  } catch (e) { console.warn('no brand pages this build:', e.message); }
+  try {
+    const best = require('./build-best.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf, brandLinks });
     const bdir = path.join(out, 'best');
     fs.mkdirSync(bdir, { recursive: true });
     for (const f of fs.readdirSync(bdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(bdir, f));
@@ -383,7 +392,7 @@ async function run(out) {
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
-  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, sitemap with ${urls.length} addresses`);
+  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, sitemap with ${urls.length} addresses`);
 }
 
 module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage, get ctx() { return { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord }; } };

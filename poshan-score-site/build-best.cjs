@@ -21,7 +21,7 @@ const CHECK_HELP = {
 };
 
 function build(packs, ctx) {
-  const { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf } = ctx;
+  const { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf } = ctx, brandLinks = ctx.brandLinks || [];
   const tierOf = (n) => (n >= 80 ? 'Good' : n >= 50 ? 'OK' : 'Do not use');
   // group by kind
   const byKind = new Map();
@@ -91,6 +91,7 @@ ${NAV}
 <table class="rank">${rowsHtml}</table>
 ${help ? `<h2>What to check on the label</h2><p>The checks ${esc(low)} most often fail:</p><ul>${help}</ul>` : ''}
 <div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
+${g.kind === 'health_drink' && brandLinks.length ? `<h2>Brand guides</h2><p>${brandLinks.map((x) => `<a href="/brands/${x.slug}">Is ${esc(x.name)} healthy for kids?</a>`).join(' · ')} · <a href="/brands">All brands</a></p>` : ''}
 ${related.length ? `<h2>Related rankings</h2><p>${related.map((x) => `<a href="/best/${x.slug}">${esc(x.label)}</a>`).join(' · ')}</p>` : ''}
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
