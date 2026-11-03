@@ -104,7 +104,8 @@ export const MORE_KINDS = [
   K('dips_dressings', 'Dips and salad dressings', 'Spreads and sauces', 'dip dressing hummus salsa'),
   K('tomato_puree', 'Tomato puree and pasta sauce', 'Spreads and sauces', 'tomato puree paste passata pasta sauce'),
   K('coconut_milk', 'Coconut milk and cream', 'Spreads and sauces', 'coconut milk cream powder'),
-  K('soft_drink', 'Soft drinks and soda', 'Drinks', 'cola soda aerated carbonated soft drink sparkling pepsi'),
+  K('soft_drink', 'Soft drinks and soda', 'Drinks', 'cola soda aerated carbonated soft drink sparkling pepsi coke coca-cola diet coke sprite fanta'),
+  K('chyawanprash', 'Chyawanprash', 'Spreads and sauces', 'chyawanprash chyawanprakash chavanprash chawanprash herbal jam dabur zandu baidyanath ayurvedic immunity'),
   K('drink_mix', 'Drink mixes, squash and glucose', 'Drinks', 'squash syrup rasna tang glucon-d glucose ors electrolyte drink mix sharbat'),
   K('plain_milk', 'Packaged milk', 'Dairy', 'milk toned full cream tetra pack uht'),
   K('milk_powder', 'Milk powder and creamer', 'Dairy', 'milk powder dairy whitener creamer'),
@@ -123,7 +124,7 @@ export const kindForDish = (name) => READY_KINDS.find((k) => k.dish.test(String(
 // A realistic serving in grams (millilitres for drinks), by kind of product. The label is per 100 g and is scaled to this.
 export const SERVING_G = {
   rolled_oats: 40, muesli: 40, breakfast_cereal: 40, millet_porridge: 40, ragi_flour: 30, whole_wheat_atta: 50, multigrain_atta: 50, millet_flours: 40, dalia: 40, brown_rice: 45,
-  baby_cereal: 25, instant_noodles: 70, peanut_butter: 32, nut_butter: 32, choco_spread: 15, jam: 20, ketchup: 15, mayonnaise: 15, kids_biscuits: 30, millet_cookies: 30, rusk_toast: 20,
+  baby_cereal: 25, instant_noodles: 70, peanut_butter: 32, nut_butter: 32, choco_spread: 15, jam: 20, chyawanprash: 10, ketchup: 15, mayonnaise: 15, kids_biscuits: 30, millet_cookies: 30, rusk_toast: 20,
   whole_wheat_bread: 50, chips: 30, namkeen: 30, roasted_snacks: 30, snack_bars: 40, dried_fruit: 40, health_drink: 20, fruit_juice: 240, flavoured_milk: 240, yoghurt: 170, cheese: 30, paneer: 60, instant_soup: 15,
   custard_powder: 10, dessert_mix: 20, corn_flour: 10, cake_pastry: 55, sweets_mithai: 40, chocolate: 30, candy_toffee: 15, ice_cream: 85, semolina: 40, besan: 30, white_rice: 45,
   dal_pulses: 40, poha_flakes: 40, vermicelli_pasta: 55, nuts_seeds: 30, papad: 15, sweeteners: 10, pickle_chutney: 15, dips_dressings: 30, tomato_puree: 60, coconut_milk: 60,

@@ -15,7 +15,7 @@ export const RETAILERS = [
 const SEARCH_OVERRIDES = {
   carrot: 'carrot fresh', potato: 'potato fresh', onion: 'onion fresh', tomato: 'tomato fresh',
   rava: 'sooji rava', poha: 'poha thick', besan: 'besan gram flour', ragi: 'ragi flour',
-  moong_dal: 'moong dal yellow', toor_dal: 'toor dal', paneer: 'paneer fresh', curd: 'curd dahi',
+  moong_dal: 'moong dal yellow', toor_dal: 'toor dal', paneer: 'paneer fresh', ricotta: 'ricotta cheese', curd: 'curd dahi',
   coriander_leaves: 'coriander leaves', curry_leaves: 'curry leaves', green_chilli: 'green chilli',
 };
 

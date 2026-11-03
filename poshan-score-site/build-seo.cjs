@@ -182,7 +182,7 @@ function recipePage(d, slug, extra = {}) {
   const url = `${SITE}/recipes/${slug}`, nm = recName(d.name), sc = d.score || {}, score = Math.round(sc.value ?? d.poshan_score);
   const credit = d.source?.name || 'the recipe creator';
   // what the score says for this dish, from its own checks and its score at every age
-  const checks = sc.metrics || [], failed = checks.filter((m) => m.score === 0).map((m) => m.name.toLowerCase()), passed = checks.filter((m) => m.score === 1).length;
+  const checks = sc.metrics || [], failed = checks.filter((m) => m.score === 0).map((m) => (m.id === 'hfss' ? 'being high in fat, sugar or salt' : m.name.toLowerCase())), passed = checks.filter((m) => m.score === 1).length;
   const ages = Object.entries(d.scores_by_age || {}), top = ages.length ? Math.max(...ages.map(([, v]) => v)) : null, low = ages.length ? Math.min(...ages.map(([, v]) => v)) : null;
   const topAges = ages.filter(([, v]) => v === top).map(([a]) => (AGE_LABEL[a] || a).toLowerCase());
   const val = (id) => { const m = checks.find((x) => x.id === id); return m && m.value != null ? Number(m.value) : null; };
@@ -194,7 +194,7 @@ function recipePage(d, slug, extra = {}) {
     ['How is the Poshan Score worked out?', 'Ten yes-or-no checks on one serving: added sugar, sodium, saturated fat, trans fat, fibre, protein, preservatives, artificial additives, the first ingredient, and whether it is high in fat, sugar or salt. Each passed check is worth 10 points. The limits come from ICMR-NIN 2020, WHO and FSSAI and change with the age.'],
   ];
   const nutrRows = [['Protein', nutr.protein, 'g'], ['Fibre', nutr.fibre, 'g'], ['Saturated fat', nutr.satfat, 'g'], ['Added sugar', nutr.sugar, 'g'], ['Sodium', nutr.sodium, 'mg']].filter((x) => x[1] != null);
-  const fitHtml = `${nutrRows.length ? `<h2>Per serving</h2><table>${nutrRows.map(([k, v, u]) => `<tr><td>${k}</td><td class="m">${Math.round(v * 10) / 10} ${u}</td></tr>`).join('')}</table><p class="fine">${est ? 'Estimated from the ingredients' : 'From the recipe page'}, for one serving${d.servings ? ' (the recipe serves ' + esc(String(d.servings)) + ')' : ''}.</p>` : ''}`;
+  const fitHtml = `${nutrRows.length ? `<h2>Per serving</h2><table>${nutrRows.map(([k, v, u]) => `<tr><td>${k}</td><td class="m">${Math.round(v * 10) / 10} ${u}</td></tr>`).join('')}</table><p class="fine">${est ? 'Estimated from the ingredients' : 'From the recipe page'}, for one serving${d.servings ? ' (the recipe serves ' + esc(String(d.servings).replace(/^\s*(makes|serves|yields?|servings?:?)\s+/i, '')) + ')' : ''}.</p>` : ''}`;
   const moreHtml = `<div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
 ${(extra.similar || []).length ? `<h2>More like this</h2><ul class="ing">${extra.similar.map((x) => `<li><a href="/recipes/${x.slug}">${esc(x.name)}</a> <span class="fine">· ${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></li>`).join('')}</ul>` : ''}
 ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.map((c) => `<a href="/ideas/${c.slug}">${esc(c.h1)}</a>`).join(' · ')}</p>` : ''}`;
@@ -209,16 +209,17 @@ ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.
   const steps = Array.isArray(d.method) ? d.method : [];
   const stepsHtml = (() => {
     if (!steps.length) return '';
-    let out = '', open = false, cur = null;
+    let out = '', open = false, cur = null, n = 0;
     for (const st of steps) {
+      n++;
       if (st.section !== cur) { if (open) out += '</ol>'; cur = st.section; if (cur) out += `<h3>${esc(cur)}</h3>`; out += '<ol class="steps">'; open = true; }
-      out += `<li>${esc(st.text)}</li>`;
+      out += `<li id="step-${n}">${esc(st.text)}</li>`;
     }
     return (open ? out + '</ol>' : out);
   })();
   const ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: nm, image: d.image_url ? [d.image_url] : undefined, author: { '@type': 'Person', name: credit }, description: desc, url,
     totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ings : undefined,
-    recipeInstructions: steps.length ? steps.map((st) => ({ '@type': 'HowToStep', text: st.text })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
+    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', text: st.text, url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
   if (nutrRows.length) ld.nutrition = { '@type': 'NutritionInformation', servingSize: 'one serving', ...(nutr.protein != null ? { proteinContent: `${nutr.protein} g` } : {}), ...(nutr.fibre != null ? { fiberContent: `${nutr.fibre} g` } : {}), ...(nutr.satfat != null ? { saturatedFatContent: `${nutr.satfat} g` } : {}), ...(nutr.sodium != null ? { sodiumContent: `${nutr.sodium} mg` } : {}) };
   const ldFaq = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
   const ldCrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', item: SITE + '/' }, { name: 'Recipes', item: SITE + '/recipes' }, ...(extra.mealCrumb ? [{ name: cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')), item: `${SITE}/ideas/${extra.mealCrumb.slug}` }] : []), { name: nm, item: url }].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })) };
