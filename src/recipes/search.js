@@ -15,8 +15,43 @@ const like = (t) => '%' + t.replace(/[%_\\]/g, (c) => '\\' + c) + '%';
 // A search that finds nothing is remembered: the best-known foods parents ask for are the ones to score first.
 export async function recordMiss(env, term) {
   const t = String(term || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 60);
-  if (t.length < 3) return;
-  await env.DB.prepare('INSERT INTO kp_search_misses (term, n, last_at) VALUES (?, 1, ?) ON CONFLICT(term) DO UPDATE SET n = n + 1, last_at = excluded.last_at').bind(t, Math.floor(Date.now() / 1000)).run();
+  if (t.length < 4) return;
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare('INSERT INTO kp_search_misses (term, n, last_at) VALUES (?, 1, ?) ON CONFLICT(term) DO UPDATE SET n = n + 1, last_at = excluded.last_at').bind(t, now).run();
+  // "bournv" typed on the way to "bournvita" was logged a moment ago: drop it, the longer search replaces it
+  await env.DB.prepare("DELETE FROM kp_search_misses WHERE term != ? AND ? LIKE term || '%' AND n = 1 AND last_at > ?").bind(t, t, now - 300).run();
+}
+
+// Spellings parents type that the catalogue does not use. Each word may be matched by any of its spellings.
+const ALT = {
+  kellogs: ['kellogg'], kelloggs: ['kellogg'], kellog: ['kellogg'], kellogg: ['kellogg'], bornvita: ['bournvita'], bournvita: ['bournvita', 'bornvita'],
+  chawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyavanprash: ['chyawanprash', 'chyawanprakash'],
+  chavanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprakash: ['chyawanprash', 'chyawanprakash'],
+  maggie: ['maggi'], horlics: ['horlicks'], horlick: ['horlicks'], nestle: ['nestle', 'nestl'], cadburys: ['cadbury'], lays: ['lay'], parleg: ['parle'],
+};
+const variantsOf = (w) => [w, ...(ALT[w] || [])];
+
+// Closest spelling to a word, among the words in the catalogue (a slip of one letter, or two in a long word). null if nothing is close.
+function editDistance(a, b) {
+  const d = [];
+  for (let i = 0; i <= a.length; i++) { d[i] = [i]; }
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length];
+}
+export function closestWord(w, vocab) {
+  if (w.length < 4) return null;
+  const max = w.length >= 8 ? 2 : 1;
+  let best = null, bestD = max + 1;
+  for (const v of vocab) {
+    if (v[0] !== w[0] || Math.abs(v.length - w.length) > max) continue;
+    const dist = editDistance(w, v);
+    if (dist < bestD || (dist === bestD && best && v.length < best.length)) { best = v; bestD = dist; }
+  }
+  return bestD <= max ? best : null;
 }
 
 const DIETS_OF = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'], egg: ['egg'] };
@@ -95,10 +130,19 @@ export async function searchAll(env, q, { limit = 6, age = null, only = null } =
   ).bind(...words.map(like)).all();
   const recipes = results.filter((r) => !isPrepRecipe(r.name)).slice(0, limit).map((r) => ({ ...r, source_name: creditName(r.source_name), capped: !!r.capped }));
   const all = only === 'recipes' ? [] : (await listProducts(env, { age: ageInfo.id, limit: 3000, unchecked: true })).items.sort((x, y) => (x.unchecked === y.unchecked ? 0 : x.unchecked ? 1 : -1));   // checked packs first
-  const products = all.filter((p) => { const hay = [p.name, p.brand, p.kind_label, p.category].join(' ').toLowerCase(); return words.every((w) => hay.includes(w)); })
-    .slice(0, limit).map((p) => ({ id: p.id, name: p.name, brand: p.brand, image_url: p.image_url, score: p.score, band: p.band, capped: p.capped, category: p.category, unchecked: !!p.unchecked, source: p.source }));
+  const hayOf = (p) => [p.name, p.brand, p.kind_label, p.category].join(' ').toLowerCase();
+  const pick = (ws) => all.filter((p) => { const hay = hayOf(p); return ws.every((w) => variantsOf(w).some((v) => hay.includes(v))); });
+  const show = (list) => list.slice(0, limit).map((p) => ({ id: p.id, name: p.name, brand: p.brand, image_url: p.image_url, score: p.score, band: p.band, capped: p.capped, category: p.category, unchecked: !!p.unchecked, source: p.source }));
+  let products = show(pick(words));
+  let corrected = null;
+  // nothing found: a word may be a slip ("bournvta", "cadbery"). Try the closest spelling used in the catalogue, and say so.
+  if (!recipes.length && !products.length && all.length) {
+    const vocab = new Set(all.flatMap((p) => hayOf(p).split(/[^a-z0-9]+/).filter((x) => x.length >= 4)));
+    const fixed = words.map((w) => (pick([w]).length ? w : closestWord(w, vocab) || w));
+    if (fixed.some((w, i) => w !== words[i])) { const hit = pick(fixed); if (hit.length) { products = show(hit); corrected = fixed.join(' '); } }
+  }
   if (!recipes.length && !products.length) await recordMiss(env, words.join(' '));
-  return { q: String(q || ''), age_label: ageLabel, recipes, products };
+  return { q: String(q || ''), age_label: ageLabel, recipes, products, ...(corrected ? { corrected } : {}) };
 }
 
 // How much is scored, for the landing page. "Brands paying to be here" is a promise, not a count: it is always 0.

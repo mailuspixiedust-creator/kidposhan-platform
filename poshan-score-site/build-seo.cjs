@@ -209,16 +209,17 @@ ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.
   const steps = Array.isArray(d.method) ? d.method : [];
   const stepsHtml = (() => {
     if (!steps.length) return '';
-    let out = '', open = false, cur = null;
+    let out = '', open = false, cur = null, n = 0;
     for (const st of steps) {
+      n++;
       if (st.section !== cur) { if (open) out += '</ol>'; cur = st.section; if (cur) out += `<h3>${esc(cur)}</h3>`; out += '<ol class="steps">'; open = true; }
-      out += `<li>${esc(st.text)}</li>`;
+      out += `<li id="step-${n}">${esc(st.text)}</li>`;
     }
     return (open ? out + '</ol>' : out);
   })();
   const ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: nm, image: d.image_url ? [d.image_url] : undefined, author: { '@type': 'Person', name: credit }, description: desc, url,
     totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ings : undefined,
-    recipeInstructions: steps.length ? steps.map((st) => ({ '@type': 'HowToStep', text: st.text })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
+    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', text: st.text, url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
   if (nutrRows.length) ld.nutrition = { '@type': 'NutritionInformation', servingSize: 'one serving', ...(nutr.protein != null ? { proteinContent: `${nutr.protein} g` } : {}), ...(nutr.fibre != null ? { fiberContent: `${nutr.fibre} g` } : {}), ...(nutr.satfat != null ? { saturatedFatContent: `${nutr.satfat} g` } : {}), ...(nutr.sodium != null ? { sodiumContent: `${nutr.sodium} mg` } : {}) };
   const ldFaq = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
   const ldCrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', item: SITE + '/' }, { name: 'Recipes', item: SITE + '/recipes' }, ...(extra.mealCrumb ? [{ name: cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')), item: `${SITE}/ideas/${extra.mealCrumb.slug}` }] : []), { name: nm, item: url }].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })) };

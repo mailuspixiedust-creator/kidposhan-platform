@@ -381,6 +381,16 @@ export async function scheduledRecipes(env, cron) {
       console.log('rescore-recipes', upto, finished);
     }
   } catch (e) { console.error('rescore-recipes', e); }
+  // once: ricotta got its own, lighter food figures, so the recipes that list it are read and scored again (approval kept)
+  try {
+    const done = await env.DB.prepare("SELECT 1 x FROM kp_ready_research WHERE kind = 'rescore:ricotta-v1'").first();
+    if (!done) {
+      const { results } = await env.DB.prepare("SELECT DISTINCT recipe_id FROM kp_recipe_ingredients WHERE raw_text LIKE '%ricotta%' LIMIT 40").all();
+      for (const r of results) { await reparseIngredients(env, r.recipe_id); await scoreRecipe(env, r.recipe_id, { keepApproval: true }); }
+      await env.DB.prepare("INSERT INTO kp_ready_research (kind, last_run_at, found, runs) VALUES ('rescore:ricotta-v1', datetime('now'), ?, 999)").bind(results.length).run();
+      console.log('rescore-ricotta', results.length);
+    }
+  } catch (e) { console.error('rescore-ricotta', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
   try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }

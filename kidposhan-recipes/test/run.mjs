@@ -1646,5 +1646,23 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
     ok(viaRouter.status === 200 && vj.ok === true && vj.score === good.score, 'The same answer comes through the real address /api/kp/recipe-check');
   } finally { globalThis.fetch = realFetch; }
 }
+// ---- spelling help, and a miss log without half-typed words ----
+{
+  const SR = await import('../../src/recipes/search.js');
+  const vocab = new Set(['organic', 'kellogg', 'bournvita', 'horlicks', 'cadbury']);
+  ok(SR.closestWord('bournvta', vocab) === 'bournvita' && SR.closestWord('cadbery', vocab) === 'cadbury' && SR.closestWord('horlcks', vocab) === 'horlicks', 'A slip of one letter finds the closest spelling in the catalogue');
+  ok(SR.closestWord('zzzzzz', vocab) === null && SR.closestWord('org', vocab) === null, 'Nothing close, or a very short word, is left alone');
+  const PRX = await import('../../src/recipes/products.js');
+  const anyPack = (await PRX.listProducts(env, { limit: 3000, unchecked: true })).items.find((p) => /[a-z]{5,}/i.test(p.name));
+  const real = anyPack.name.toLowerCase().match(/[a-z]{5,}/)[0], typo = real[0] + 'q' + real.slice(2);
+  const sp = await SR.searchAll(env, typo);
+  ok(sp.corrected === real && sp.products.some((p) => p.id === anyPack.id), 'A misspelt search shows the products it was closest to, and says what it searched for');
+  const exact = await SR.searchAll(env, real);
+  ok(!exact.corrected, 'A correct search says nothing about spelling');
+  await SR.recordMiss(env, 'bournv'); await SR.recordMiss(env, 'bournvit'); await SR.recordMiss(env, 'bournvita sachet');
+  const left = db.prepare("SELECT term FROM kp_search_misses WHERE term LIKE 'bournv%'").all().map((r) => r.term);
+  ok(left.length === 1 && left[0] === 'bournvita sachet', 'Half-typed words are dropped from the miss log when the full search arrives');
+}
+
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);

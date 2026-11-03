@@ -35,7 +35,7 @@ const SYNONYMS = {
   masoor_dal: ['masoor dal', 'red lentils'], urad_dal: ['urad dal', 'ulundu'], chana_dal: ['chana dal', 'bengal gram'],
   chickpeas: ['chickpeas', 'kabuli chana', 'chole'], rajma: ['rajma', 'kidney beans'], sprouts: ['sprouts', 'sprouted moong'],
   paneer: ['paneer', 'cottage cheese', 'chhena'], milk: ['milk', 'doodh'], curd: ['curd', 'yogurt', 'yoghurt', 'dahi', 'thayir'],
-  butter: ['butter'], cheese: ['cheese'], egg: ['egg', 'eggs', 'anda', 'dim'], chicken: ['chicken', 'murgi'],
+  butter: ['butter'], cheese: ['cheese'], ricotta: ['ricotta', 'ricotta cheese'], egg: ['egg', 'eggs', 'anda', 'dim'], chicken: ['chicken', 'murgi'],
   fish: ['fish', 'machh', 'rohu', 'katla', 'pomfret', 'bhetki'], prawn: ['prawn', 'prawns', 'shrimp', 'chingri'], mutton: ['mutton', 'lamb', 'goat meat'],
   peanuts: ['peanuts', 'groundnuts', 'moongphali', 'verkadalai'], cashew: ['cashew', 'cashews', 'kaju'], almonds: ['almonds', 'badam'],
   jaggery: ['jaggery', 'gur', 'gud', 'vellam', 'nolen gur'], honey: ['honey', 'shahad'], sugar: ['sugar', 'cheeni'],
@@ -83,7 +83,7 @@ Object.assign(SYNONYMS, {
   herbs: ['basil', 'parsley', 'thyme', 'rosemary', 'dill', 'sage', 'chives', 'mixed herbs', 'italian seasoning', 'coriander stalks', 'thai basil'],
 });
 const ALSO = {
-  cheese: ['cheddar', 'mozzarella', 'parmesan', 'gouda', 'feta', 'halloumi', 'ricotta', 'mascarpone', 'emmental', 'gruyere', 'grated cheese'],
+  cheese: ['cheddar', 'mozzarella', 'parmesan', 'gouda', 'feta', 'halloumi', 'mascarpone', 'emmental', 'gruyere', 'grated cheese'],
   fish: ['salmon', 'tuna', 'cod', 'haddock', 'sardines', 'mackerel', 'anchovies', 'white fish', 'sea bass', 'tilapia', 'trout', 'basa'],
   oil: ['olive oil', 'vegetable oil', 'sesame oil', 'canola oil', 'rapeseed oil', 'cooking oil', 'peanut oil'],
   sugar: ['caster sugar', 'brown sugar', 'palm sugar', 'icing sugar', 'powdered sugar', 'granulated sugar', 'coconut sugar'],

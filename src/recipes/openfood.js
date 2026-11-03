@@ -15,7 +15,8 @@ const PAGE_SIZE = 50;
 // The best-known brands first (Open Food Facts brand tags). One request each, three pages at most.
 export const OFF_BRANDS = ['maggi', 'bournvita', 'horlicks', 'cerelac', 'kurkure', 'parle', 'britannia', 'kellogg-s', 'nestle', 'amul', 'cadbury', 'tata-soulfull', 'saffola',
   'quaker', 'yoga-bar', 'mtr', 'haldiram-s', 'lay-s', 'sunfeast', 'complan', 'boost', 'pediasure', 'kissan', 'bagrry-s', 'patanjali', 'yippee', 'top-ramen', 'knorr',
-  'happilo', 'slurrp-farm', 'early-foods', 'ching-s-secret', 'del-monte', 'dr-oetker-funfoods', 'sofit', 'fun-foods', 'mother-dairy', 'epigamia', 'raw-pressery', 'real'];
+  'happilo', 'slurrp-farm', 'early-foods', 'ching-s-secret', 'del-monte', 'dr-oetker-funfoods', 'sofit', 'fun-foods', 'mother-dairy', 'epigamia', 'raw-pressery', 'real',
+  'dabur', 'zandu', 'baidyanath', 'id-fresh', 'coca-cola', 'pepsi', 'sprite', 'frooti', 'maaza', 'tropicana', 'bournvita-little-champs', 'britannia-nutrichoice'];
 // After the brands: the categories parents buy for children, most-scanned first, five pages each.
 export const OFF_CATEGORIES = ['breakfast-cereals', 'instant-noodles', 'noodles', 'biscuits', 'snacks', 'chips-and-crisps', 'malted-drinks', 'baby-cereals', 'fruit-juices',
   'peanut-butters', 'chocolate-spreads', 'jams', 'tomato-ketchup', 'breads', 'rusks', 'flavoured-milks', 'yogurts', 'cheeses', 'cereal-bars', 'dried-fruits'];
@@ -40,6 +41,7 @@ export function kindFor(categories = [], name = '') {
     ['rusk_toast', /rusk|toast/],
     ['millet_cookies', /millet.*(cookie|biscuit)|ragi.*(cookie|biscuit)/],
     ['kids_biscuits', /biscuit|cookie|cracker/],
+    ['chyawanprash', /chyawanprash|chyavanprash|chawanprash|chyawanprakash/],
     ['health_drink', /malted|malt-?(drink|beverage)|health-? ?drink|bournvita|horlicks|complan|\bboost\b|chocolate-?powder|protein-?powder|pediasure|sofit/],
     ['instant_noodles', /noodle|vermicelli|ramen|pasta/],
     ['muesli', /muesli|granola/],
@@ -70,7 +72,7 @@ export function kindFor(categories = [], name = '') {
     ['dips_dressings', /\bdips?\b|dressing|hummus/],
     ['tomato_puree', /tomato-?(puree|paste)|passata|pasta-?sauce/],
     ['coconut_milk', /coconut-?(milk|cream)/],
-    ['soft_drink', /soft-?drink|\bsoda\b|\bcola\b|carbonated|aerated|sparkling/],
+    ['soft_drink', /soft-?drink|\bsodas?\b|\bcolas?\b|carbonated|aerated|sparkling/],
     ['drink_mix', /squash|syrup|glucose|electrolyte|\bors\b|drink-?mix|rasna/],
     ['plant_milk', /soy-?milk|almond-?milk|oat-?milk|plant-?based-?milk/],
     ['tofu_soya', /tofu|soya|soy-?chunks|meal-?maker/],
