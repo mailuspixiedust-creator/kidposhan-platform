@@ -182,7 +182,7 @@ function recipePage(d, slug, extra = {}) {
   const url = `${SITE}/recipes/${slug}`, nm = recName(d.name), sc = d.score || {}, score = Math.round(sc.value ?? d.poshan_score);
   const credit = d.source?.name || 'the recipe creator';
   // what the score says for this dish, from its own checks and its score at every age
-  const checks = sc.metrics || [], failed = checks.filter((m) => m.score === 0).map((m) => m.name.toLowerCase()), passed = checks.filter((m) => m.score === 1).length;
+  const checks = sc.metrics || [], failed = checks.filter((m) => m.score === 0).map((m) => (m.id === 'hfss' ? 'being high in fat, sugar or salt' : m.name.toLowerCase())), passed = checks.filter((m) => m.score === 1).length;
   const ages = Object.entries(d.scores_by_age || {}), top = ages.length ? Math.max(...ages.map(([, v]) => v)) : null, low = ages.length ? Math.min(...ages.map(([, v]) => v)) : null;
   const topAges = ages.filter(([, v]) => v === top).map(([a]) => (AGE_LABEL[a] || a).toLowerCase());
   const val = (id) => { const m = checks.find((x) => x.id === id); return m && m.value != null ? Number(m.value) : null; };
@@ -194,7 +194,7 @@ function recipePage(d, slug, extra = {}) {
     ['How is the Poshan Score worked out?', 'Ten yes-or-no checks on one serving: added sugar, sodium, saturated fat, trans fat, fibre, protein, preservatives, artificial additives, the first ingredient, and whether it is high in fat, sugar or salt. Each passed check is worth 10 points. The limits come from ICMR-NIN 2020, WHO and FSSAI and change with the age.'],
   ];
   const nutrRows = [['Protein', nutr.protein, 'g'], ['Fibre', nutr.fibre, 'g'], ['Saturated fat', nutr.satfat, 'g'], ['Added sugar', nutr.sugar, 'g'], ['Sodium', nutr.sodium, 'mg']].filter((x) => x[1] != null);
-  const fitHtml = `${nutrRows.length ? `<h2>Per serving</h2><table>${nutrRows.map(([k, v, u]) => `<tr><td>${k}</td><td class="m">${Math.round(v * 10) / 10} ${u}</td></tr>`).join('')}</table><p class="fine">${est ? 'Estimated from the ingredients' : 'From the recipe page'}, for one serving${d.servings ? ' (the recipe serves ' + esc(String(d.servings)) + ')' : ''}.</p>` : ''}`;
+  const fitHtml = `${nutrRows.length ? `<h2>Per serving</h2><table>${nutrRows.map(([k, v, u]) => `<tr><td>${k}</td><td class="m">${Math.round(v * 10) / 10} ${u}</td></tr>`).join('')}</table><p class="fine">${est ? 'Estimated from the ingredients' : 'From the recipe page'}, for one serving${d.servings ? ' (the recipe serves ' + esc(String(d.servings).replace(/^\s*(makes|serves|yields?|servings?:?)\s+/i, '')) + ')' : ''}.</p>` : ''}`;
   const moreHtml = `<div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
 ${(extra.similar || []).length ? `<h2>More like this</h2><ul class="ing">${extra.similar.map((x) => `<li><a href="/recipes/${x.slug}">${esc(x.name)}</a> <span class="fine">· ${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></li>`).join('')}</ul>` : ''}
 ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.map((c) => `<a href="/ideas/${c.slug}">${esc(c.h1)}</a>`).join(' · ')}</p>` : ''}`;

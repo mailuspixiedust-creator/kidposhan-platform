@@ -100,7 +100,7 @@ fs.copyFileSync(path.join(root, '..', 'public', 'built-with-parents.html'), path
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-visits.js'), path.join(out, 'kp-visits.js'));
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-meter.js'), path.join(out, 'kp-meter.js'));
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-search.js'), path.join(out, 'kp-search.js'));
-for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html'))) {
+for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html') && !/^google[0-9a-f]+\.html$/.test(n))) {
   let h = fs.readFileSync(path.join(out, f), 'utf8');
   if (!h.includes('</body>')) throw new Error(f + ': no </body> to add the scripts before');
   for (const src of ['kp-meter.js', 'kp-visits.js', 'kp-search.js']) if (!h.includes(src)) h = h.replace('</body>', `<script src="/${src}" defer></script>\n</body>`);
