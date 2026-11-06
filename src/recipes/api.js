@@ -10,6 +10,7 @@
 // Diet preference and age safety are HARD filters and are never relaxed.
 // Season and occasion are SOFT: relaxed in tiers, and each result says how it matched.
 
+import { FIT_FILTERS } from './dietfit.js';
 import { buyLinksFor } from '../commerce/buylinks.js';
 import { displayName } from './normalize.js';
 import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
@@ -48,6 +49,7 @@ function readParams(url) {
   const occasions = uniq(list(p.get('occasion'))).slice(0, 5);
   const seasons = uniq(list(p.get('season') || 'all')).slice(0, 4);
   const prefs = uniq(list(p.get('pref') || 'veg')).slice(0, 3);
+  const fit = uniq(list(p.get('fit'))).filter((x) => FIT_FILTERS[x]).slice(0, 5);
   const isIndia = (p.get('world') || 'india') === 'india';
   const limit = Math.min(Math.max(parseInt(p.get('limit'), 10) || (isIndia ? MIN_RESULTS : WORLD_SHELF), isIndia ? MIN_RESULTS : 4), MAX_LIMIT);
   const vidRaw = p.get('vid') || '';
@@ -63,7 +65,7 @@ function readParams(url) {
   if (prefs.some((x) => !DIETS[x])) errors.push('pref must be veg, jain or nonveg');
   if (!WORLDS.includes(world)) errors.push(`world must be one of ${WORLDS.join(', ')}`);
   const age = Math.min(...ages);                      // the youngest: the single-value fields keep meaning the primary choice
-  return { age, ages, bandId, band: bandId || bandForMonths(age).id, occasion: occasions[0], occasions, season: seasons[0], seasons, pref: prefs[0], prefs, limit, world, vid, shuffle, exclude, errors };
+  return { age, ages, bandId, band: bandId || bandForMonths(age).id, occasion: occasions[0], occasions, season: seasons[0], seasons, pref: prefs[0], prefs, fit, limit, world, vid, shuffle, exclude, errors };
 }
 
 // the search's own view of its filters: lists, whether it was called with lists or with single values
@@ -89,7 +91,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
            (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id) AS rating_count,
            (SELECT count(*) FROM kp_ratings WHERE recipe_id = r.id AND stars >= 4) AS liked_count,
            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions,
-           (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons
+           (SELECT group_concat(season)   FROM kp_recipe_seasons   WHERE recipe_id = r.id) AS seasons, r.how_often, r.how_often_why
       FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
      WHERE r.review_status IN ${VISIBLE}
        AND (r.diet IN (${diets.map(() => '?').join(',')})${q.prefs.includes('nonveg') ? ' OR r.mayo_flex = 1' : ''})
@@ -98,6 +100,7 @@ async function queryTier(env, q, tier, excludeIds, take) {
        AND r.total_minutes IS NOT NULL AND (${scoreExpr(q)}) IS NOT NULL`;     // no score or no time: not shown until it has both
   args.push(...diets, Math.min(...q.ages), Math.min(144, Math.max(...q.ages)), q.world || 'india');   // suits every chosen age
   if (tier.good) sql += ` AND (${scoreExpr(q)}) >= ${GOOD_MIN} AND ${capExpr(q)} = 0`;
+  for (const f of q.fit || []) sql += ` AND ${FIT_FILTERS[f].sql}`;
 
   if (tier.season) {
     sql += ` AND EXISTS (SELECT 1 FROM kp_recipe_seasons x WHERE x.recipe_id = r.id AND x.season IN (${q.seasons.map(() => '?').join(',')}, 'all'))`;
@@ -221,11 +224,12 @@ export async function recipesIndex(env) {
   const { results } = await env.DB.prepare(
     `SELECT r.id, r.name, s.world AS world, r.diet, r.total_minutes, r.poshan_score, s.name AS source_name, r.age_min_months, r.age_max_months, r.updated_at, r.created_at,
             (SELECT group_concat(taste || ':' || n) FROM kp_recipe_tastes WHERE recipe_id = r.id) AS tastes,
-            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions
+            (SELECT group_concat(occasion) FROM kp_recipe_occasions WHERE recipe_id = r.id) AS occasions, r.diet_tags, r.how_often, r.how_often_why
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.review_status IN ${VISIBLE} AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL ORDER BY r.id`
   ).all();
   return { total: results.length, items: results.map((r) => ({ id: r.id, name: r.name, world: r.world, diet: r.diet, minutes: r.total_minutes, score: r.poshan_score, by: creditName(r.source_name), occasions: r.occasions ? r.occasions.split(',') : [],
+    how_often: r.how_often || null, how_often_why: r.how_often_why || null, diet_tags: String(r.diet_tags || '').split(',').filter(Boolean),
     age_min: r.age_min_months, age_max: r.age_max_months, updated: String(r.updated_at || r.created_at || '').slice(0, 10) || null,
     tastes: Object.fromEntries(String(r.tastes || '').split(',').filter(Boolean).map((t) => { const [k, n] = t.split(':'); return [k, +n]; })) })) };
 }
@@ -286,6 +290,7 @@ export async function recipeDetail(env, id, { pref = '', age = null, band = '', 
     // Score parents may see: exact always; estimated only after the owner approved it.
     poshan_score: scoreVisible ? scoreValue : null,
     // the score for every age group (the pages' "at every age" table); a group not yet worked out for this recipe is left out
+    how_often: r.how_often || null, how_often_why: r.how_often_why || null, diet_tags: String(r.diet_tags || '').split(',').filter(Boolean),
     scores_by_age: scoreVisible ? Object.fromEntries(Object.entries(AGE_GROUP_BAND).filter(([, b]) => detail.bands?.[b]).map(([k, b]) => [k, detail.bands[b].total])) : null,
     score: scoreVisible ? { value: scoreValue, kind: r.score_status, band: forBand?.tier || bandOf(scoreValue), age_band: bandId, age_band_label: bandById(bandId).label, metrics: forBand?.metrics || null, capped: !!forBand?.capped, basis: detail.per_serving_basis ? `per serving (${detail.per_serving_basis} servings), against the day's reference` : null, inputs: detail.inputs || null, sources: detail.sources || null } : null,
     source: { name: creditName(r.source_name), url: r.source_url, rights_status: r.rights_status },

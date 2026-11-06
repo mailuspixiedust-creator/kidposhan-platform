@@ -87,7 +87,20 @@ const AGE_LABEL = { '6-12m': '6–12 months', '1-3y': '1–3 years', '4-6y': '4�
 const slugOf = (p) => `${p.id}-${String(p.name || 'product').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '')}`;
 const TIER_COLOR = { Good: '#3F6B3C', OK: '#B5790A', 'Do not use': '#A6402A' };
 
-function productPage(p, slug) {
+// Packs of the same kind that score higher, for the page of a pack that is not already Good: up to three, best first, one per brand where it can.
+function swapsFor(it, all) {
+  const own = Math.round(it.score);
+  if (own >= 80 || !it.kind || !it.kind_checked) return [];
+  const better = all.filter((x) => x.item.id !== it.id && x.item.kind === it.kind && x.item.kind_checked && Math.round(x.item.score) >= own + 10 && !/\d{8,}/.test(x.item.name))
+    .sort((a, b) => b.item.score - a.item.score || String(a.item.name).localeCompare(String(b.item.name)));
+  const top = better.filter((x) => x.item.score >= 80).length >= 1 ? better.filter((x) => x.item.score >= 80) : better;
+  const seen = new Set(), out = [];
+  for (const x of top) { const b = String(x.item.brand || x.item.name).toLowerCase(); if (!seen.has(b)) { seen.add(b); out.push(x); } if (out.length === 3) break; }
+  for (const x of top) { if (out.length >= 3) break; if (!out.includes(x)) out.push(x); }
+  return out;
+}
+
+function productPage(p, slug, extra = {}) {
   const url = `${SITE}/products/${slug}`;
   const score = Math.round(p.score), nm = p.name.split('|')[0].replace(/\s+/g, ' ').trim();
   const title = `Is ${nm} healthy for kids? Poshan Score ${score}/100`;
@@ -118,6 +131,7 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;bo
 .cta{display:inline-block;background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;text-decoration:none;font-weight:600;margin:6px 8px 6px 0}
 .cta.alt{background:none;color:var(--ink);border:1.5px solid var(--ink)}
 .fine{font-size:13px;color:var(--dim)}
+ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}ul.swaps li a{font-weight:600}ul.swaps li b{margin-left:auto;min-width:40px;text-align:center;color:#fff;border-radius:999px;padding:3px 10px}
 .more{margin:14px 0}.more>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--green);color:var(--green);background:var(--card);font-weight:700;border-radius:12px;padding:13px 16px;font-size:16px}.more>summary::-webkit-details-marker{display:none}.more[open]>summary{background:#E3EEDF;color:#2d4f2b}
 @media(max-width:520px){.hero{grid-template-columns:96px 1fr}.hero img{width:96px;height:96px}td.r{display:none}}
 </style></head><body>
@@ -129,6 +143,8 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;bo
 <div class="score" id="kpscore"><b>${score}</b><div><div><strong>${esc(p.capped ? 'OK (capped)' : p.band)}</strong></div><span>Poshan Score for ${esc(p.age_label)}, out of 100${p.capped ? '. Held at OK because one risk check failed.' : ''}</span></div></div></div>
 <div id="kpm"></div><div id="kpclaim"></div>
 <p>${esc(p.brand ? p.brand + ' · ' : '')}${esc(p.kind_label || '')}${p.pack_size ? ' · ' + esc(p.pack_size) : ''}. Scored ${esc(p.basis || 'per serving')}. The same product scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
+${extra.swaps && extra.swaps.length ? `<h2>Better-scoring ${esc((p.kind_label || 'packs').toLowerCase())}</h2><p>${esc(nm)} scores ${score} for ${esc(p.age_label)}. These score higher on the same ten checks:</p><ul class="swaps">${extra.swaps.map((x) => `<li><a href="/products/${x.slug}">${esc(String(x.item.name).split('|')[0].replace(/\s+/g, ' ').trim())}</a> <span class="fine">${esc(x.item.brand || '')}</span> <b style="background:${TIER_COLOR[x.item.capped ? 'OK' : x.item.band] || TIER_COLOR.Good}">${Math.round(x.item.score)}</b></li>`).join('')}</ul>` : ''}
+<p class="fine"><a href="/compare?a=${p.id}">Compare ${esc(nm)} with another pack</a></p>
 <details class="more"><summary>See how this score is worked out</summary>
 <h2>The score at every age</h2><table>${byAge}</table>
 <h2>How the score is worked out: ten checks, each a yes or no</h2><table>${metrics}</table>
@@ -151,6 +167,10 @@ fetch('${PLATFORM}/api/kp/products/${p.id}').then(function(r){return r.json()}).
 
 // ---- recipes: a page for every recipe, and an index page that links to all of them ----
 const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+// "how often to eat it", worked out in the platform from how the dish is made (see src/recipes/dietfit.js); separate from the Poshan Score
+const HOW = { everyday: ['Everyday', 'Fine most days, with variety'], often: ['Often', 'A few times a week'], sometimes: ['Sometimes', 'About once a week'], occasionally: ['Occasionally', 'A treat, once in a while'] };
+const SHOW_HOW = true;        // switch on when most recipes have their diet tags
+const howLine = (d) => (SHOW_HOW && d.how_often && HOW[d.how_often] ? `<p class="howline"><b>How often:</b> <span class="how how-${d.how_often}">${HOW[d.how_often][0]}${d.how_often_why ? ' · ' + esc(d.how_often_why) : ''}</span> ${HOW[d.how_often][1]}. The Poshan Score shows how one serving does against a child's daily limits; this line is about how the food is made.</p>` : '');
 const MEAL_LABEL = { breakfast: 'Breakfast', lunchbox: 'School lunchbox', lunch: 'Lunch', snack_4pm: '4 PM snack', dinner: 'Dinner' };
 const DIET_WORD = { veg: 'Vegetarian', jain: 'Jain', egg: 'Egg', nonveg: 'Non-vegetarian' };
 const recName = (n) => String(n || 'Recipe').split('|')[0].replace(/\s+/g, ' ').replace(/\s+recipes?\s*$/i, '').trim();
@@ -166,6 +186,8 @@ h1{font-size:clamp(26px,6vw,36px);line-height:1.15;margin:6px 0 8px}h2{font-size
 .crumb{font-size:13px;color:var(--dim)}.crumb a{color:var(--dim)}
 .hero{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin:14px 0}
 .hero img{width:100%;height:auto;aspect-ratio:760/340;max-height:340px;object-fit:cover;border-radius:16px;border:1px solid var(--line)}
+.how{display:inline-block;font-size:13px;font-weight:600;border-radius:999px;padding:2px 10px;background:#E3F0DE;color:#2F5A2C}.how-often{background:#EEF1D8;color:#55600F}.how-sometimes{background:#FBEBC6;color:#7A5200}.how-occasionally{background:#F8E3DC;color:#8F3622}
+.howline{margin:12px 0;font-size:14.5px;color:var(--dim)}.howline b{color:var(--ink)}
 .facts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}.facts span{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13.5px;color:var(--dim)}
 table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}td.m{text-align:right;white-space:nowrap}
 ul.ing{padding-left:20px}ul.ing li{margin:4px 0}ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
@@ -236,6 +258,7 @@ ${NAV}
 <p class="fine">Recipe by ${d.source?.url ? `<a href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(credit)}</a>` : esc(credit)}</p>
 ${d.image_url ? `<div class="hero"><img src="${esc(d.image_url)}" alt="${esc(nm)}" width="760" height="340" loading="eager" fetchpriority="high" decoding="async" referrerpolicy="no-referrer"><span class="fine">Photo: ${esc(credit)}</span></div>` : ''}
 <div class="facts">${facts}</div>
+${howLine(d)}
 <div id="kpm" style="margin:18px 0 6px"></div>
 <p>${esc(nm)} scores <b>${score}</b> out of 100 (${esc(sc.capped ? 'OK, held by a risk check' : sc.band)}) for ${esc(sc.age_band_label || 'ages 4–6')}, worked out for one serving. The same dish scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${d.kid_note ? `<p class="note">${esc(d.kid_note)}</p>` : ''}
@@ -299,13 +322,16 @@ async function run(out) {
     const one = async (it) => {
       try {
         const d = await getJson(`${PLATFORM}/api/kp/products/${it.id}?age=4-6y`);
-        const slug = slugOf({ id: it.id, name: it.name });
-        const pg = productPage(d, slug);
-        fs.writeFileSync(path.join(dir, slug + '.html'), pg.html);
-        map[it.id] = slug; urls.push({ loc: pg.url, pr: '0.7', lm: it.updated }); packsData.push({ item: it, detail: d });
+        packsData.push({ item: it, detail: d, slug: slugOf({ id: it.id, name: it.name }) });
       } catch (e) { console.warn('product page skipped', it.id, e.message); }
     };
     for (let i = 0; i < list.items.length; i += 8) await Promise.all(list.items.slice(i, i + 8).map(one));       // eight at a time
+    packsData.sort((a, b) => a.item.id - b.item.id);
+    for (const pd of packsData) {
+      const pg = productPage(pd.detail, pd.slug, { swaps: swapsFor(pd.item, packsData) });
+      fs.writeFileSync(path.join(dir, pd.slug + '.html'), pg.html);
+      map[pd.item.id] = pd.slug; urls.push({ loc: pg.url, pr: '0.7', lm: pd.item.updated });
+    }
   } catch (e) { console.warn('no product pages this build:', e.message); }
   // the Products page links each card to its own page (a card for a product added since this build still opens the pop-up)
   for (const name of ['products.html', 'index.html']) {
@@ -313,22 +339,45 @@ async function run(out) {
     if (fs.existsSync(pf)) { let h = fs.readFileSync(pf, 'utf8'); h = h.replace('window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};', 'window.KP_PRODUCT_PAGES=' + JSON.stringify(map) + ';'); fs.writeFileSync(pf, h); }
   }
   // 3b. a ranking page for each kind of food that has enough scored packs, and the index that links to them
-  let nBest = 0;
+  let nBest = 0, nBrands = 0, brandLinks = [], brandData = [], nLang0 = 0;
+  // 3a. a page for each health-drink brand with at least two scored packs ("Is Bournvita healthy for kids?"), and the page that lists them
   try {
-    const best = require('./build-best.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
+    const brands = require('./build-brands.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
+    const brdir = path.join(out, 'brands');
+    fs.mkdirSync(brdir, { recursive: true });
+    for (const f of fs.readdirSync(brdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(brdir, f));
+    for (const f of brands.files) fs.writeFileSync(path.join(out, f.path), f.html);
+    urls.push(...brands.urls); nBrands = brands.count; brandLinks = brands.links; brandData = brands.brands || [];
+  } catch (e) { console.warn('no brand pages this build:', e.message); }
+  try {
+    const best = require('./build-best.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf, brandLinks });
     const bdir = path.join(out, 'best');
     fs.mkdirSync(bdir, { recursive: true });
     for (const f of fs.readdirSync(bdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(bdir, f));
     for (const f of best.files) fs.writeFileSync(path.join(out, f.path), f.html);
     urls.push(...best.urls); nBest = best.count;
+    // the rankings and the brand pages in Hindi, Bengali and Gujarati
+    const lb = require('./build-i18n-best.cjs').localize({ groups: best.groups, brands: brandData, ctx: { esc, withMeta, SITE, RECIPE_CSS, TIER_COLOR } });
+    for (const code of Object.keys(lb)) {
+      for (const sub of ['best', 'brands']) { const d0 = path.join(out, code, sub); fs.mkdirSync(d0, { recursive: true }); for (const f of fs.readdirSync(d0)) if (f.endsWith('.html')) fs.unlinkSync(path.join(d0, f)); }
+      for (const f of lb[code].files) fs.writeFileSync(path.join(out, f.path), f.html);
+      urls.push(...lb[code].urls); nLang0 += lb[code].files.length;
+    }
   } catch (e) { console.warn('no ranking pages this build:', e.message); }
+  // 3c. the page that puts two packs side by side
+  try {
+    const cmp = require('./build-compare.cjs').build({ withMeta, SITE, RECIPE_CSS, NAV, PLATFORM });
+    fs.writeFileSync(path.join(out, 'compare.html'), cmp.html);
+    urls.push({ loc: cmp.url, pr: '0.7' });
+  } catch (e) { console.warn('no compare page this build:', e.message); }
   // 4. a page for every recipe, the collection pages ("tangy lunchbox ideas for kids") that link to them, and the Recipes index
-  let nRecipes = 0, nIdeas = 0;
+  let nRecipes = 0, nIdeas = 0, nLang = 0;
   try {
     const idx = await getJson(`${PLATFORM}/api/kp/recipes-index`);
     const rdir = path.join(out, 'recipes'), idir = path.join(out, 'ideas');
     fs.mkdirSync(rdir, { recursive: true }); fs.mkdirSync(idir, { recursive: true });
     for (const f of fs.readdirSync(rdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(rdir, f));
+    for (const code of Object.keys(require('./i18n.cjs').LANGS)) { const ld0 = path.join(out, code, 'recipes'); if (fs.existsSync(ld0)) for (const f of fs.readdirSync(ld0)) if (f.endsWith('.html')) fs.unlinkSync(path.join(ld0, f)); }
     for (const f of fs.readdirSync(idir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(idir, f));
     const nameCount = {};
     for (const it of idx.items) { const k = recName(it.name).toLowerCase(); nameCount[k] = (nameCount[k] || 0) + 1; }
@@ -353,6 +402,15 @@ async function run(out) {
       ideas = require('./build-ideas.cjs').build({ recipes: have, refs, ctx: { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord } });
       for (const f of ideas.files) fs.writeFileSync(path.join(out, f.path), f.html);
       urls.push(...ideas.urls); nIdeas = ideas.count;
+      // the same collection pages in Hindi, Bengali and Gujarati (/hi/ideas/..., /bn/ideas/..., /gu/ideas/...)
+      const loc = require('./build-i18n.cjs').localize({ pages: ideas.pages, ctx: { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName }, refs });
+      for (const code of Object.keys(loc)) {
+        const ldir = path.join(out, code, 'ideas');
+        fs.mkdirSync(ldir, { recursive: true });
+        for (const f of fs.readdirSync(ldir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(ldir, f));
+        for (const f of loc[code].files) fs.writeFileSync(path.join(out, f.path), f.html);
+        urls.push(...loc[code].urls); nLang += loc[code].files.length;
+      }
     } catch (e) { console.warn('no collection pages this build:', e.message); }
     // pass 3: the recipe pages, each with similar recipes and the collections it is on
     const MEAL_ORDER = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
@@ -372,8 +430,16 @@ async function run(out) {
       const cols = (ideas.membership.get(r.it.id) || []).filter((p) => p.age.generic).slice(0, 8).map((p) => ({ slug: p.slug, h1: p.h1 }));
       const crumb = (ideas.membership.get(r.it.id) || []).find((p) => p.kind === 'meal' && p.age.generic && p.meal && (myMeal === 'snack_4pm' ? p.meal.id === 'snack' : p.meal.id === myMeal));
       const pg = recipePage(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug, h1: crumb.h1 } : null });
-      fs.writeFileSync(path.join(rdir, r.slug + '.html'), pg.html);
+      fs.writeFileSync(path.join(rdir, r.slug + '.html'), require('./build-i18n.cjs').decorateEn(pg.html, SITE, 'recipes/' + r.slug));
       urls.push({ loc: pg.url, pr: '0.6', lm: r.it.updated }); nRecipes++;
+      // the same page in Hindi, Bengali and Gujarati
+      const h1Of = (slug, code) => { const p = ideas.bySlug && ideas.bySlug.get(slug); return (p && p['h1_' + code]) || slug; };
+      for (const code of Object.keys(require('./i18n.cjs').LANGS)) {
+        const lp = require('./build-i18n-recipes.cjs').recipePageLocal(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug } : null }, code, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL, isoTime, recName, h1Of, showHow: SHOW_HOW });
+        const ld2 = path.join(out, code, 'recipes'); fs.mkdirSync(ld2, { recursive: true });
+        fs.writeFileSync(path.join(out, lp.path), lp.html);
+        urls.push({ loc: lp.url, pr: '0.5', lm: r.it.updated }); nLang++;
+      }
     }
     const hub = recipesIndexPage(have.map((r) => r.it));
     fs.writeFileSync(path.join(out, 'recipes.html'), hub.html);
@@ -383,7 +449,7 @@ async function run(out) {
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
-  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, sitemap with ${urls.length} addresses`);
+  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, ${nLang + nLang0} Hindi/Bengali/Gujarati pages, sitemap with ${urls.length} addresses`);
 }
 
 module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage, get ctx() { return { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord }; } };

@@ -73,6 +73,8 @@ db.exec(fs.readFileSync('migrations/0034_auto_review.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0035_source_indexes.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0036_kind_check.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0037_tastes.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0038_referrer.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0039_diet_fit.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1662,6 +1664,52 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   await SR.recordMiss(env, 'bournv'); await SR.recordMiss(env, 'bournvit'); await SR.recordMiss(env, 'bournvita sachet');
   const left = db.prepare("SELECT term FROM kp_search_misses WHERE term LIKE 'bournv%'").all().map((r) => r.term);
   ok(left.length === 1 && left[0] === 'bournvita sachet', 'Half-typed words are dropped from the miss log when the full search arrives');
+}
+
+// ---- which site sent the visitor ----
+{
+  const TR2 = await import('../../src/recipes/traffic.js');
+  ok(TR2.refHost('https://www.google.com/search?q=tangy+meal') === 'google.com' && TR2.refHost('android-app://com.google.android.googlequicksearchbox') === null && TR2.refHost('https://www.kidposhan.in/best') === null, 'Only the name of the sending site is kept: not the page, not the search words, and not our own site');
+  ok(TR2.refHost('') === null && TR2.refHost('javascript:alert(1)') === null && TR2.refHost('https://bing.com') === 'bing.com', 'A missing or odd referrer is ignored');
+  await TR2.recordPageview(env, { vid: 'refvisitor0000000001', path: '/recipes/1-x', ref: 'https://www.bing.com/search?q=secret+words' }, { ua: 'Mozilla/5.0 Chrome', country: 'US' });
+  await TR2.recordPageview(env, { vid: 'refvisitor0000000002', path: '/', ref: '' }, { ua: 'Mozilla/5.0 Chrome', country: 'IN' });
+  const rr = await TR2.trafficReport(env, { days: 30 });
+  const bing = rr.referrers.find((x) => x.ref === 'bing.com');
+  ok(bing && bing.visitors === 1 && rr.referrers.length === 1, 'The report lists which sites sent visitors');
+  ok(!JSON.stringify(db.prepare('SELECT ref FROM kp_pageviews').all()).includes('secret'), 'The search words are never stored');
+}
+
+// ---- how a recipe fits a diet, apart from its score ----
+{
+  const DF = await import('../../src/recipes/dietfit.js');
+  const mk = (lines, name) => { const ings = lines.map((l) => parseIngredientLine(l)); const r = computeRecipeScore({ name, servings: '4', nutrition_json: null }, ings); return { ings, r }; };
+  const poori = mk(['2 cups whole wheat atta', '1 tbsp oil', 'salt to taste', 'oil for deep frying'], 'Poori');
+  const pf = DF.dietFit({ name: 'Poori', ingredients: poori.ings, result: poori.r });
+  ok(pf.tags.includes(',fried,') && pf.tags.includes(',whole_grain,') && ['sometimes', 'occasionally'].includes(pf.how_often) && /deep-fried/.test(pf.why), 'A deep-fried puri is tagged fried and whole grain and is never an everyday food, whatever its score: ' + pf.how_often + ' / ' + poori.r.score);
+  const dal = mk(['1 cup toor dal', '1 onion', '2 tomatoes', '1 tsp turmeric powder', '1 tsp ghee', 'salt to taste'], 'Toor dal');
+  const df = DF.dietFit({ name: 'Toor dal', ingredients: dal.ings, result: dal.r });
+  ok(!df.tags.includes(',fried,') && ['everyday', 'often'].includes(df.how_often), 'A plain dal is not fried and can be an everyday food: ' + df.how_often + ' / ' + dal.r.score);
+  const cake = mk(['2 cups maida', '1 cup sugar', '100 g butter', '2 eggs'], 'Chocolate cake');
+  const cf = DF.dietFit({ name: 'Chocolate cake', ingredients: cake.ings, result: cake.r });
+  ok(cf.tags.includes(',sweet,') && cf.tags.includes(',refined,') && ['sometimes', 'occasionally'].includes(cf.how_often), 'A refined-flour cake is a sweet treat: ' + cf.how_often);
+  ok(DF.dietFit({ name: 'x', ingredients: [], result: null }).tags === null, 'A recipe with no score has no diet tags');
+  // stored by scoring, and used by the filters
+  const idA = mkRecipe('https://fit.example/a/', { status: 'approved', name: 'Fit Plain Dish', score: 85 }), idB = mkRecipe('https://fit.example/b/', { status: 'approved', name: 'Fit Fried Dish', score: 85 });
+  db.prepare("UPDATE kp_recipes SET diet_tags = ',whole_grain,', how_often = 'everyday' WHERE id = ?").run(idA);
+  db.prepare("UPDATE kp_recipes SET diet_tags = ',fried,', how_often = 'sometimes', how_often_why = 'deep-fried' WHERE id = ?").run(idB);
+  const base = { age: 48, occasion: 'lunch', season: 'all', pref: 'veg', limit: 30 };
+  const has = (res, id) => (res.recipes || res.results || []).some((x) => x.id === id);
+  const nofry = await searchRecipes(env, { ...base, fit: ['nofry'] }), wg = await searchRecipes(env, { ...base, fit: ['whole_grain'] });
+  ok(has(nofry, idA) && !has(nofry, idB), '"No deep-fried" leaves out the fried recipe');
+  ok(has(wg, idA) && !has(wg, idB), '"Whole grain" keeps only the whole-grain recipe');
+  const row = (wg.recipes || wg.results || []).find((x) => x.id === idA);
+  ok(row && row.how_often === 'everyday', 'Each recipe in the results carries its how-often line');
+  const det = await recipeDetail(env, idB);
+  ok(det.how_often === 'sometimes' && det.how_often_why === 'deep-fried' && det.diet_tags.join() === 'fried', 'The recipe page data carries the tags, the how-often line and the reason');
+  const none = mkRecipe('https://fit.example/c/', { status: 'approved', name: 'Fit Unclassified', score: 85 });
+  ok(!has(await searchRecipes(env, { ...base, fit: ['nofry'] }), none), 'A recipe not yet classified is not offered under a diet filter');
+  const sr = await scoreRecipe(env, idA);
+  ok(db.prepare('SELECT diet_tags, how_often, diet_checked_at FROM kp_recipes WHERE id = ?').get(idA).diet_checked_at != null, 'Scoring a recipe stores its diet tags');
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

@@ -12,6 +12,7 @@ import { scoreAllBands, REFERENCE_BAND, SCORE_COLUMN, SCORE_VERSION, ALL_BANDS }
 const CAP_COLUMN = { '1-3': 'cap_13', '4-6': 'cap_46', '7-9': 'cap_79', '10-12': 'cap_1012' };
 import { estimateNutrition, servingsFrom, isDeepFried } from './nutrients.js';
 import { parseIngredientLine } from './normalize.js';
+import { dietFit } from './dietfit.js';
 
 export { SCORE_VERSION };
 const MIN_COVERAGE = 0.75; // share of non-pantry ingredient lines that must be weighable
@@ -79,10 +80,11 @@ export async function scoreRecipe(env, id, opts = {}) {
   const r = computeRecipeScore(row, ings);
   const detail = r.status === 'pending' ? { version: SCORE_VERSION, reason: r.reason, unweighed: r.estimate.unweighed, assumptions: r.estimate.assumptions } : r.detail;
   const changed = r.score !== row.poshan_score || r.status !== row.score_status;
+  const fit = dietFit({ name: row.name, ingredients: ings, result: r.status === 'pending' ? null : r });
   await env.DB.prepare(
     `UPDATE kp_recipes SET poshan_score = ?, score_status = ?, score_breakdown_json = ?, score_13 = ?, score_46 = ?, score_79 = ?, score_1012 = ?,
-       cap_13 = ?, cap_46 = ?, cap_79 = ?, cap_1012 = ?${changed && !opts.keepApproval ? ', score_approved = 0' : ''} WHERE id = ?`
-  ).bind(r.score, r.status, JSON.stringify(detail), ...['1-3', '4-6', '7-9', '10-12'].map((k) => r.bands?.[k]?.total ?? null), ...['1-3', '4-6', '7-9', '10-12'].map((k) => (r.bands?.[k]?.capped ? 1 : 0)), id).run();
+       cap_13 = ?, cap_46 = ?, cap_79 = ?, cap_1012 = ?, diet_tags = ?, how_often = ?, how_often_why = ?, diet_checked_at = datetime('now')${changed && !opts.keepApproval ? ', score_approved = 0' : ''} WHERE id = ?`
+  ).bind(r.score, r.status, JSON.stringify(detail), ...['1-3', '4-6', '7-9', '10-12'].map((k) => r.bands?.[k]?.total ?? null), ...['1-3', '4-6', '7-9', '10-12'].map((k) => (r.bands?.[k]?.capped ? 1 : 0)), fit.tags, fit.how_often, fit.why, id).run();
   return { id, status: r.status, score: r.score };
 }
 

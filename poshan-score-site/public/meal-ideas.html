@@ -449,6 +449,9 @@ body.lb-open{overflow:hidden}
 .multi-tag{font-style:normal;font-weight:600;font-size:12px;color:var(--leaf);background:var(--leaf-2);border-radius:999px;padding:2px 9px;margin-left:6px;white-space:nowrap}
 .frow .chip::before{content:"";display:inline-block;width:15px;height:15px;margin-right:8px;vertical-align:-2px;border:1.8px solid currentColor;border-radius:4px;box-sizing:border-box;opacity:.65}
 .frow .chip[aria-pressed="true"]::before{content:"✓";text-align:center;font-size:12px;line-height:12px;font-weight:800;background:var(--bg);color:var(--ink);border-color:var(--bg);opacity:1}
+.how{display:inline-block;margin-top:4px;font-size:12.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#E3F0DE;color:#2F5A2C}
+.how-often{background:#EEF1D8;color:#55600F}.how-sometimes{background:#FBEBC6;color:#7A5200}.how-occasionally{background:#F8E3DC;color:#8F3622}
+.howline{margin:10px 0;font-size:14px;color:var(--muted)}.howline span:last-child{display:block;margin-top:4px}
 /* ===== save (heart), shuffle, weekly plan ===== */
 .multi-hint{margin:10px 0 0;font-size:13px;color:var(--muted)}
 /* the filters: one tidy column of rows, the age as a line with a bubble that moves along it */
@@ -647,6 +650,11 @@ const bandParam=()=>{const a=S.age||[];if(a.length!==1||!BAND_OF[a[0]]||(S.sex!=
 const OCC=[['breakfast','Breakfast'],['lunchbox','School lunchbox'],['lunch','Lunch'],['snack_4pm','4 PM snack'],['dinner','Dinner']];
 const SEA=[['summer','Summer'],['monsoon','Monsoon'],['winter','Winter'],['all','All seasons']];
 const PREF=[['veg','Veg'],['jain','Jain'],['nonveg','Non-veg']];
+const FIT_ON=true;        // switch on when most recipes have their diet tags (the platform classifies them in the background)
+const FIT=[['nofry','No deep-fried'],['whole_grain','Whole grain or millet'],['high_fibre','High fibre'],['high_protein','High protein'],['low_salt','Low salt']];
+const HOW_LABEL={everyday:'Everyday',often:'Often',sometimes:'Sometimes',occasionally:'Occasionally'};
+const HOW_HELP={everyday:'Fine most days, with variety',often:'A few times a week',sometimes:'About once a week',occasionally:'A treat, once in a while'};
+const howTag=(how,why)=>FIT_ON&&how&&HOW_LABEL[how]?`<span class="how how-${how}" title="${esc(HOW_HELP[how])}">${HOW_LABEL[how]}${why?' · '+esc(why):''}</span>`:'';
 const DIETS={veg:['veg','jain'],jain:['jain'],nonveg:['nonveg','egg','veg','jain']};
 const RELATED={breakfast:['snack_4pm','dinner'],lunchbox:['lunch','snack_4pm'],lunch:['lunchbox','dinner'],snack_4pm:['breakfast','lunchbox'],dinner:['lunch','breakfast']};
 const DIET_LABEL={veg:'Veg',jain:'Jain',egg:'Egg',nonveg:'Non-veg'};
@@ -721,11 +729,12 @@ function demoSearch(q){
   for(const [m,fn] of tiers)for(const r of base.filter(r=>!seen.has(r.id)&&fn(r)).sort((a,b)=>b.score-a.score)){if(out.length>=12)break;seen.add(r.id);out.push({...r,match:m})}
   return out;
 }
-const toCard=r=>({capped:!!r.capped,make_ahead:!!r.make_ahead,mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const toCard=r=>({capped:!!r.capped,make_ahead:!!r.make_ahead,mayo:r.mayo_flex===1,rate:r.rating_count?{avg:r.rating_avg,n:r.rating_count,liked:r.liked_count}:null,id:r.id,name:r.name,how:r.how_often||null,howWhy:r.how_often_why||null,mins:r.mins??r.total_minutes,score:r.score??r.poshan_score,kind:r.score_kind,diet:r.diet,occ:r.occ||r.occasions||[],match:r.match==='related_occasion'||r.match==='related_any_season'?'related':r.match,image:r.image_url||null,credit:r.source_name||'',artSrc:r.ings?r:{id:r.id,name:r.name,ings:[]}});
+const fitParam=q=>FIT_ON&&q.fit&&q.fit.length?`&fit=${q.fit.join(',')}`:'';
 const drawParams=o=>o&&o.shuffle?`&shuffle=1${o.exclude&&o.exclude.length?`&exclude=${o.exclude.join(',')}`:''}`:'';
 async function search(q,o){
   if(!LIVE) return demoSearch(q).map(toCard);
-  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}${bandParam()}${vidParam()}${drawParams(o)}`);
+  const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}${bandParam()}${vidParam()}${fitParam(q)}${drawParams(o)}`);
   if(!res.ok) throw new Error('Search failed. Try again.');
   return (await res.json()).results.map(toCard);
 }
@@ -733,7 +742,7 @@ async function search(q,o){
 // The "More Asian recipes" / "European recipes" shelves: same filters, same Poshan Score ordering, never blocks the main list.
 async function searchWorld(q,world,o){
   try{
-    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}&world=${world}${bandParam()}${vidParam()}${drawParams(o)}`);
+    const res=await fetch(`${API}/api/kp/recipes?age_months=${q.age.join(',')}&occasion=${q.occ.join(',')}&season=${q.season.join(',')}&pref=${q.pref.join(',')}&world=${world}${bandParam()}${vidParam()}${fitParam(q)}${drawParams(o)}`);
     if(!res.ok) return [];
     return (await res.json()).results.map(toCard);
   }catch(e){ return [] }
@@ -854,7 +863,7 @@ function load(k){try{return sessionStorage.getItem(k)||localStorage.getItem(k)}c
 function savePin(v){try{localStorage.setItem('kp_pincode',v)}catch(e){}}
 let S=JSON.parse(load('kp_menu')||'{}'); S.items=S.items||{}; // filters + last results + shopping states
 const asList=v=>Array.isArray(v)?v:(v==null||v===''?[]:[v]);
-for(const k of ['age','occ','season','pref']) S[k]=asList(S[k]);       // every filter holds a list: more than one choice is allowed
+for(const k of ['age','occ','season','pref','fit']) S[k]=asList(S[k]);       // every filter holds a list: more than one choice is allowed
 if(S.age.some(a=>!AGES.some(x=>x[0]===a))){S.age=[...new Set(S.age.map(v=>AGES.reduce((b,a)=>Math.abs(a[0]-v)<Math.abs(b[0]-v)?a:b)[0]))];S.results=null;S.more=null}   // an age saved before the bands changed: nearest band, and search again
 // the last choices are remembered on this phone (not just for the session); the season is filled in from today's date
 const readChoices=()=>{try{return JSON.parse(localStorage.getItem('kp_choices')||'{}')||{}}catch(e){return {}}};
@@ -955,8 +964,8 @@ function ageLine(){
   window.__bubFrom=cur.length===1?pos(cur[0]):null;
   return `<div class="frow"><span id="l-age">Age <em class="multi-tag">${S.multi?"tap each child's age":'tap or drag the bubble'}</em></span><div class="ageline" role="group" aria-labelledby="l-age"><div class="track"></div>${bubs}<div class="stops">${KIDS.map(([v])=>`<button type="button" class="stop" data-v="${v}" aria-pressed="${cur.includes(v)}" aria-label="${KIDS.find(a=>a[0]===v)[1]}"><i class="dot"></i><span class="l">${AGE_SHORT[v]}</span></button>`).join('')}</div></div><div class="scroller" style="padding-top:8px"><button type="button" class="chip" data-f="multi" data-v="1" aria-pressed="${!!S.multi}">Choosing for more than one child</button></div></div>`;
 }
-function chipRow(name,label,arr,cur){
-  return `<div class="frow"><span id="l-${name}">${label} <em class="multi-tag">choose one or more</em></span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${(cur||[]).map(String).includes(String(v))}">${l}</button>`).join('')}</div></div>`;
+function chipRow(name,label,arr,cur,tag){
+  return `<div class="frow"><span id="l-${name}">${label} <em class="multi-tag">${tag||'choose one or more'}</em></span><div class="scroller" role="group" aria-labelledby="l-${name}">${arr.map(([v,l])=>`<button type="button" class="chip" data-f="${name}" data-v="${v}" aria-pressed="${(cur||[]).map(String).includes(String(v))}">${l}</button>`).join('')}</div></div>`;
 }
 let menuPackKey='',menuPackHTML='';
 async function loadMenuPacks(){
@@ -977,7 +986,7 @@ async function loadMenuPacks(){
 }
 function dishCard(x){ return `<div class="dishwrap" role="listitem"><button class="dish" data-open="${x.id}" aria-label="${esc(x.name)}, ${x.mins?timeTxt(x.mins,x.make_ahead):'time not given'}">
             <div class="art">${dishArt(x.artSrc||{id:x.id,name:x.name,ings:[]})}${photoImg(x.image,'',x.credit)}${badgeHTML(x.score,x.kind,x.capped)}</div>
-            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${esc(timeTxt(x.mins,x.make_ahead))}</span>${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>${heartBtn(x)}</div>` }
+            <div class="txt"><h3>${esc(nice(x.name))}</h3><span class="meta">${esc(timeTxt(x.mins,x.make_ahead))}</span>${howTag(x.how,x.howWhy)}${x.rate?`<span class="rate"><span class="stars" style="--p:${Math.round(x.rate.avg/5*100)}%" aria-hidden="true">★★★★★</span><b>${x.rate.avg}</b> · ${x.rate.liked} liked it<span class="sr"> (${x.rate.n} ${x.rate.n===1?'rating':'ratings'})</span></span>`:''}<span class="dtag ${mayoInNonveg(x.diet,x.mayo)?'mayo':x.diet}">${dietLabel(x.diet,x.mayo)}</span></div></button>${heartBtn(x)}</div>` }
 function renderMenu(){
   const ready=S.age.length&&S.occ.length&&S.season.length&&S.pref.length, showFilters=!S.results||S.editing;
   let html=`<section class="menu-hero pad ${S.results&&!S.editing?'compact':''}"><div class="hero-copy"><div class="eyebrow">Ingredient-first · Scored for kids${LIVE?'':' · Demo recipes'}</div>
@@ -985,10 +994,10 @@ function renderMenu(){
     ${S.results&&!S.editing?'':'<p class="lede">Pick your child\'s age, the meal and the season. We show recipes that suit them, the Poshan Score of each, and ready-made packs and ingredients you can buy. <a href="/recipes">Browse every recipe</a>.</p>'}</div>${S.results&&!S.editing?'':HERO_ART}</section>`;
   if(showFilters){
     html+=`<section class="filters" aria-label="Filters">
-      ${whoFirst()}${ageLine()}${whoRows()}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}
+      ${whoFirst()}${ageLine()}${whoRows()}${chipRow('occ','Meal',OCC,S.occ)}${chipRow('season','Season',SEA,S.season)}${chipRow('pref','Food preference',PREF,S.pref)}${FIT_ON?chipRow('fit','Cooking and diet',FIT,S.fit,'optional'):''}
       <p class="multi-hint">Meals, seasons and food types: pick more than one if you like, and we show recipes that suit any of them. Age: pick one, or switch on "more than one child" to see recipes that suit every child you pick.</p><button class="go" id="go" ${ready?'':'disabled'}>${ready?'Show meal ideas':'Pick at least one in each row to continue'}</button></section>`;
   } else {
-    html+=`<div class="summary"><p>${S.pref.map(v=>lab(PREF,v)).join(' + ')}, ${S.occ.map(v=>lab(OCC,v)).join(' + ')}, ${S.age.map(v=>lab(AGES,v)).join(' + ')}, ${S.season.map(v=>lab(SEA,v).toLowerCase()).join(' + ')}</p><button id="edit">Change</button></div>`;
+    html+=`<div class="summary"><p>${S.pref.map(v=>lab(PREF,v)).join(' + ')}, ${S.occ.map(v=>lab(OCC,v)).join(' + ')}, ${S.age.map(v=>lab(AGES,v)).join(' + ')}, ${S.season.map(v=>lab(SEA,v).toLowerCase()).join(' + ')}${(S.fit||[]).length?', '+S.fit.map(v=>lab(FIT,v).toLowerCase()).join(' + '):''}</p><button id="edit">Change</button></div>`;
   }
   html=`<div class="savedbar"><a href="#/saved">♥ Saved<span data-savedcount></span></a></div>`+html;
   if(S.error) html+=`<p class="note">${esc(S.error)}</p>`;
@@ -1037,13 +1046,13 @@ function renderMenu(){
     S[f]=next;if(f==='age'&&!(next.length===1&&BAND_OF[next[0]])){S.sex='';S.work=''}persist();renderMenu();
     const nb=app.querySelector(`.chip[data-f="${b.dataset.f}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
   const go=document.getElementById('go'); if(go) go.onclick=async()=>{go.disabled=true;go.textContent='Finding meals…';S.error=null;
-    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};S.results=await search(q);
+    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref,fit:S.fit};S.results=await search(q);
       if(LIVE){const [asia,europe]=await Promise.all([searchWorld(q,'asia'),searchWorld(q,'europe')]);S.more={asia,europe}} else S.more={};
       S.editing=false}catch(e){S.error=e.message}
     persist();renderMenu();window.scrollTo(0,0)};
   // Shuffle: a new random draw that avoids what is on screen
   const sh=document.getElementById('shuffle'); if(sh) sh.onclick=async()=>{sh.disabled=true;sh.textContent='Shuffling…';
-    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref};
+    try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref,fit:S.fit};
       const ex=g=>({shuffle:true,exclude:(g||[]).map(x=>x.id)});
       const [main,asia,europe]=await Promise.all([search(q,ex(S.results)),LIVE?searchWorld(q,'asia',ex((S.more||{}).asia)):[],LIVE?searchWorld(q,'europe',ex((S.more||{}).europe)):[]]);
       S.results=main;S.more={asia,europe}}catch(e){S.error=e.message}
@@ -1155,7 +1164,7 @@ async function getRecipe(id){
   const pf=S.pref||[], prefOne=(pf.includes('veg')||pf.includes('jain'))&&!pf.includes('nonveg')?(pf.includes('veg')?'veg':'jain'):(pf.length===1?pf[0]:'');
   const qs=[prefOne?`pref=${prefOne}`:'',(S.age||[]).length?`age_months=${Math.min(...S.age)}`:'',bandParam().slice(1)].filter(Boolean).join('&');
   const res=await fetch(`${API}/api/kp/recipes/${id}${qs?'?'+qs:''}`); if(!res.ok) return null; const d=await res.json();
-  return {kid_note:d.kid_note||'',id:d.id,name:d.name,mins:d.total_minutes,make_ahead:!!d.make_ahead,band:d.score?.band,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
+  return {kid_note:d.kid_note||'',how:d.how_often||null,howWhy:d.how_often_why||null,id:d.id,name:d.name,mins:d.total_minutes,make_ahead:!!d.make_ahead,band:d.score?.band,score:d.poshan_score,kind:d.score?.kind,basis:d.score?.basis,method_by:d.method_by,diet:d.diet,min:d.age_min_months,occ:d.occasions||[],sea:d.seasons||[],image:d.image_url,
     source:d.source,method_url:d.method_url,ready_term:d.ready_term,mayo_note:d.mayo_note,mayo:!!d.mayo_note,world:d.world||'india',metrics:d.score?.metrics||null,capped:!!d.score?.capped,ageLabel:d.score?.age_band_label||'',
     ings:d.ingredients.map(i=>({name:i.name||i.raw_text,qty:i.qty_text||(i.quantity!=null?`${i.quantity} ${i.unit||''}`.trim():''),raw:i.raw_text,key:i.ingredient_key,pantry:i.is_pantry,
       buy:(i.buy||[]).map(b=>({label:b.label,kind:b.kind==='qcom'?'Quick delivery':b.kind==='marketplace'?'Marketplace':'Grocery',url:b.affiliate_url||b.product_url,price:b.price,eta:b.eta}))})),
@@ -1204,6 +1213,7 @@ async function renderRecipe(id){
     <div class="title-row"><h1>${esc(nice(r.name))}</h1><div style="display:flex;gap:12px;align-items:flex-start">${heartBtn({id:r.id,name:r.name,mins:r.mins,make_ahead:r.make_ahead,score:r.score,kind:r.kind,capped:r.capped,diet:r.diet,mayo:r.mayo,image:r.image,credit:r.source?r.source.name:'',occ:r.occ})}${r.score?`<div class="score" data-band="${r.band||bandOf(+r.score)}"><b>${r.score}</b><span>Poshan${r.capped?' · capped':''}${r.demo?' (demo)':r.kind==='estimated'?' (estimated)':''}</span></div>`:`<div class="score"><span>Score pending</span></div>`}</div></div>
     ${r.score&&r.metrics?`<p class="credit">Poshan Score for ${esc(r.ageLabel)}, out of 100: ten yes-or-no checks, each worth 10 points, ${esc(r.basis||'per serving')}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}${r.capped?` Held at OK, whatever the total, because one risk check failed. The ${r.score} is the real score, not clipped.`:''}</p><details class="scoredet"><summary>How the score is worked out</summary>${metricsHTML(r.metrics,r.score)}<p class="credit" style="margin-top:10px">The ten metrics and every threshold are on the <a href="age-metrics.html">Age &amp; Metrics</a> page. Change your child's age above and the score is worked out again for that age.</p></details>`:r.score&&r.basis?`<p class="credit">Poshan Score is worked out for this recipe, ${esc(r.basis)}.${r.kind==='estimated'?' Some values are estimated from the ingredients.':''}</p>`:''}
     <div class="facts">${facts.map(f=>`<span>${esc(f)}</span>`).join('')}</div>
+    ${FIT_ON&&r.how?`<p class="howline"><b>How often:</b> ${howTag(r.how,r.howWhy)} <span>${esc(HOW_HELP[r.how]||'')}. The Poshan Score is how one serving does against a child's daily limits; this is about how the food is made.</span></p>`:''}
     ${r.kid_note?`<p class="kidnote">${esc(r.kid_note)}</p>`:''}
     ${LIVE?'<div id="rateBox" class="ratebox"></div>':''}
     ${galleryHTML}

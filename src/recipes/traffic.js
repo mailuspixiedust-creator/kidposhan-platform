@@ -18,10 +18,17 @@ export function normalizePath(p) {
   return s || '/';
 }
 const clean = (v, n = 60) => (v ? String(v).replace(/[<>\n\r]/g, ' ').trim().slice(0, n) : null);
+// The site that sent the visitor: its name only ("google.com"), never the page or the words searched. Our own site is not a referrer.
+export function refHost(v) {
+  let h = String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').split(/[/?#:]/)[0].replace(/^www\./, '');
+  if (!/^[a-z0-9][a-z0-9.-]{2,59}$/.test(h) || !h.includes('.')) return null;
+  if (/(^|\.)kidposhan\.(in|com)$/.test(h) || /(^|\.)workers\.dev$/.test(h) || /^localhost/.test(h)) return null;
+  return h;
+}
 const rand = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 // One page view. meta = { ua, country, region, city, cf }. Returns what the page needs to report its time later.
-export async function recordPageview(env, { vid, path } = {}, meta = {}) {
+export async function recordPageview(env, { vid, path, ref } = {}, meta = {}) {
   const p = normalizePath(path);
   if (!p) return { ok: false };
   const t = now();
@@ -31,8 +38,8 @@ export async function recordPageview(env, { vid, path } = {}, meta = {}) {
   const hour = await env.DB.prepare('SELECT count(*) n FROM kp_pageviews WHERE ts > ?').bind(t - 3600).first();
   if (hour.n > 20000) return { ok: false };                                               // flood guard
   const tok = bot ? null : rand();
-  const res = await env.DB.prepare('INSERT INTO kp_pageviews (ts, path, vid, country, region, city, is_bot, tok) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(t, p, bot ? null : vid, clean(meta.country, 2), clean(meta.region), clean(meta.city), bot ? 1 : 0, tok).run();
+  const res = await env.DB.prepare('INSERT INTO kp_pageviews (ts, path, vid, country, region, city, is_bot, tok, ref) VALUES (?,?,?,?,?,?,?,?,?)')
+    .bind(t, p, bot ? null : vid, clean(meta.country, 2), clean(meta.region), clean(meta.city), bot ? 1 : 0, tok, bot ? null : refHost(ref)).run();
   return bot ? { ok: true, bot: true } : { ok: true, id: res.meta.last_row_id, tok };
 }
 
@@ -61,6 +68,7 @@ export async function trafficReport(env, { days = 30, path = null } = {}) {
   const pages = await all(`SELECT path, COUNT(*) views, COUNT(DISTINCT vid) visitors, AVG(CASE WHEN seconds > 0 THEN seconds END) avg_s, SUM(seconds > 0) timed FROM kp_pageviews WHERE is_bot = 0 AND ts >= ? GROUP BY path ORDER BY views DESC LIMIT 150`, since);
   const countries = await all(`SELECT COALESCE(country, '??') country, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM kp_pageviews WHERE ${where} GROUP BY 1 ORDER BY views DESC LIMIT 60`, ...args);
   const cities = await all(`SELECT COALESCE(country, '??') country, COALESCE(city, 'Unknown') city, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM kp_pageviews WHERE ${where} GROUP BY 1, 2 ORDER BY views DESC LIMIT 150`, ...args);
+  const referrers = await all(`SELECT ref, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM kp_pageviews WHERE ${where} AND ref IS NOT NULL GROUP BY ref ORDER BY visitors DESC, views DESC LIMIT 40`, ...args);
   const by_day = await all(`SELECT date(ts, 'unixepoch') day, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM kp_pageviews WHERE ${where} GROUP BY 1 ORDER BY 1`, ...args);
   // recipe views arrive as /meal-ideas/recipe/ID: show the recipe's name
   const ids = pages.map((p) => (p.path.match(/^\/meal-ideas\/recipe\/(\d+)$/) || [])[1]).filter(Boolean);
@@ -71,6 +79,6 @@ export async function trafficReport(env, { days = 30, path = null } = {}) {
     days: d, path,
     totals: { views: totals.views, visitors: totals.visitors, avg_seconds: rnd(totals.avg_s), bots_excluded: bots.n },
     pages: pages.map((p) => ({ path: p.path, label: names.get((p.path.match(/\/(\d+)$/) || [])[1]) ? 'Recipe: ' + names.get(p.path.match(/\/(\d+)$/)[1]) : null, views: p.views, visitors: p.visitors, avg_seconds: rnd(p.avg_s), timed: p.timed })),
-    countries, cities, by_day,
+    countries, cities, by_day, referrers,
   };
 }
