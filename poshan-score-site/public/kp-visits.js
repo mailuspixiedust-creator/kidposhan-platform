@@ -21,6 +21,9 @@
     if (/meal-ideas/.test(location.pathname)) { if (m) return '/meal-ideas/recipe/' + m[1]; if (h === '#/saved') return '/meal-ideas/saved'; }
     return location.pathname;
   }
+  // the site that sent this visitor ("google.com"): only its name is sent, and only on the first page of a visit
+  var ref = (function () { try { var h = new URL(document.referrer).hostname; return h && h !== location.hostname ? h : ''; } catch (e) { return ''; } })();
+  function takeRef() { var r = ref; ref = ''; return r; }
   var view = null;
   function seconds() { if (view.visible) { view.shown += Date.now() - view.last; } view.last = Date.now(); return Math.round(view.shown / 1000); }
   function flush() {
@@ -32,7 +35,7 @@
   function start() {
     if (view) flush();
     var v = view = { id: null, tok: null, shown: 0, last: Date.now(), visible: document.visibilityState === 'visible', sent: 0 };
-    post('/api/kp/pv', { vid: vid, path: currentPath() }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.id) { v.id = d.id; v.tok = d.tok; } }).catch(function () {});
+    post('/api/kp/pv', { vid: vid, path: currentPath(), ref: takeRef() }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.id) { v.id = d.id; v.tok = d.tok; } }).catch(function () {});
   }
   document.addEventListener('visibilitychange', function () { if (!view) return; seconds(); view.visible = document.visibilityState === 'visible'; view.last = Date.now(); if (!view.visible) flush(); });
   window.addEventListener('pagehide', flush);

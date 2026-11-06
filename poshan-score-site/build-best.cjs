@@ -1,6 +1,7 @@
 // Ranking pages: "Best [food type] for kids in India, ranked by Poshan Score", one per kind of food that has enough scored packs,
 // and an index page that lists them all. Everything on a page is worked out from the packs' real scores (ages 4-6), so the text is data, not filler.
 // Called from build-seo.cjs with the packs it has already fetched: [{ item, detail }].
+const i18n = require('./build-i18n.cjs');
 const MIN_PACKS = 3;                 // a page with one or two packs is thin and does not rank: those kinds are left out
 // a kind whose stored name says less than it holds (the noodles kind also holds pasta, spaghetti and vermicelli)
 const LABEL_OVERRIDE = { instant_noodles: 'Noodles and pasta' };
@@ -96,7 +97,7 @@ ${related.length ? `<h2>Related rankings</h2><p>${related.map((x) => `<a href="/
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-    html = withMeta(html, { url, title, desc });
+    html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `best/${g.slug}`);
     files.push({ path: `best/${g.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });
   }
@@ -118,10 +119,10 @@ ${NAV}
 <ul class="cats" style="list-style:none;padding:0">${catHtml}</ul>
 <p><a class="cta" href="/products">See all products</a><a class="cta alt" href="/recipes">Recipes</a></p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-  hub = withMeta(hub, { url: `${SITE}/best`, title: indexTitle, desc: indexDesc });
+  hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/best`, title: indexTitle, desc: indexDesc }), SITE, 'best');
   files.push({ path: 'best.html', html: hub });
   urls.push({ loc: `${SITE}/best`, pr: '0.8' });
-  return { files, urls, count: groups.length, skipped: [...byKind.values()].filter((g) => g.rows.length < MIN_PACKS).length };
+  return { files, urls, groups, count: groups.length, skipped: [...byKind.values()].filter((g) => g.rows.length < MIN_PACKS).length };
 }
 
 module.exports = { build, MIN_PACKS, slugKind };

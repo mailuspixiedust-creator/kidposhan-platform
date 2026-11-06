@@ -2,6 +2,7 @@
 // "mild recipes for toddlers". Each is a ranked list of real recipes (by Poshan Score for that age), with text built from the data (counts, the
 // best recipe, the daily limits for that age) and links to every recipe on it. A page with fewer than MIN_RECIPES recipes is thin and is not made.
 // Called from build-seo.cjs: build({ recipes: [{ it, d, slug }], refs, ctx }).
+const i18n = require('./build-i18n.cjs');
 const MIN_RECIPES = 6, MAX_ON_PAGE = 30;
 
 const AGES = [
@@ -110,7 +111,7 @@ ${sib.length ? `<h2>More ideas</h2><p class="links">${sib.map((x) => `<a href="/
 <p style="margin-top:22px"><a class="cta" href="/meal-ideas">Plan the week for your child's age</a><a class="cta alt" href="/recipes">All recipes</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice. Recipe text and photos belong to their creators and link back to the original.</p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-    html = withMeta(html, { url, title, desc });
+    html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `ideas/${p.slug}`);
     files.push({ path: `ideas/${p.slug}.html`, html });
     const lm = shown.map((x) => x.r.it.updated).filter(Boolean).sort().pop() || null;
     urls.push({ loc: url, pr: '0.8', lm });
@@ -133,10 +134,10 @@ ${NAV}
 <ul class="cats" style="list-style:none;padding:0">${hubBody}</ul>
 <p><a class="cta" href="/recipes">All recipes</a><a class="cta alt" href="/meal-ideas">Plan the week</a></p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-  hub = withMeta(hub, { url: `${SITE}/ideas`, title: hubTitle, desc: hubDesc });
+  hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/ideas`, title: hubTitle, desc: hubDesc }), SITE, 'ideas');
   files.push({ path: 'ideas.html', html: hub });
   urls.push({ loc: `${SITE}/ideas`, pr: '0.8', lm: null });
-  return { files, urls, count: pages.length, membership, bySlug, skipped: specs.length - pages.length };
+  return { files, urls, count: pages.length, pages, membership, bySlug, skipped: specs.length - pages.length };
 }
 
 module.exports = { build, MIN_RECIPES, AGES, MEALS, TASTES };

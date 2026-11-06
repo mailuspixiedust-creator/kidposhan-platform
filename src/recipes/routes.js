@@ -391,6 +391,12 @@ export async function scheduledRecipes(env, cron) {
       console.log('rescore-ricotta', results.length);
     }
   } catch (e) { console.error('rescore-ricotta', e); }
+  // the diet tags and "how often" line for recipes that do not have them yet (new recipes get them when they are scored)
+  try {
+    const { results } = await env.DB.prepare('SELECT id FROM kp_recipes WHERE diet_checked_at IS NULL AND poshan_score IS NOT NULL ORDER BY id LIMIT 60').all();
+    for (const r of results) await scoreRecipe(env, r.id, { keepApproval: true });
+    if (results.length) console.log('diet-fit', results.length);
+  } catch (e) { console.error('diet-fit', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
   try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }

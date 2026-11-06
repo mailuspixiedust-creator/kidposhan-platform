@@ -1,6 +1,7 @@
 // Brand pages: "Is Bournvita healthy for kids?", one per well-known health-drink brand that has at least two scored packs, and a page that lists them.
 // Everything on a page is worked out from the packs' real scores and label readings, so the text is data, not filler.
 // Called from build-seo.cjs with the packs it has already fetched: [{ item, detail }].
+const i18n = require('./build-i18n.cjs');
 const MIN_PACKS = 2;
 // brand names are people's own trademarks: the pages say so, and say that nobody here is affiliated with them
 const BRANDS = [
@@ -89,7 +90,7 @@ ${common.length ? `<h2>What holds ${esc(b.name)} back</h2><p>Across these packs 
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. ${esc(b.name)} is the trademark of its owner; KidPoshan is not connected with it. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-    html = withMeta(html, { url, title, desc });
+    html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `brands/${b.slug}`);
     files.push({ path: `brands/${b.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });
   }
@@ -111,10 +112,10 @@ ${NAV}
 <p style="margin-top:22px"><a class="cta" href="/products">See all products</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Brand names belong to their owners; KidPoshan is not connected with them.</p>
 </main><script src="/kp-visits.js" defer></script></body></html>`;
-  hub = withMeta(hub, { url: `${SITE}/brands`, title: hubTitle, desc: hubDesc });
+  hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/brands`, title: hubTitle, desc: hubDesc }), SITE, 'brands');
   files.push({ path: 'brands.html', html: hub });
   urls.push({ loc: `${SITE}/brands`, pr: '0.8' });
-  return { files, urls, count: brands.length, links: brands.map((b) => ({ slug: b.slug, name: b.name })) };
+  return { files, urls, brands, count: brands.length, links: brands.map((b) => ({ slug: b.slug, name: b.name })) };
 }
 
 module.exports = { build, BRANDS, MIN_PACKS };
