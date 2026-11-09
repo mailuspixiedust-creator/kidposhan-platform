@@ -62,9 +62,37 @@ function ageFrom(q) {
   return null;
 }
 
+// A search written in Hindi, Bengali or Gujarati ("खट्टा लंचबॉक्स 9 साल"): the words that name a taste, a meal, a diet or an age are turned into the English
+// ones the search understands, and the digits written in the language into 0-9. Words it does not know are left out of the taste search (a dish's name
+// in the language's script is not found by it, as recipe names are in English).
+const LOCAL = {
+  tangy: 'खट्टा खट्टी खट्टे चटपटा चटपटी चटपटे টক টকঝাল ખાટું ખાટા ખાટી ચટપટું ચટપટા ચટપટી',
+  spicy: 'तीखा तीखी तीखे मसालेदार ঝাল ঝালঝাল તીખું તીખા તીખી',
+  sweet: 'मीठा मीठी मीठे মিষ্টি મીઠું મીઠા મીઠી',
+  creamy: 'क्रीमी मलाईदार ক্রিমি ક્રીમી',
+  crunchy: 'कुरकुरा कुरकुरी कुरकुरे মচমচে কুড়কুড়ে કરકરું કરકરા કરકરી ક્રિસ્પી',
+  breakfast: 'नाश्ता नाश्ते ब्रेकफास्ट জলখাবার ব্রেকফাস্ট সকালের સવારનો સવારના બ્રેકફાસ્ટ',
+  lunchbox: 'लंचबॉक्स टिफिन টিফিন লাঞ্চবক্স ટિફિન લંચબોક્સ',
+  lunch: 'लंच दोपहर দুপুরের লাঞ্চ બપોર બપોરના લંચ',
+  dinner: 'डिनर रात রাতের ডিনার રાત રાતના ડિનર',
+  snack: 'स्नैक स्नैक्स शाम স্ন্যাকস বিকেলের સ્નેક્સ સાંજના નાસ્તો નાસ્તા',
+  veg: 'शाकाहारी वेज নিরামিষ શાકાહારી',
+  jain: 'जैन জৈন જૈન',
+  egg: 'अंडा ডিম ઈંડા',
+  nonveg: 'मांसाहारी नॉनवेज আমিষ માંસાહારી',
+  year: 'साल वर्ष বছর વર્ષ',
+};
+const LOCAL_MAP = new Map(); for (const [en, list] of Object.entries(LOCAL)) for (const w of list.split(/\s+/)) LOCAL_MAP.set(w, en);
+const DIGITS = { '०': 0, '१': 1, '२': 2, '३': 3, '४': 4, '५': 5, '६': 6, '७': 7, '८': 8, '९': 9, '০': 0, '১': 1, '২': 2, '৩': 3, '৪': 4, '৫': 5, '৬': 6, '৭': 7, '৮': 8, '৯': 9, '૦': 0, '૧': 1, '૨': 2, '૩': 3, '૪': 4, '૫': 5, '૬': 6, '૭': 7, '૮': 8, '૯': 9 };
+export function localToEnglish(q) {
+  const t = String(q || '').normalize('NFC');
+  if (!/[\u0900-\u097F\u0980-\u09FF\u0A80-\u0AFF]/.test(t)) return t;
+  return t.replace(/[०-९০-৯૦-૯]/g, (d) => String(DIGITS[d])).split(/[\s,.;:!?]+/).map((w) => (LOCAL_MAP.has(w) ? LOCAL_MAP.get(w) : /[\u0900-\u097F\u0980-\u09FF\u0A80-\u0AFF]/.test(w) ? '' : w)).filter(Boolean).join(' ');
+}
+
 // What the search should do: { tastes, mild, meals, mealWord, diet, ageMonths, words (what is left), smart (true when anything was understood) }
 export function parseQuery(q) {
-  const text = String(q || '').toLowerCase().replace(/[^a-z0-9\s'&-]/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = localToEnglish(q).toLowerCase().replace(/[^a-z0-9\s'&-]/g, ' ').replace(/\s+/g, ' ').trim();
   const out = { tastes: [], mild: false, meals: [], mealWord: '', diet: null, ageMonths: null, words: [], smart: false };
   const age = ageFrom(text);
   let rest = text;

@@ -169,6 +169,8 @@ fetch('${PLATFORM}/api/kp/products/${p.id}').then(function(r){return r.json()}).
 const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 // "how often to eat it", worked out in the platform from how the dish is made (see src/recipes/dietfit.js); separate from the Poshan Score
 const HOW = { everyday: ['Everyday', 'Fine most days, with variety'], often: ['Often', 'A few times a week'], sometimes: ['Sometimes', 'About once a week'], occasionally: ['Occasionally', 'A treat, once in a while'] };
+const TR_LANGS = { hi: true, bn: false, gu: false };   // languages whose machine-translated ingredients and steps are shown (the others wait until a native speaker has read samples)
+const STEPS_I18N = true;        // method steps in Hindi, Bengali and Gujarati: off until the owner has decided about translating the creators' text
 const SHOW_HOW = true;        // switch on when most recipes have their diet tags
 const howLine = (d) => (SHOW_HOW && d.how_often && HOW[d.how_often] ? `<p class="howline"><b>How often:</b> <span class="how how-${d.how_often}">${HOW[d.how_often][0]}${d.how_often_why ? ' · ' + esc(d.how_often_why) : ''}</span> ${HOW[d.how_often][1]}. The Poshan Score shows how one serving does against a child's daily limits; this line is about how the food is made.</p>` : '');
 const MEAL_LABEL = { breakfast: 'Breakfast', lunchbox: 'School lunchbox', lunch: 'Lunch', snack_4pm: '4 PM snack', dinner: 'Dinner' };
@@ -313,12 +315,13 @@ async function run(out) {
   fs.writeFileSync(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /bot\n\nSitemap: ${SITE}/sitemap.xml\n`);
   // 3. a page for every scored product
   const urls = Object.values(PAGE_META).map((m) => ({ loc: SITE + (m.path === '/' ? '/' : m.path), pr: m.path === '/' ? '1.0' : '0.8' }));
-  const map = {}, packsData = [];
+  const map = {}, packsData = []; let nLang0 = 0;
   try {
     const list = await getJson(`${PLATFORM}/api/kp/products?age=4-6y&limit=1000`);
     const dir = path.join(out, 'products');
     fs.mkdirSync(dir, { recursive: true });
     for (const f of fs.readdirSync(dir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(dir, f));       // pages of packs that are no longer listed must not linger
+    for (const code of Object.keys(require('./i18n.cjs').LANGS)) { const pd0 = path.join(out, code, 'products'); if (fs.existsSync(pd0)) for (const f of fs.readdirSync(pd0)) if (f.endsWith('.html')) fs.unlinkSync(path.join(pd0, f)); }
     const one = async (it) => {
       try {
         const d = await getJson(`${PLATFORM}/api/kp/products/${it.id}?age=4-6y`);
@@ -329,8 +332,16 @@ async function run(out) {
     packsData.sort((a, b) => a.item.id - b.item.id);
     for (const pd of packsData) {
       const pg = productPage(pd.detail, pd.slug, { swaps: swapsFor(pd.item, packsData) });
-      fs.writeFileSync(path.join(dir, pd.slug + '.html'), pg.html);
+      fs.writeFileSync(path.join(dir, pd.slug + '.html'), require('./build-i18n.cjs').decorateEn(pg.html, SITE, 'products/' + pd.slug));
       map[pd.item.id] = pd.slug; urls.push({ loc: pg.url, pr: '0.7', lm: pd.item.updated });
+      // the same page in Hindi, Bengali and Gujarati
+      const sw = swapsFor(pd.item, packsData);
+      for (const code of Object.keys(require('./i18n.cjs').LANGS)) {
+        const lp = require('./build-i18n-packs.cjs').packPageLocal({ ...pd.detail, kind: pd.detail.kind || pd.item.kind }, pd.slug, sw, code, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL });
+        fs.mkdirSync(path.join(out, code, 'products'), { recursive: true });
+        fs.writeFileSync(path.join(out, lp.path), lp.html);
+        urls.push({ loc: lp.url, pr: '0.5', lm: pd.item.updated }); nLang0++;
+      }
     }
   } catch (e) { console.warn('no product pages this build:', e.message); }
   // the Products page links each card to its own page (a card for a product added since this build still opens the pop-up)
@@ -339,7 +350,7 @@ async function run(out) {
     if (fs.existsSync(pf)) { let h = fs.readFileSync(pf, 'utf8'); h = h.replace('window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};', 'window.KP_PRODUCT_PAGES=' + JSON.stringify(map) + ';'); fs.writeFileSync(pf, h); }
   }
   // 3b. a ranking page for each kind of food that has enough scored packs, and the index that links to them
-  let nBest = 0, nBrands = 0, brandLinks = [], brandData = [], nLang0 = 0;
+  let nBest = 0, nBrands = 0, brandLinks = [], brandData = [];
   // 3a. a page for each health-drink brand with at least two scored packs ("Is Bournvita healthy for kids?"), and the page that lists them
   try {
     const brands = require('./build-brands.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
@@ -412,6 +423,9 @@ async function run(out) {
         urls.push(...loc[code].urls); nLang += loc[code].files.length;
       }
     } catch (e) { console.warn('no collection pages this build:', e.message); }
+    // the ingredient lines (and steps) the platform has translated so far, for the language pages
+    const tr = {};
+    for (const code of Object.keys(require('./i18n.cjs').LANGS)) { try { tr[code] = (await getJson(`${PLATFORM}/api/kp/recipes-i18n?lang=${code}`)).items || {}; } catch (e) { tr[code] = {}; } }
     // pass 3: the recipe pages, each with similar recipes and the collections it is on
     const MEAL_ORDER = ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'];
     // the words that say what a dish is (paneer, rice, dosa), not how it is cooked or sold, are what makes two recipes similar
@@ -435,7 +449,7 @@ async function run(out) {
       // the same page in Hindi, Bengali and Gujarati
       const h1Of = (slug, code) => { const p = ideas.bySlug && ideas.bySlug.get(slug); return (p && p['h1_' + code]) || slug; };
       for (const code of Object.keys(require('./i18n.cjs').LANGS)) {
-        const lp = require('./build-i18n-recipes.cjs').recipePageLocal(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug } : null }, code, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL, isoTime, recName, h1Of, showHow: SHOW_HOW });
+        const lp = require('./build-i18n-recipes.cjs').recipePageLocal(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug } : null }, code, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL, isoTime, recName, h1Of, showHow: SHOW_HOW, tr, showSteps: STEPS_I18N, trLangs: TR_LANGS });
         const ld2 = path.join(out, code, 'recipes'); fs.mkdirSync(ld2, { recursive: true });
         fs.writeFileSync(path.join(out, lp.path), lp.html);
         urls.push({ loc: lp.url, pr: '0.5', lm: r.it.updated }); nLang++;
@@ -448,6 +462,38 @@ async function run(out) {
     fs.writeFileSync(path.join(out, 'recipe-pages.js'), `window.KP_RECIPE_PAGES=${JSON.stringify(Object.fromEntries(have.map((r) => [r.it.id, r.slug])))};\n`);
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
+  // the static pages (Home, Age & Metrics, Why We Do This, Products, Scan, Meal Ideas ...) in Hindi, Bengali and Gujarati, from the translation memory kept by the platform.
+  // A page is published in a language only when most of its words are translated; what is not translated yet is listed in ui-seed.sql to be queued.
+  const avail = {}, allUnits = new Set(); let nStatic = 0;
+  try {
+    const stat = require('./build-i18n-static.cjs');
+    const PAGES = [['index.html', '/'], ['age-metrics.html', '/age-metrics'], ['why-we-do-this.html', '/why-we-do-this'], ['built-with-parents.html', '/built-with-parents'], ['privacy.html', '/privacy'], ['products.html', '/products'], ['recipes.html', '/recipes'], ['scan.html', '/scan'], ['meal-ideas.html', '/meal-ideas'], ['compare.html', '/compare']];
+    const COVER = 0.85;
+    for (const code of Object.keys(require('./i18n.cjs').LANGS)) {
+      let map = {}; try { map = (await getJson(`${PLATFORM}/api/kp/ui-i18n?lang=${code}`)).map || {}; } catch (e) { map = {}; }
+      const srcs = {}; for (const [file, rel] of PAGES) { const f = path.join(out, file); if (fs.existsSync(f)) srcs[rel] = [file, fs.readFileSync(f, 'utf8')]; }
+      const ok = ['/best', '/brands', '/ideas'];
+      for (const [rel, [file, html]] of Object.entries(srcs)) { const r = stat.bake(html, { map, rel, code, SITE, units: allUnits }); if (r.total && r.done / r.total >= COVER) ok.push(rel); }
+      avail[code] = ok;
+      const have = new Set(ok);
+      fs.mkdirSync(path.join(out, code), { recursive: true });
+      for (const [rel, [file, html]] of Object.entries(srcs)) {
+        const target = path.join(out, code, rel === '/' ? 'index.html' : file);
+        if (!have.has(rel)) { if (fs.existsSync(target)) fs.unlinkSync(target); continue; }
+        fs.writeFileSync(target, stat.bake(html, { map, rel, code, SITE, units: new Set(), avail: have }).html);
+        urls.push({ loc: SITE + '/' + code + (rel === '/' ? '/' : rel), pr: '0.6' }); nStatic++;
+      }
+    }
+    fs.writeFileSync(path.join(out, 'i18n-pages.json'), JSON.stringify(avail));
+    // and the words the apps write onto the page
+    let nJs = 0;
+    for (const f of [path.join(__dirname, '..', 'public', 'meal-ideas-kp.html'), path.join(__dirname, '..', 'public', 'kp-search.js'), path.join(__dirname, '..', 'public', 'kp-meter.js'), path.join(__dirname, 'build-compare.cjs'), path.join(__dirname, 'live-backup', 'index.html'), path.join(out, 'scan.html'), path.join(out, 'products.html')]) {
+      try { for (const k of stat.jsStrings(fs.readFileSync(f, 'utf8'))) if (!allUnits.has(k)) { allUnits.add(k); nJs++; } } catch (e) { /* a file that is not there */ }
+    }
+    const q = (v) => "'" + String(v).replace(/'/g, "''") + "'";
+    fs.writeFileSync(path.join(__dirname, 'ui-seed.sql'), [...allUnits].sort().map((u) => `INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES (${q(u)}, 1, datetime('now'));`).join('\n') + '\n');
+    console.log(`static language pages: ${nStatic} published, ${allUnits.size} lines to translate, ${nJs} of them from the apps (ui-seed.sql)`);
+  } catch (e) { console.warn('no static language pages this build:', e.message); }
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
   console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, ${nLang + nLang0} Hindi/Bengali/Gujarati pages, sitemap with ${urls.length} addresses`);
 }

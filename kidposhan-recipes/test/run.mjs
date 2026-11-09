@@ -75,6 +75,8 @@ db.exec(fs.readFileSync('migrations/0036_kind_check.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0037_tastes.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0038_referrer.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0039_diet_fit.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0040_recipe_i18n.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0041_ui_i18n.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1710,6 +1712,102 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(!has(await searchRecipes(env, { ...base, fit: ['nofry'] }), none), 'A recipe not yet classified is not offered under a diet filter');
   const sr = await scoreRecipe(env, idA);
   ok(db.prepare('SELECT diet_tags, how_often, diet_checked_at FROM kp_recipes WHERE id = ?').get(idA).diet_checked_at != null, 'Scoring a recipe stores its diet tags');
+}
+
+// ---- ingredient lines and steps in Hindi, Bengali and Gujarati ----
+{
+  const TL = await import('../../src/recipes/translate.js');
+  const src = { ing: ['1 cup rice', '2 tbsp oil'], steps: ['Cook the rice for 10 minutes.', 'Serve warm.'] };
+  const good = { ingredients: ['1 कप चावल', '2 बड़े चम्मच तेल'], steps: ['चावल को 10 मिनट तक पकाएँ।', 'गरमागरम परोसें।'] };
+  ok(TL.checkTranslation('hi', src, good) === null, 'A faithful translation passes the check');
+  ok(/numbers missing/.test(TL.checkTranslation('hi', src, { ...good, steps: ['चावल को 12 मिनट तक पकाएँ।', 'गरमागरम परोसें।'] })), 'A changed time is rejected');
+  ok(/numbers missing/.test(TL.checkTranslation('hi', src, { ...good, ingredients: ['1 कप चावल', 'तेल'] })), 'A dropped quantity is rejected');
+  ok(TL.checkTranslation('hi', src, { ingredients: good.ingredients, steps: ['चावल को 10 मिनट तक पकाएँ।'] }) === 'the number of lines changed', 'A missing line is rejected');
+  ok(TL.checkTranslation('bn', src, { ingredients: ['১ কাপ চাল', '২ টেবিল চামচ তেল'], steps: ['চাল ১০ মিনিট রান্না করুন।', 'গরম পরিবেশন করুন।'] }) === null, 'Digits written in the language are read as numbers');
+  ok(TL.fingerprint(src.ing, src.steps) === TL.fingerprint([...src.ing], [...src.steps]) && TL.fingerprint(src.ing, src.steps) !== TL.fingerprint(src.ing, ['Cook the rice for 11 minutes.', 'Serve warm.']), 'The fingerprint changes when the English changes');
+  const idT = mkRecipe('https://i18n.example/a/', { status: 'approved', name: 'Translate Me Dish', score: 85 });
+  let calls = 0;
+  const aiEnv = { ...env, AI: { run: async () => { calls++; const d = await recipeDetail(env, idT, { lite: true }); const l = TL.sourceLists(d); return { response: JSON.stringify({ ingredients: l.ing.map((t) => t.replace(/[A-Za-z ]+/g, ' चावल ')), steps: l.steps.map((t) => 'पकाएँ ' + (t.match(/\d+/g) || []).join(' ') + ' परोसें') }) }; } } };
+  const tr = await TL.translateRecipe(aiEnv, idT, 'hi');
+  const row = db.prepare("SELECT ingredients_json, steps_json, src_hash FROM kp_recipe_i18n WHERE recipe_id = ? AND lang = 'hi'").get(idT);
+  ok(tr.ok && row && JSON.parse(row.ingredients_json).length > 0 && row.src_hash, 'A recipe is translated and stored with the fingerprint of its English');
+  const out = await TL.translationsFor(env, 'hi');
+  ok(out.items[idT] && out.items[idT].h === row.src_hash && Array.isArray(out.items[idT].steps), 'The site build can read the translations');
+  const badEnv = { ...env, AI: { run: async () => ({ response: 'sorry' }) } };
+  ok(!(await TL.translateRecipe(badEnv, idT, 'bn')).ok && !db.prepare("SELECT 1 FROM kp_recipe_i18n WHERE recipe_id = ? AND lang = 'bn'").get(idT), 'An answer that is not a translation is not stored');
+  const capEnv = { ...aiEnv, I18N_DAILY_CAP: '0' };
+  const capped = await TL.translatePending({ ...capEnv, I18N_DAILY_CAP: '1' }, { limit: 5 });
+  ok(capped.done + capped.failed <= 1 || capped.cap_reached, 'The daily cap limits how many are translated: ' + JSON.stringify(capped));
+}
+
+// ---- the words of the pages in Hindi, Bengali and Gujarati ----
+{
+  const UT = await import('../../src/recipes/uitext.js');
+  const k = UT.keyOf('  Showing 5 of 20 recipes,  1.5 kg  ');
+  ok(k.key === 'Showing {#} of {#} recipes, {#} kg' && k.nums.join('|') === '5|20|1.5', 'Numbers in a line become markers, so one translation serves every number');
+  ok(UT.checkLine('hi', '{#} recipes', '{#} रेसिपी') === null && UT.checkLine('hi', '{#} recipes', 'रेसिपी') === 'a number marker changed', 'A translation that loses a number marker is rejected');
+  ok(UT.checkLine('hi', 'Choose your child\'s age', 'Choose your child\'s age') === 'not in the language' && UT.checkLine('hi', 'WHO', 'WHO') === null, 'A line left in English is rejected, except a short name');
+  ok(UT.checkLine('bn', 'Save it', 'সেভ করুন <b>') === 'markup added', 'Markup added by the AI is rejected');
+  const got = await UT.collectUi(env, ['Pick your child\'s age', 'Pick your child\'s age', '<script>x</script>', 'https://x.example', '12345', 'Show {#} ideas'.replace('{#}', '7')]);
+  ok(got.queued === 2 && db.prepare('SELECT hits FROM kp_ui_src WHERE key = ?').get('Pick your child\'s age').hits === 2, 'The pages can report lines they could not translate (junk and links are dropped, repeats are counted)');
+  const aiEnv = { ...env, AI: { run: async (m, p) => { const keys = JSON.parse(p.messages[1].content); return { response: JSON.stringify(keys.map((x) => 'अनुवाद ' + (x.match(/\{#\}/g) || []).map(() => '{#}').join(' '))) }; } } };
+  const t1 = await UT.translateUiPending(aiEnv, { calls: 3 });
+  const m = await UT.uiMap(env, 'hi');
+  ok(t1.done >= 2 && m.map['Pick your child\'s age'] && m.map['Show {#} ideas'], 'The queued lines are translated and can be read back: ' + JSON.stringify(t1));
+  db.prepare("UPDATE kp_ui_i18n SET tgt = 'सुधारा हुआ', status = 'reviewed' WHERE key = ? AND lang = 'hi'").run('Pick your child\'s age');
+  db.prepare("DELETE FROM kp_ui_calls").run();
+  await UT.translateUiPending(aiEnv, { calls: 3 });
+  ok((await UT.uiMap(env, 'hi')).map['Pick your child\'s age'] === 'सुधारा हुआ', 'A line a native speaker has corrected is never overwritten');
+  const capEnv = { ...aiEnv, UI_DAILY_CALLS: '1' };
+  await UT.collectUi(env, ['A brand new line to translate']);
+  db.prepare("DELETE FROM kp_ui_calls").run(); db.prepare("INSERT INTO kp_ui_calls (day, n) VALUES (date('now'), 1)").run();
+  ok((await UT.translateUiPending(capEnv, { calls: 3 })).calls === 0, 'The daily cap on AI calls is respected');
+}
+
+// ---- search in Hindi, Bengali and Gujarati ----
+{
+  const TA = await import('../../src/recipes/taste.js');
+  const hi = TA.parseQuery('खट्टा लंचबॉक्स ९ साल'), bn = TA.parseQuery('টক টিফিন 9 বছর'), gu = TA.parseQuery('ચટપટા નાસ્તો ૯ વર્ષ'), mix = TA.parseQuery('मीठा dinner शाकाहारी');
+  ok(hi.tastes.join() === 'tangy' && hi.meals.includes('lunchbox') && hi.ageMonths != null, 'A Hindi search finds the taste, the meal and the age: ' + JSON.stringify([hi.tastes, hi.meals, hi.ageMonths]));
+  ok(bn.tastes.join() === 'tangy' && bn.meals.includes('lunchbox') && bn.ageMonths === hi.ageMonths, 'A Bengali search does too');
+  ok(gu.tastes.join() === 'tangy' && gu.meals.length > 0 && gu.ageMonths === hi.ageMonths, 'And a Gujarati one (digits written in the language are read)');
+  ok(mix.tastes.join() === 'sweet' && mix.meals.includes('dinner') && mix.diet === 'veg', 'A search can mix the language and English words');
+  ok(TA.localToEnglish('tangy lunch') === 'tangy lunch', 'An English search is left as it is');
+}
+
+// ---- translating with Claude when its key is there ----
+{
+  const TL = await import('../../src/recipes/translate.js');
+  const UT = await import('../../src/recipes/uitext.js');
+  const realFetch = globalThis.fetch; let claudeCalls = 0, lastBody = null;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith('https://api.anthropic.com/')) {
+      claudeCalls++; lastBody = JSON.parse(init.body);
+      const user = JSON.parse(lastBody.messages[0].content);
+      const text = Array.isArray(user) ? JSON.stringify(user.map((x) => 'क्लॉड ने इस पंक्ति का अनुवाद किया ' + (x.match(/\{#\}/g) || []).join(' '))) : JSON.stringify({ ingredients: user.ingredients.map((x) => '१ ' + 'चावल ' + (x.match(/\d+/g) || []).join(' ')), steps: user.steps.map((x) => 'पकाएँ ' + (x.match(/\d+/g) || []).join(' ')) });
+      return new Response(JSON.stringify({ content: [{ type: 'text', text }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return realFetch(url, init);
+  };
+  const idC = mkRecipe('https://claude.example/a/', { status: 'approved', name: 'Claude Translate Dish', score: 85 });
+  const noKey = await TL.translateRecipe({ ...env, AI: { run: async () => ({ response: 'sorry' }) } }, idC, 'gu');
+  ok(!noKey.ok && claudeCalls === 0, 'Without the key Claude is not called');
+  const withKey = { ...env, ANTHROPIC_API_KEY: 'k', AI: { run: async () => ({ response: 'sorry' }) } };
+  const r1 = await TL.translateRecipe(withKey, idC, 'gu');
+  const row = db.prepare("SELECT model FROM kp_recipe_i18n WHERE recipe_id = ? AND lang = 'gu'").get(idC);
+  ok(r1.ok && claudeCalls === 1 && row.model.startsWith('claude') && lastBody.temperature === 0 && /Gujarati/.test(lastBody.system), 'With the key the recipe is translated by Claude, which is told the language: ' + row.model);
+  // a translation the free model made is made again by Claude
+  db.prepare("UPDATE kp_recipe_i18n SET model = '@cf/mistralai/mistral-small-3.1-24b-instruct' WHERE recipe_id = ? AND lang = 'gu'").run(idC);
+  db.prepare("DELETE FROM kp_i18n_tries").run();
+  const again = await TL.translatePending({ ...withKey, I18N_DAILY_CAP: '50000' }, { limit: 5000 });
+  ok(db.prepare("SELECT model FROM kp_recipe_i18n WHERE recipe_id = ? AND lang = 'gu'").get(idC).model.startsWith('claude'), 'With the key, the free model\'s translations are redone by Claude: ' + JSON.stringify(again).slice(0, 80));
+  // the page lines
+  await UT.collectUi(env, ['Claude should translate this line']);
+  db.prepare("DELETE FROM kp_ui_calls").run();
+  const u = await UT.translateUiPending({ ...withKey, UI_DAILY_CALLS: '500' }, { calls: 6 });
+  const ml = db.prepare("SELECT model FROM kp_ui_i18n WHERE key = ? AND lang = 'hi'").get('Claude should translate this line');
+  ok(ml && ml.model.startsWith('claude'), 'The lines of the pages are translated by Claude too');
+  globalThis.fetch = realFetch;
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
