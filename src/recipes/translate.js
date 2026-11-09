@@ -114,9 +114,11 @@ export async function translatePending(env, { limit } = {}) {
   const room = Math.max(0, Math.min(limit, cap - used));
   if (!room) return { done: 0, cap_reached: true };
   const pairs = [];
-  for (const lang of Object.keys(LANGS)) {
+  const langs = String(env.TRANSLATE_LANGS || 'hi').split(',').map((x) => x.trim()).filter((x) => LANGS[x]);
+  for (const lang of langs) {
     const { results } = await env.DB.prepare(
-      `SELECT r.id FROM kp_recipes r WHERE r.poshan_score IS NOT NULL AND r.score_hidden = 0 AND r.total_minutes IS NOT NULL
+      `SELECT r.id FROM kp_recipes r WHERE r.poshan_score IS NOT NULL AND r.score_hidden = 0 AND r.total_minutes IS NOT NULL AND r.review_status = 'approved'
+         AND NOT EXISTS (SELECT 1 FROM kp_i18n_tries g WHERE g.recipe_id = r.id AND g.why = 'recipe not found')
          AND NOT EXISTS (SELECT 1 FROM kp_recipe_i18n t WHERE t.recipe_id = r.id AND t.lang = ?)
          AND NOT EXISTS (SELECT 1 FROM kp_i18n_tries f WHERE f.recipe_id = r.id AND f.lang = ? AND f.tried_at >= datetime('now','-1 day'))
        ORDER BY r.id LIMIT ?`).bind(lang, lang, room).all();
@@ -131,6 +133,7 @@ export async function translatePending(env, { limit } = {}) {
   for (const [id, lang] of pairs.slice(0, room)) {
     const r = await translateRecipe(env, id, lang);
     if (r.ok) done++;
+    else if (/daily free allocation|4006/.test(String(r.why))) { notes.push('the free AI allowance for today is used up'); break; }
     else { failed++; notes.push(`${id}/${lang}: ${r.why}`); await env.DB.prepare("INSERT INTO kp_i18n_tries (recipe_id, lang, why, tried_at) VALUES (?,?,?,datetime('now'))").bind(id, lang, String(r.why).slice(0, 200)).run(); }
   }
   return { done, failed, notes: notes.slice(0, 5) };
