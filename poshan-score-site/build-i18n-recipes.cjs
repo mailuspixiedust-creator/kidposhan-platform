@@ -4,8 +4,16 @@ const { TEXT } = require('./i18n.cjs');
 const { REC } = require('./i18n-recipe.cjs');
 const { alternates, switcher } = require('./build-i18n.cjs');
 
+// the same fingerprint the platform stores (src/recipes/translate.js): a translation is used only while the English it came from is unchanged
+function fingerprint(ing, steps) {
+  const s = JSON.stringify([ing, steps]);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16);
+}
+
 function recipePageLocal(d, slug, extra, code, ctx) {
-  const { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL, isoTime, recName, h1Of, showHow } = ctx;
+  const { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, AGE_LABEL, isoTime, recName, h1Of, showHow, tr, showSteps, trLangs } = ctx;
   const R = REC[code], L = TEXT[code];
   const rel = `recipes/${slug}`, url = `${SITE}/${code}/${rel}`;
   const nm = recName(d.name), sc = d.score || {}, score = Math.round(sc.value ?? d.poshan_score);
@@ -35,13 +43,18 @@ function recipePageLocal(d, slug, extra, code, ctx) {
   const byAge = ages.map(([k, v]) => `<tr><td>${esc(ageName(k))}</td><td class="m"><b>${v}</b>/100</td></tr>`).join('');
   const ings = (d.ingredients || []).map((i) => i.raw_text).filter((t) => t && !/^(null|undefined|\s)+$/i.test(String(t)));
   const steps = Array.isArray(d.method) ? d.method : [];
+  const t = tr && tr[code] && tr[code][d.id];
+  const fresh = !!((!trLangs || trLangs[code]) && t && t.h === fingerprint(ings.map(String), steps.map((st) => String(st.text || ''))) && t.ing.length === ings.length && t.steps.length === steps.length);
+  const ingShown = fresh ? t.ing : ings, useSteps = fresh && !!showSteps;
+  const stepText = (i) => (useSteps ? t.steps[i] : steps[i].text);
+  const listLang = (translated) => (translated ? code : 'en');
   let stepsHtml = '', n = 0;
   if (steps.length) {
     let open = false, cur = null;
     for (const st of steps) {
       n++;
-      if (st.section !== cur) { if (open) stepsHtml += '</ol>'; cur = st.section; if (cur) stepsHtml += `<h3>${esc(cur)}</h3>`; stepsHtml += '<ol class="steps" lang="en">'; open = true; }
-      stepsHtml += `<li id="step-${n}">${esc(st.text)}</li>`;
+      if (st.section !== cur) { if (open) stepsHtml += '</ol>'; cur = st.section; if (cur) stepsHtml += `<h3>${esc(cur)}</h3>`; stepsHtml += `<ol class="steps" lang="${listLang(useSteps)}">`; open = true; }
+      stepsHtml += `<li id="step-${n}">${esc(stepText(n - 1))}</li>`;
     }
     if (open) stepsHtml += '</ol>';
   }
@@ -49,8 +62,8 @@ function recipePageLocal(d, slug, extra, code, ctx) {
   const howLine = showHow && d.how_often && R.how[d.how_often] ? `<p class="howline"><b>${esc(R.howLabel)}:</b> <span class="how how-${d.how_often}">${esc(R.how[d.how_often])}${howWhy ? ' · ' + esc(howWhy) : ''}</span> ${esc(R.howHelp[d.how_often])}${code === 'gu' ? '.' : '।'} ${esc(R.howNote)}</p>` : '';
   const facts = [d.total_minutes ? '⏱ ' + L.time(d.total_minutes) : '', servesTxt ? R.serves(servesTxt) : '', diet, ...meals, d.age_min_months ? R.from(d.age_min_months) : ''].filter(Boolean).map((f) => `<span>${esc(f)}</span>`).join('');
   const ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: nm, inLanguage: code, image: d.image_url ? [d.image_url] : undefined, author: { '@type': 'Person', name: credit }, description: desc, url,
-    totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ings : undefined,
-    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', text: st.text, url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: (d.source && d.source.url) || undefined };
+    totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ingShown : undefined,
+    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', text: stepText(i), url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: (d.source && d.source.url) || undefined };
   const ldFaq = { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: code, mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
   const css = RECIPE_CSS + `.bigscore{display:flex;align-items:center;gap:14px;margin:16px 0 6px}.bigscore b{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:32px;color:#fff;background:${TIER_COLOR[sc.capped ? 'OK' : sc.band] || TIER_COLOR.OK}}.bigscore span{font-weight:600}.langs{margin:0 0 8px}body{line-height:1.7}`;
   const mc = extra.mealCrumb ? { slug: extra.mealCrumb.slug, h1: h1Of(extra.mealCrumb.slug, code) } : null;
@@ -76,8 +89,8 @@ ${howLine}
 ${d.kid_note ? `<p class="note" lang="en">${esc(d.kid_note)}</p>` : ''}
 <h2>${esc(R.h.every)}</h2><table>${byAge || `<tr><td>${esc(R.openFor)}</td></tr>`}</table>
 ${perHtml}
-${ings.length ? `<h2>${esc(R.h.ing)}</h2><ul class="ing" lang="en">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
-${stepsHtml ? `<h2>${esc(R.h.method)}</h2>${stepsHtml}<p class="fine">${esc(R.methodBy(credit))}${d.source && d.source.url ? `. <a href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(R.seeOrig)}</a>` : ''}.</p>` : (d.source && d.source.url ? `<p><a class="cta alt" href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(R.seeMethod(credit))}</a></p>` : '')}
+${ings.length ? `<h2>${esc(R.h.ing)}</h2><ul class="ing" lang="${listLang(fresh)}">${ingShown.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>${fresh ? `<details class="orig"><summary>${esc(R.origEn)}</summary><ul class="ing" lang="en">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></details><p class="fine">${esc(R.aiNote)}</p>` : ''}` : ''}
+${stepsHtml ? `<h2>${esc(R.h.method)}</h2>${stepsHtml}${useSteps ? `<details class="orig"><summary>${esc(R.origEn)}</summary><ol class="steps" lang="en">${steps.map((st) => `<li>${esc(st.text)}</li>`).join('')}</ol></details><p class="fine">${esc(R.aiNote)}</p>` : ''}<p class="fine">${esc(R.methodBy(credit))}${d.source && d.source.url ? `. <a href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(R.seeOrig)}</a>` : ''}.</p>` : (d.source && d.source.url ? `<p><a class="cta alt" href="${esc(d.source.url)}" target="_blank" rel="noopener">${esc(R.seeMethod(credit))}</a></p>` : '')}
 <div class="faq"><h2>${esc(R.h.faq)}</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
 ${(extra.similar || []).length ? `<h2>${esc(R.h.like)}</h2><ul class="ing">${extra.similar.map((x) => `<li><a href="/${code}/recipes/${x.slug}" lang="en">${esc(x.name)}</a> <span class="fine">· ${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></li>`).join('')}</ul>` : ''}
 ${(extra.collections || []).length ? `<h2>${esc(R.h.ideas)}</h2><p>${extra.collections.map((c) => `<a href="/${code}/ideas/${c.slug}">${esc(h1Of(c.slug, code))}</a>`).join(' · ')}</p>` : ''}

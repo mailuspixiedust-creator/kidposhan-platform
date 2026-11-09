@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>বয়স ও মাপকাঠি — Poshan Score</title>
+<meta name="description" content="Poshan Score কীভাবে কাজ করে: দশটি হ্যাঁ-না পরীক্ষা, ICMR-NIN-এর প্রতিটি বয়সের গ্রুপের জন্য, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত, ICMR-NIN, WHO ও FSSAI-এর রেফারেন্স থেকে। প্রতিটি সীমা ও উৎস তালিকাভুক্ত।">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="বয়স ও মাপকাঠি — Poshan Score">
+<meta property="og:description" content="Poshan Score কীভাবে কাজ করে: দশটি হ্যাঁ-না পরীক্ষা, ICMR-NIN-এর প্রতিটি বয়সের গ্রুপের জন্য, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত, ICMR-NIN, WHO ও FSSAI-এর রেফারেন্স থেকে। প্রতিটি সীমা ও উৎস তালিকাভুক্ত।">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="বয়স ও মাপকাঠি — Poshan Score">
+<meta name="twitter:description" content="Poshan Score কীভাবে কাজ করে: দশটি হ্যাঁ-না পরীক্ষা, ICMR-NIN-এর প্রতিটি বয়সের গ্রুপের জন্য, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত, ICMR-NIN, WHO ও FSSAI-এর রেফারেন্স থেকে। প্রতিটি সীমা ও উৎস তালিকাভুক্ত।">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
+<style>
+  :root{
+    --bg:#FDFBF6;
+    --bg-alt:#F6F0E4;
+    --card:#FFFFFF;
+    --line:#E7DFCE;
+    --ink:#221A12;
+    --ink-dim:#6B5D4B;
+    --gold:#B5790A;
+    --gold-soft:#F6E4BC;
+    --green:#3F6B3C;
+    --green-soft:#E3EEDF;
+    --red:#A6402A;
+    --red-soft:#F5E1DB;
+    --brown:#4A3423;
+    --brown-soft:#EFE6DC;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --font-display:'Iowan Old Style','Palatino Linotype','Book Antiqua', Georgia, serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  img,svg{ max-width:100%; }
+
+  nav{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(253,251,246,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand-mark{ position:relative; width:20px; height:24px; flex-shrink:0; }
+  .brand-mark .tier{ position:absolute; left:0; right:0; height:6px; border-radius:3px; border:1px solid rgba(34,26,18,0.15); }
+  .brand-mark .tier:nth-child(1){ top:0; background:var(--green); }
+  .brand-mark .tier:nth-child(2){ top:6px; background:var(--gold); }
+  .brand-mark .tier:nth-child(3){ top:12px; background:var(--red); }
+  .brand-mark .tier:nth-child(4){ top:18px; background:var(--brown); }
+  .brand-name{ font-family:var(--font-display); font-size:18px; line-height:1.05; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-name b{ display:block; color:var(--gold); font-size:11px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px; }
+  .nav-links{ display:none; gap:26px; font-size:14px; color:var(--ink-dim); }
+  .nav-links a{ text-decoration:none; transition:color .2s ease; position:relative; padding-bottom:2px; }
+  .nav-links a::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
+  .nav-links a:hover{ color:var(--gold); }
+  .nav-links a:hover::after{ transform:scaleX(1); }
+  @media(min-width:780px){ .nav-links{ display:flex; } }
+  .hamburger{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+  .hamburger svg{ width:18px; height:18px; color:var(--ink); }
+  @media(min-width:780px){ .hamburger{ display:none; } }
+
+  .mobile-menu{ display:none; flex-direction:column; padding:4px 20px 14px; background:var(--card); border-bottom:1px solid var(--line); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:14px 6px; text-decoration:none; color:var(--ink); font-size:16px; border-bottom:1px solid var(--line); }
+  .mobile-menu a:last-child{ border-bottom:none; }
+  @media(min-width:780px){ .mobile-menu{ display:none !important; } }
+
+  .nav-cta{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:100px; text-decoration:none; white-space:nowrap; }
+
+  .hero{ max-width:820px; margin:0 auto; padding:52px 20px 10px; }
+  @media(min-width:900px){
+    .hero{ max-width:1080px; display:flex; align-items:center; gap:32px; padding:56px 40px 10px; }
+    .hero-text{ flex:1.15; }
+    .hero-visual{ flex:1; }
+  }
+
+  /* ---- package sorting scene ---- */
+  .hero-visual{ display:flex; flex-direction:column; gap:18px; margin-top:34px; }
+  @media(min-width:900px){ .hero-visual{ margin-top:0; } }
+  .sort-scene{ position:relative; height:150px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); overflow:hidden; padding:14px 10px 0; }
+  .sort-belt{ position:absolute; top:14px; left:10px; right:10px; height:2px; background:var(--line); }
+  .sort-belt::before, .sort-belt::after{ content:''; position:absolute; top:-2px; width:6px; height:6px; border-radius:50%; background:var(--line); }
+  .sort-belt::before{ left:0; }
+  .sort-belt::after{ right:0; }
+
+  .pkg{ position:absolute; top:8px; width:22px; height:26px; border-radius:5px 5px 3px 3px; opacity:0; }
+  .pkg::before{ content:''; position:absolute; top:3px; left:2px; right:2px; height:3px; background:rgba(255,255,255,0.55); border-radius:2px; }
+  .pkg.pkg-a{ left:14%; background:var(--green); animation:dropA 4.5s ease-in-out infinite; }
+  .pkg.pkg-b{ left:46%; background:var(--gold); animation:dropB 4.5s ease-in-out infinite; animation-delay:.5s; }
+  .pkg.pkg-c{ left:78%; background:var(--brown); animation:dropC 4.5s ease-in-out infinite; animation-delay:1s; }
+
+  @keyframes dropA{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(-22px,88px) rotate(-18deg); opacity:1; }
+    55%{ transform:translate(-22px,88px) rotate(-18deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropB{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(0,88px) rotate(10deg); opacity:1; }
+    55%{ transform:translate(0,88px) rotate(10deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropC{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(18px,88px) rotate(-8deg); opacity:1; }
+    55%{ transform:translate(18px,88px) rotate(-8deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+
+  .sort-bins{ position:absolute; left:10px; right:10px; bottom:0; display:flex; justify-content:space-between; }
+  .sort-bin{ width:30%; text-align:center; }
+  .sort-bin-shape{ height:34px; border-radius:6px 6px 3px 3px; margin-bottom:4px; opacity:0.18; }
+  .sort-bin.excellent .sort-bin-shape{ background:var(--green); }
+  .sort-bin.good .sort-bin-shape{ background:var(--gold); }
+  .sort-bin.avoid .sort-bin-shape{ background:var(--brown); }
+  .sort-bin-label{ font-family:var(--font-mono); font-size:9px; letter-spacing:0.03em; text-transform:uppercase; color:var(--ink-dim); }
+
+  @media (prefers-reduced-motion: reduce){ .pkg{ animation:none; opacity:0; } }
+
+  /* ---- kids playing sports scene ---- */
+  .sport-scene{ display:flex; justify-content:space-around; align-items:flex-end; height:110px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:8px 6px 0; }
+  .sport-figure{ width:70px; height:100px; }
+
+  /* football kid: kicking leg swings from the hip */
+  .kick-leg{ transform-box:view-box; transform-origin:28px 52px; animation:kickSwing 1.8s ease-in-out infinite; }
+  @keyframes kickSwing{ 0%,100%{ transform:rotate(0deg); } 35%{ transform:rotate(-38deg); } 55%{ transform:rotate(18deg); } 70%{ transform:rotate(0deg); } }
+  .football{ transform-box:view-box; transform-origin:52px 86px; animation:ballHop 1.8s ease-in-out infinite; }
+  @keyframes ballHop{ 0%,50%{ transform:translate(0,0) scale(1); } 58%{ transform:translate(10px,-6px) scale(1.05); } 70%{ transform:translate(18px,0) scale(1); } 100%{ transform:translate(0,0) scale(1); } }
+
+  /* cricket kid: bat arm swings from the shoulder */
+  .bat-arm{ transform-box:view-box; transform-origin:38px 28px; animation:batSwing 2.1s ease-in-out infinite; }
+  @keyframes batSwing{ 0%,100%{ transform:rotate(24deg); } 45%{ transform:rotate(-46deg); } 60%{ transform:rotate(-30deg); } }
+
+  /* muscle kid: bicep pulses, forearm curls */
+  .flex-arm{ transform-box:view-box; transform-origin:38px 28px; animation:flexCurl 1.6s ease-in-out infinite; }
+  @keyframes flexCurl{ 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(-22deg); } }
+  .bicep{ transform-box:view-box; transform-origin:40px 30px; animation:bicepPulse 1.6s ease-in-out infinite; }
+  @keyframes bicepPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.28); } }
+
+  .sport-bounce{ animation:idleBounce 2.4s ease-in-out infinite; }
+  .sport-figure:nth-child(1) .sport-bounce{ animation-delay:0s; }
+  .sport-figure:nth-child(2) .sport-bounce{ animation-delay:.3s; }
+  .sport-figure:nth-child(3) .sport-bounce{ animation-delay:.6s; }
+  @keyframes idleBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+
+  @media (prefers-reduced-motion: reduce){
+    .kick-leg, .football, .bat-arm, .flex-arm, .bicep, .sport-bounce{ animation:none !important; }
+  }
+
+  /* ---- flip card: front claims vs. back ingredient panel ---- */
+  .metrics-intro-row{ display:flex; flex-direction:column; gap:22px; margin-bottom:22px; }
+  @media(min-width:760px){ .metrics-intro-row{ flex-direction:row; align-items:center; gap:32px; } .metrics-intro-row .intro{ flex:1.3; margin-bottom:0 !important; } }
+
+  .flip-stage{ perspective:800px; width:132px; height:172px; flex-shrink:0; margin:0 auto; }
+  .flip-card{
+    position:relative; width:100%; height:100%; transform-style:preserve-3d;
+    animation:flipCard 5s ease-in-out infinite;
+  }
+  @keyframes flipCard{
+    0%, 40%{ transform:rotateY(0deg); }
+    50%, 90%{ transform:rotateY(180deg); }
+    100%{ transform:rotateY(360deg); }
+  }
+  .flip-face{
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:14px;
+    border:1.5px solid var(--line); box-shadow:0 10px 24px -14px rgba(74,52,35,0.3);
+    padding:14px 12px; display:flex; flex-direction:column;
+  }
+  .flip-front{ background:linear-gradient(160deg, var(--green-soft), var(--card)); align-items:center; justify-content:center; text-align:center; gap:8px; }
+  .flip-front .claim{ font-family:var(--font-display); font-size:14px; color:var(--green); line-height:1.3; }
+  .flip-front .badge-check{ width:30px; height:30px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .flip-back{ background:var(--card); transform:rotateY(180deg); justify-content:flex-start; gap:5px; }
+  .flip-back .panel-title{ font-family:var(--font-mono); font-size:8px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px; }
+  .flip-back .panel-line{ height:5px; border-radius:3px; background:var(--line); }
+  .flip-back .panel-line.hl{ background:var(--red-soft); }
+  .flip-back .panel-line.w40{ width:40%; } .flip-back .panel-line.w60{ width:60%; } .flip-back .panel-line.w80{ width:80%; }
+  .flip-back .panel-line.w50{ width:50%; } .flip-back .panel-line.w70{ width:70%; } .flip-back .panel-line.w90{ width:90%; }
+  @media (prefers-reduced-motion: reduce){ .flip-card{ animation:none; } }
+
+  /* ---- floating packages drifting behind the metrics list ---- */
+  #ten-metrics{ position:relative; overflow:hidden; }
+  .bg-pkg{ position:absolute; border-radius:6px 6px 3px 3px; opacity:0.10; animation:bgFloat 12s ease-in-out infinite; }
+  .bg-pkg::before{ content:''; position:absolute; top:14%; left:12%; right:12%; height:14%; background:rgba(255,255,255,0.6); border-radius:3px; }
+  .bg-pkg.bp1{ top:6%; left:4%; width:46px; height:58px; background:var(--green); animation-delay:0s; }
+  .bg-pkg.bp2{ top:32%; right:6%; width:38px; height:48px; background:var(--gold); animation-delay:2.5s; }
+  .bg-pkg.bp3{ bottom:14%; left:8%; width:34px; height:42px; background:var(--red); animation-delay:5s; }
+  .bg-pkg.bp4{ bottom:4%; right:10%; width:50px; height:62px; background:var(--brown); animation-delay:1.2s; }
+  @keyframes bgFloat{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-14px) rotate(6deg); } }
+  @media (prefers-reduced-motion: reduce){ .bg-pkg{ animation:none; } }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; margin-bottom:16px; position:relative; }
+  .eyebrow::before{ content:''; width:0; height:1px; background:var(--gold); display:inline-block; animation:drawLine .6s ease forwards .1s; }
+  @keyframes drawLine{ to{ width:16px; } }
+  h1{ font-family:var(--font-display); font-weight:400; letter-spacing:-0.01em; font-size:clamp(30px, 6.5vw, 44px); line-height:1.08; margin:0 0 16px; color:var(--ink); opacity:0; animation:fadeUp .6s ease forwards .15s; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+  .lede{ font-size:15.5px; line-height:1.68; color:var(--ink-dim); max-width:66ch; margin:0 0 8px; opacity:0; animation:fadeUp .6s ease forwards .3s; }
+  .lede b{ color:var(--ink); font-weight:600; }
+
+  .section{ max-width:820px; margin:0 auto; padding:34px 20px; }
+  .section-eyebrow{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:8px; }
+  .section h2{ font-family:var(--font-display); font-size:clamp(22px,4vw,28px); font-weight:400; margin:0 0 12px; color:var(--ink); }
+  .section p.intro{ font-size:14.5px; line-height:1.65; color:var(--ink-dim); max-width:68ch; margin:0 0 22px; }
+  .section p.intro b{ color:var(--ink); }
+
+  /* age tabs, popping off the white background */
+  .age-tabs{ position:relative; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; background:var(--bg-alt); border-radius:100px; padding:6px; width:fit-content; }
+  .age-tab{
+    position:relative; z-index:1; font-family:var(--font-mono); font-size:12.5px; letter-spacing:0.03em;
+    padding:9px 16px; border-radius:100px; border:none;
+    background:transparent; color:var(--ink-dim); cursor:pointer;
+    transition:color .2s ease, transform .15s ease;
+  }
+  .age-tab.active{ background:var(--card); color:var(--ink); font-weight:600; transform:scale(1.05); box-shadow:0 8px 18px -8px rgba(34,26,18,0.25); }
+  .age-tab:active{ transform:scale(0.96); }
+
+  .age-panel{ display:none; }
+  .age-panel.active{ display:block; animation:panelPop .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes panelPop{ from{ opacity:0; transform:translateY(10px) scale(0.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @media (prefers-reduced-motion: reduce){
+    .age-panel.active{ animation:none; }
+    .refcard{ opacity:1; transform:none; animation:none !important; }
+    .metric-row:hover .metric-badge{ transform:none; }
+  }
+
+  .refcard-grid{ display:grid; gap:12px; grid-template-columns:1fr 1fr; margin-bottom:8px; }
+  @media(min-width:600px){ .refcard-grid{ grid-template-columns:repeat(3,1fr); } }
+  .refcard{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px; transition:transform .2s ease, box-shadow .2s ease; opacity:0; transform:translateY(10px) scale(0.97); }
+  .age-panel.active .refcard{ animation:refcardPop .45s cubic-bezier(.2,.8,.2,1) forwards; }
+  .age-panel.active .refcard:nth-child(1){ animation-delay:.03s; }
+  .age-panel.active .refcard:nth-child(2){ animation-delay:.08s; }
+  .age-panel.active .refcard:nth-child(3){ animation-delay:.13s; }
+  .age-panel.active .refcard:nth-child(4){ animation-delay:.18s; }
+  .age-panel.active .refcard:nth-child(5){ animation-delay:.23s; }
+  .age-panel.active .refcard:nth-child(6){ animation-delay:.28s; }
+  @keyframes refcardPop{ to{ opacity:1; transform:translateY(0) scale(1); } }
+  .refcard:hover{ transform:translateY(-3px); box-shadow:0 14px 24px -14px rgba(74,52,35,0.25); }
+  .refcard .label{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+  .refcard .value{ font-family:var(--font-display); font-size:22px; color:var(--ink); }
+  .refcard .value small{ font-family:var(--font-body); font-size:12px; color:var(--ink-dim); }
+  .refcard .src{ font-size:10px; color:var(--ink-dim); margin-top:4px; }
+
+  /* metrics list */
+  .metric-row{
+    display:grid; grid-template-columns:auto 1fr; gap:16px;
+    padding:20px 0; border-bottom:1px solid var(--line);
+    opacity:0; transform:translateY(10px);
+  }
+  .metric-row.in-view{ animation:rowRise .5s ease forwards; }
+  .metric-row:last-child{ border-bottom:none; }
+  @keyframes rowRise{ to{ opacity:1; transform:translateY(0); } }
+  .metric-badge{
+    width:38px; height:38px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:16px; color:#fff;
+    transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .metric-row:hover .metric-badge{ transform:rotate(-6deg) scale(1.1); }
+  .metric-row h3{ font-family:var(--font-display); font-size:18px; font-weight:400; margin:0 0 4px; }
+  .metric-row .scaling{
+    display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.05em;
+    text-transform:uppercase; padding:3px 9px; border-radius:100px; margin-bottom:8px; margin-right:6px;
+  }
+  .scaling.byage{ background:var(--green-soft); color:var(--green); }
+  .scaling.fixed{ background:var(--brown-soft); color:var(--brown); }
+  .scaling.credit{ background:var(--gold-soft); color:var(--gold); }
+  .scaling.composite{ background:var(--red-soft); color:var(--red); }
+  .metric-row p{ font-size:13.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 8px; }
+  .metric-row .threshold{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink); background:var(--bg-alt); border:1px solid var(--line); padding:8px 12px; border-radius:8px; display:inline-block; }
+  .metric-row .cite{ font-size:11px; color:var(--ink-dim); margin-top:6px; }
+  .metric-row .cite a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  /* worked example */
+  .example{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-lg); padding:24px; margin-top:6px; }
+  .example h3{ font-family:var(--font-display); font-size:19px; font-weight:400; margin:0 0 4px; }
+  .example .sub{ font-size:13px; color:var(--ink-dim); margin:0 0 18px; }
+  .example-grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media(min-width:600px){ .example-grid{ grid-template-columns:1fr 1fr 1fr 1fr; } }
+  .example-cell{ background:var(--bg-alt); border-radius:var(--radius-md); padding:14px; text-align:center; transition:transform .2s ease; }
+  .example-cell:hover{ transform:translateY(-3px); }
+  .example-cell .age{ font-family:var(--font-mono); font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
+  .example-cell .pct{ font-family:var(--font-display); font-size:26px; color:var(--ink); }
+  .example-cell.flag-high .pct{ color:var(--red); }
+  .example-cell.flag-mid .pct{ color:var(--gold); }
+  .example-cell .caption{ font-size:11px; color:var(--ink-dim); margin-top:4px; }
+
+  /* sources */
+  .sources-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; }
+  .sources-list li{ font-size:13px; line-height:1.6; color:var(--ink-dim); padding-left:22px; position:relative; }
+  .sources-list li::before{ content:'\2014'; position:absolute; left:0; color:var(--gold); }
+  .sources-list b{ color:var(--ink); }
+  .sources-list a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  .note{ max-width:820px; margin:20px auto 0; padding:16px 20px; font-size:12px; line-height:1.65; color:var(--ink-dim); border-top:1px solid var(--line); }
+  .note b{ color:var(--ink); }
+
+  footer{ text-align:center; padding:40px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
+  footer b{ color:var(--ink); }
+
+  .tiers{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:18px 0 8px; }
+  .tier-card{ border-radius:12px; padding:12px 12px 10px; border:1px solid var(--line); background:var(--card); }
+  .tier-card b{ display:block; font-family:var(--font-display); font-size:18px; }
+  .tier-card span{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); }
+  .tier-card.t-Good{ border-top:5px solid var(--green); }
+  .tier-card.t-OK{ border-top:5px solid #B5790A; } .tier-card.t-Do-not-use{ border-top:5px solid var(--red); }
+  @media(max-width:560px){ .tiers{ grid-template-columns:repeat(2,1fr); } }
+  .m2{ display:grid; grid-template-columns:44px 1fr; gap:14px; padding:18px 0; border-top:1px solid var(--line); }
+  .m2 .metric-badge{ width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--green); }
+  .m2 h3{ margin:0 0 2px; font-family:var(--font-display); font-weight:400; font-size:21px; }
+  .m2 .scaling{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); }
+  .m2 p{ margin:6px 0; font-size:14.5px; line-height:1.55; color:var(--ink-dim); }
+  .ruler10{ display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:3px; margin:10px 0 2px; }
+  .ruler10 .rc{ border-radius:6px; background:#EFEAD9; padding:6px 0 4px; text-align:center; font:700 13px/1 var(--font-body); color:#6B5D4B; }
+  .ruler10 .rc small{ display:block; margin-top:4px; font:500 9.5px/1.2 var(--font-body); color:#8C7A64; min-height:24px; }
+  .ruler10 .rc.lo{ background:#F2D6CD; } .ruler10 .rc.mid{ background:#F4E3B5; } .ruler10 .rc.hi{ background:#D3E6CC; }
+  .rsc{ display:flex; justify-content:space-between; font-size:11px; color:var(--ink-dim); }
+  .m2 .src{ font-size:12.5px; color:var(--ink-dim); margin-top:6px; }
+  @media(max-width:560px){ .m2{ grid-template-columns:1fr; } .ruler10 .rc small{ font-size:8.5px; } }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
+</style>
+<link rel="canonical" href="https://www.kidposhan.in/bn/age-metrics">
+<meta property="og:url" content="https://www.kidposhan.in/bn/age-metrics">
+<link rel="alternate" hreflang="en" href="https://www.kidposhan.in/age-metrics">
+<link rel="alternate" hreflang="hi" href="https://www.kidposhan.in/hi/age-metrics">
+<link rel="alternate" hreflang="bn" href="https://www.kidposhan.in/bn/age-metrics">
+<link rel="alternate" hreflang="gu" href="https://www.kidposhan.in/gu/age-metrics">
+<link rel="alternate" hreflang="x-default" href="https://www.kidposhan.in/age-metrics">
+</head>
+<body>
+<p class="fine langs" lang="en"><a href="/bn/age-metrics" hreflang="en">English</a> · <a href="/hi/age-metrics" hreflang="hi">हिन्दी</a> · <b>বাংলা</b> · <a href="/gu/age-metrics" hreflang="gu">ગુજરાતી</a></p>
+
+<nav>
+  <a class="brand" href="/bn/">
+    <div class="brand-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="brand-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nav-links">
+    <a href="/bn/">হোম</a>
+    <a href="/bn/age-metrics#ten-metrics">পদ্ধতি</a>
+    <a href="/bn/age-metrics" aria-current="page">বয়স ও মাপকাঠি</a>
+    <a href="/bn/meal-ideas">মিল আইডিয়া</a>
+    <a href="/bn/recipes">রেসিপি</a>
+    <a href="/bn/best">র‍্যাঙ্কিং</a>
+    <a href="/bn/products">প্রোডাক্ট</a>
+    <a href="/bn/scan">প্যাক স্ক্যান করুন</a>
+    <a href="/bn/why-we-do-this">আমরা এটি কেন করি</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="মেনু" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+    <a class="nav-cta" href="/bn/products">প্রোডাক্ট দেখুন</a>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="/bn/">হোম</a>
+    <a href="/bn/age-metrics#ten-metrics">পদ্ধতি</a>
+    <a href="/bn/age-metrics" aria-current="page">বয়স ও মাপকাঠি</a>
+    <a href="/bn/meal-ideas">মিল আইডিয়া</a>
+    <a href="/bn/recipes">রেসিপি</a>
+    <a href="/bn/best">র‍্যাঙ্কিং</a>
+    <a href="/bn/products">প্রোডাক্ট</a>
+    <a href="/bn/scan">প্যাক স্ক্যান করুন</a>
+    <a href="/bn/why-we-do-this">আমরা এটি কেন করি</a>
+  </div>
+
+<header class="hero">
+  <div class="hero-text">
+    <div class="eyebrow">বয়স অনুযায়ী রুব্রিক · কীভাবে পড়বেন</div>
+    <h1>দশটি হ্যাঁ-না পরীক্ষা। পাস করা প্রতিটির জন্য 10 নম্বর।</h1>
+    <p class="lede">
+      প্রতিটি প্রোডাক্ট ও প্রতিটি রেসিপি পায় <b>0 থেকে 100 পর্যন্ত একটি স্কোর</b>। দশটি পরীক্ষার প্রতিটি সরল <b>হ্যাঁ (1) বা না (0)</b>, আর স্কোর হল পাস করা পরীক্ষার সংখ্যা গুণ 10, তাই যে সব পাস করে সে ঠিক 100 পায় আর যে কিছুই পাস করে না সে 0 পায়। এর ছয়টি লেবেলের সংখ্যা, বয়সের গ্রুপের (এবং 10 বছর থেকে, লিঙ্গ ও কাজের ধরনের) দৈনিক রেফারেন্সের অংশ হিসেবে মাপা: <b>অ্যাডেড সুগার, সোডিয়াম, স্যাচুরেটেড ফ্যাট, ট্রান্স ফ্যাট, ফাইবার ও প্রোটিন</b>। ফাইবার ও প্রোটিন <b>ক্রেডিট</b> মাপকাঠি (বেশি ভালো); বাকিগুলো <b>ঝুঁকি</b> মাপকাঠি (কম ভালো)। আরও তিনটি পরীক্ষা বয়সের সঙ্গে বদলায় না: <b>প্রিজারভেটিভ, কৃত্রিম অ্যাডিটিভ ও মূল উপকরণের মান</b>। দশমটি <b>HFSS</b>, যা ফেল করে যদি চিনি, সোডিয়াম বা স্যাচুরেটেড ফ্যাটের পরীক্ষা ফেল করে। যে প্রোডাক্ট যেকোনো একটি ঝুঁকির পরীক্ষায় ফেল করে তাকে <b>মোটামুটি</b>-তে আটকে রাখা হয়: স্কোরে আসল গণনা দেখায়, "আটকানো" ব্যাজসহ। প্যাক ও রেসিপি একইভাবে, প্রতি বাস্তবসম্মত সার্ভিংয়ে স্কোর করা হয়, যাতে তুলনা করা যায়। একই পদ্ধতি প্রোডাক্ট ও মিল আইডিয়া পেজে ব্যবহার হয়। নিচের প্রতিটি সংখ্যার উৎস দেওয়া আছে, আর উৎসগুলো এই পেজের শেষে তালিকাভুক্ত।
+    </p>
+  </div>
+
+  <div class="hero-visual">
+    <!-- packages sorting into Good / OK / Do not use -->
+    <div class="sort-scene" aria-hidden="true">
+      <div class="sort-belt"></div>
+      <div class="pkg pkg-a"></div>
+      <div class="pkg pkg-b"></div>
+      <div class="pkg pkg-c"></div>
+      <div class="sort-bins">
+        <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">ভালো</div></div>
+        <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">মোটামুটি</div></div>
+        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">দেবেন না</div></div>
+      </div>
+    </div>
+
+    <!-- what good nutrition is for: kids playing -->
+    <div class="sport-scene" aria-hidden="true">
+      <!-- football kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#B5790A"/>
+          <g class="kick-leg">
+            <rect x="24" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          </g>
+          <rect x="32" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          <rect x="14" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+          <rect x="38" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+        </g>
+        <circle class="football" cx="52" cy="86" r="6" fill="#3F6B3C"/>
+      </svg>
+
+      <!-- cricket kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#3F6B3C"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#3F6B3C"/>
+          <g class="bat-arm">
+            <rect x="34" y="28" width="8" height="18" rx="4" fill="#3F6B3C"/>
+            <rect x="40" y="8" width="7" height="34" rx="3" fill="#B5790A"/>
+          </g>
+        </g>
+      </svg>
+
+      <!-- muscle kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#A6402A"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#A6402A"/>
+          <g class="flex-arm">
+            <rect x="34" y="28" width="9" height="16" rx="4" fill="#A6402A"/>
+            <circle class="bicep" cx="40" cy="30" r="7" fill="#F6E4BC"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- AGE REFERENCE -->
+<section class="section" id="age-reference">
+  <div class="section-eyebrow">ধাপ 1</div>
+  <h2>বয়সের গ্রুপ বেছে নিন</h2>
+  <p class="intro">
+    বয়সের গ্রুপগুলো ICMR-NIN 2020 তালিকার মতোই: 1–3, 4–6 ও 7–9 বছর; ছেলে ও মেয়ে 10–12, 13–15 ও 16–18; এবং প্রাপ্তবয়স্ক, পুরুষ ও মহিলা, বসে থাকার, মাঝারি বা ভারী কাজে। 12 মাসের কমের জন্য আমরা 1–3 বছরের রেফারেন্স ব্যবহার করি। কোনো গ্রুপে ট্যাপ করলে তার রেফারেন্স সংখ্যা দেখাবে। গর্ভবতী ও স্তন্যদানকারী মহিলাদের এখনও স্কোর করা হয় না।
+  </p>
+
+  <div class="age-tabs" id="ageTabs">
+    <button class="age-tab active" data-age="6-12m">6–12 মাস</button>
+    <button class="age-tab" data-age="1-3">1–3 বছর</button>
+    <button class="age-tab" data-age="4-6">4–6 বছর</button>
+    <button class="age-tab" data-age="7-9">7–9 বছর</button>
+    <button class="age-tab" data-age="10-12">10–12 বছর</button>
+    <button class="age-tab" data-age="13-15">13–15 বছর</button>
+    <button class="age-tab" data-age="16-18">16–18 বছর</button>
+    <button class="age-tab" data-age="adult">প্রাপ্তবয়স্ক</button>
+  </div>
+
+  <div class="age-panel active" data-age="6-12m">
+    <p class="intro" style="margin-bottom:12px">12 মাসের কমের জন্য কোনো প্রকাশিত রেফারেন্স গ্রুপ নেই, তাই <b>1–3 বছর</b>-এর রেফারেন্স সংখ্যা ব্যবহার হয়। শুধু শিশুদের জন্য তৈরি সাদাসিধে খাবার স্কোর করা হয়: চিনি বা নুন মেশানো প্রোডাক্ট “1-এর কমের জন্য নয়” দেখায়, সংখ্যা হিসেবে নয়।</p>
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">রেফারেন্স শক্তি</div><div class="value">1,110 <small>কিলোক্যালরি/দিন</small></div><div class="src">1–3 বছরের রেফারেন্স [1]</div></div>
+      <div class="refcard"><div class="label">অ্যাডেড সুগার (আদর্শ / ঊর্ধ্বসীমা)</div><div class="value">14 / 28 <small>গ্রাম/দিন</small></div><div class="src">WHO ফ্রি-সুগার নির্দেশিকা [2]</div></div>
+      <div class="refcard"><div class="label">সোডিয়াম</div><div class="value">~1,110 <small>মিগ্রা/দিন</small></div><div class="src">ICMR-NIN প্রাপ্তবয়স্ক সীমা, শক্তি অনুযায়ী সমন্বিত [4]</div></div>
+      <div class="refcard"><div class="label">স্যাচুরেটেড ফ্যাট</div><div class="value">~12 <small>গ্রাম/দিন</small></div><div class="src">WHO &lt;10% শক্তি [3]</div></div>
+      <div class="refcard"><div class="label">ফাইবার</div><div class="value">15 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">প্রোটিন</div><div class="value">12.5 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="1-3">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">রেফারেন্স শক্তি</div><div class="value">1,110 <small>কিলোক্যালরি/দিন</small></div><div class="src">ICMR শিশু-চিকিৎসা রেফারেন্স [1]</div></div>
+      <div class="refcard"><div class="label">অ্যাডেড সুগার (আদর্শ / ঊর্ধ্বসীমা)</div><div class="value">14 / 28 <small>গ্রাম/দিন</small></div><div class="src">WHO ফ্রি-সুগার নির্দেশিকা [2]</div></div>
+      <div class="refcard"><div class="label">সোডিয়াম</div><div class="value">~1,110 <small>মিগ্রা/দিন</small></div><div class="src">ICMR-NIN প্রাপ্তবয়স্ক সীমা, শক্তি অনুযায়ী সমন্বিত [4]</div></div>
+      <div class="refcard"><div class="label">স্যাচুরেটেড ফ্যাট</div><div class="value">~12 <small>গ্রাম/দিন</small></div><div class="src">WHO &lt;10% শক্তি [3]</div></div>
+      <div class="refcard"><div class="label">ফাইবার</div><div class="value">15 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">প্রোটিন</div><div class="value">12.5 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="4-6">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">রেফারেন্স শক্তি</div><div class="value">1,360 <small>কিলোক্যালরি/দিন</small></div><div class="src">ICMR শিশু-চিকিৎসা রেফারেন্স [1]</div></div>
+      <div class="refcard"><div class="label">অ্যাডেড সুগার (আদর্শ / ঊর্ধ্বসীমা)</div><div class="value">17 / 34 <small>গ্রাম/দিন</small></div><div class="src">WHO ফ্রি-সুগার নির্দেশিকা [2]</div></div>
+      <div class="refcard"><div class="label">সোডিয়াম</div><div class="value">~1,360 <small>মিগ্রা/দিন</small></div><div class="src">ICMR-NIN প্রাপ্তবয়স্ক সীমা, শক্তি অনুযায়ী সমন্বিত [4]</div></div>
+      <div class="refcard"><div class="label">স্যাচুরেটেড ফ্যাট</div><div class="value">~15 <small>গ্রাম/দিন</small></div><div class="src">WHO &lt;10% শক্তি [3]</div></div>
+      <div class="refcard"><div class="label">ফাইবার</div><div class="value">20 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">প্রোটিন</div><div class="value">16 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="7-9">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">রেফারেন্স শক্তি</div><div class="value">1,700 <small>কিলোক্যালরি/দিন</small></div><div class="src">ICMR শিশু-চিকিৎসা রেফারেন্স [1]</div></div>
+      <div class="refcard"><div class="label">অ্যাডেড সুগার (আদর্শ / ঊর্ধ্বসীমা)</div><div class="value">21 / 43 <small>গ্রাম/দিন</small></div><div class="src">WHO ফ্রি-সুগার নির্দেশিকা [2]</div></div>
+      <div class="refcard"><div class="label">সোডিয়াম</div><div class="value">~1,700 <small>মিগ্রা/দিন</small></div><div class="src">ICMR-NIN প্রাপ্তবয়স্ক সীমা, শক্তি অনুযায়ী সমন্বিত [4]</div></div>
+      <div class="refcard"><div class="label">স্যাচুরেটেড ফ্যাট</div><div class="value">~19 <small>গ্রাম/দিন</small></div><div class="src">WHO &lt;10% শক্তি [3]</div></div>
+      <div class="refcard"><div class="label">ফাইবার</div><div class="value">26 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">প্রোটিন</div><div class="value">23 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="10-12">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">রেফারেন্স শক্তি</div><div class="value">2,140 <small>কিলোক্যালরি/দিন</small></div><div class="src">ICMR শিশু-চিকিৎসা রেফারেন্স [1]</div></div>
+      <div class="refcard"><div class="label">অ্যাডেড সুগার (আদর্শ / ঊর্ধ্বসীমা)</div><div class="value">27 / 54 <small>গ্রাম/দিন</small></div><div class="src">WHO ফ্রি-সুগার নির্দেশিকা [2]</div></div>
+      <div class="refcard"><div class="label">সোডিয়াম</div><div class="value">~2,000 <small>মিগ্রা/দিন</small></div><div class="src">ICMR-NIN প্রাপ্তবয়স্ক সীমা, শক্তি অনুযায়ী সমন্বিত [4]</div></div>
+      <div class="refcard"><div class="label">স্যাচুরেটেড ফ্যাট</div><div class="value">~24 <small>গ্রাম/দিন</small></div><div class="src">WHO &lt;10% শক্তি [3]</div></div>
+      <div class="refcard"><div class="label">ফাইবার</div><div class="value">31.5 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">প্রোটিন</div><div class="value">32.5 <small>গ্রাম/দিন</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>গ্রুপ</th><th>শক্তি কিলোক্যালরি</th><th>অ্যাডেড সুগার গ্রাম (আদর্শ / ঊর্ধ্বসীমা)</th><th>সোডিয়াম মিগ্রা</th><th>স্যাচুরেটেড ফ্যাট গ্রাম</th><th>ফাইবার গ্রাম</th><th>প্রোটিন গ্রাম</th></tr></thead><tbody><tr><td>10–12 বছর</td><td>2,140</td><td>27 / 54</td><td>2,000</td><td>24</td><td>31.5</td><td>32.5</td></tr><tr><td>ছেলে 10–12 বছর</td><td>2,220</td><td>28 / 56</td><td>2,000</td><td>25</td><td>33</td><td>32</td></tr><tr><td>মেয়ে 10–12 বছর</td><td>2,060</td><td>26 / 52</td><td>2,000</td><td>23</td><td>30</td><td>33</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">শক্তি, প্রোটিন ও ফাইবার প্রতিটি গ্রুপের জন্য ICMR-NIN 2020-এর সংখ্যা (শক্তি NIN-এর আনুমানিক প্রয়োজন)। অ্যাডেড সুগার শক্তির 5% (ঊর্ধ্ব 10%) ও স্যাচুরেটেড ফ্যাট শক্তির 10% (WHO)। সোডিয়াম ICMR-NIN 2020-এর প্রাপ্তবয়স্ক সীমা 2,000 মিগ্রা, ছোট শিশুদের জন্য শক্তি অনুযায়ী কমানো। যে সারিতে লিঙ্গ নেই তা দুটির গড়।</p>
+  </div>
+  <div class="age-panel" data-age="13-15">
+    <p class="intro" style="margin-bottom:6px">13 বছর থেকে ICMR-NIN 2020 তালিকা লিঙ্গ অনুযায়ী। প্রোডাক্ট ও স্ক্যান পেজে, একজনের জন্য স্কোর করতে ছেলে বা মেয়ে বেছে নিন; কিছু না বাছলে গড় ব্যবহার হয়।</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>গ্রুপ</th><th>শক্তি কিলোক্যালরি</th><th>অ্যাডেড সুগার গ্রাম (আদর্শ / ঊর্ধ্বসীমা)</th><th>সোডিয়াম মিগ্রা</th><th>স্যাচুরেটেড ফ্যাট গ্রাম</th><th>ফাইবার গ্রাম</th><th>প্রোটিন গ্রাম</th></tr></thead><tbody><tr><td>13–15 বছর</td><td>2,630</td><td>33 / 66</td><td>2,000</td><td>29</td><td>39.5</td><td>44</td></tr><tr><td>ছেলে 13–15 বছর</td><td>2,860</td><td>36 / 72</td><td>2,000</td><td>32</td><td>43</td><td>45</td></tr><tr><td>মেয়ে 13–15 বছর</td><td>2,400</td><td>30 / 60</td><td>2,000</td><td>27</td><td>36</td><td>43</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">শক্তি, প্রোটিন ও ফাইবার প্রতিটি গ্রুপের জন্য ICMR-NIN 2020-এর সংখ্যা (শক্তি NIN-এর আনুমানিক প্রয়োজন)। অ্যাডেড সুগার শক্তির 5% (ঊর্ধ্ব 10%) ও স্যাচুরেটেড ফ্যাট শক্তির 10% (WHO)। সোডিয়াম ICMR-NIN 2020-এর প্রাপ্তবয়স্ক সীমা 2,000 মিগ্রা, ছোট শিশুদের জন্য শক্তি অনুযায়ী কমানো। যে সারিতে লিঙ্গ নেই তা দুটির গড়।</p>
+  </div>
+  <div class="age-panel" data-age="16-18">
+    <p class="intro" style="margin-bottom:6px">ICMR-NIN 2020 ছেলে ও মেয়েদের জন্য 16–18 বছর দেয়। প্রোডাক্ট ও স্ক্যান পেজে ছেলে বা মেয়ে বেছে নিন।</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>গ্রুপ</th><th>শক্তি কিলোক্যালরি</th><th>অ্যাডেড সুগার গ্রাম (আদর্শ / ঊর্ধ্বসীমা)</th><th>সোডিয়াম মিগ্রা</th><th>স্যাচুরেটেড ফ্যাট গ্রাম</th><th>ফাইবার গ্রাম</th><th>প্রোটিন গ্রাম</th></tr></thead><tbody><tr><td>16–18 বছর</td><td>2,910</td><td>36 / 73</td><td>2,000</td><td>32</td><td>44</td><td>50.5</td></tr><tr><td>ছেলে 16–18 বছর</td><td>3,320</td><td>42 / 83</td><td>2,000</td><td>37</td><td>50</td><td>55</td></tr><tr><td>মেয়ে 16–18 বছর</td><td>2,500</td><td>31 / 63</td><td>2,000</td><td>28</td><td>38</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">শক্তি, প্রোটিন ও ফাইবার প্রতিটি গ্রুপের জন্য ICMR-NIN 2020-এর সংখ্যা (শক্তি NIN-এর আনুমানিক প্রয়োজন)। অ্যাডেড সুগার শক্তির 5% (ঊর্ধ্ব 10%) ও স্যাচুরেটেড ফ্যাট শক্তির 10% (WHO)। সোডিয়াম ICMR-NIN 2020-এর প্রাপ্তবয়স্ক সীমা 2,000 মিগ্রা, ছোট শিশুদের জন্য শক্তি অনুযায়ী কমানো। যে সারিতে লিঙ্গ নেই তা দুটির গড়।</p>
+  </div>
+  <div class="age-panel" data-age="adult">
+    <p class="intro" style="margin-bottom:6px">প্রাপ্তবয়স্কদের জন্য ICMR-NIN 2020 পুরুষ ও মহিলাদের আলাদা দেয়, প্রত্যেকের জন্য বসে থাকার, মাঝারি ও ভারী কাজে। প্রোডাক্ট ও স্ক্যান পেজে পুরুষ বা মহিলা, আর কাজের ধরন বেছে নিন; কিছু না বাছলে বসে থাকার কাজে পুরুষ ও মহিলাদের গড় ব্যবহার হয়। গর্ভবতী ও স্তন্যদানকারী মহিলাদের এখনও স্কোর করা হয় না।</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>গ্রুপ</th><th>শক্তি কিলোক্যালরি</th><th>অ্যাডেড সুগার গ্রাম (আদর্শ / ঊর্ধ্বসীমা)</th><th>সোডিয়াম মিগ্রা</th><th>স্যাচুরেটেড ফ্যাট গ্রাম</th><th>ফাইবার গ্রাম</th><th>প্রোটিন গ্রাম</th></tr></thead><tbody><tr><td>প্রাপ্তবয়স্ক</td><td>1,885</td><td>24 / 47</td><td>2,000</td><td>21</td><td>27.5</td><td>50</td></tr><tr><td>পুরুষ, বসে থাকার কাজ</td><td>2,110</td><td>26 / 53</td><td>2,000</td><td>23</td><td>30</td><td>54</td></tr><tr><td>পুরুষ, মাঝারি কাজ</td><td>2,710</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>54</td></tr><tr><td>পুরুষ, ভারী কাজ</td><td>3,470</td><td>43 / 87</td><td>2,000</td><td>39</td><td>50</td><td>54</td></tr><tr><td>মহিলা, বসে থাকার কাজ</td><td>1,660</td><td>21 / 42</td><td>2,000</td><td>18</td><td>25</td><td>46</td></tr><tr><td>মহিলা, মাঝারি কাজ</td><td>2,130</td><td>27 / 53</td><td>2,000</td><td>24</td><td>30</td><td>46</td></tr><tr><td>মহিলা, ভারী কাজ</td><td>2,720</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">শক্তি, প্রোটিন ও ফাইবার প্রতিটি গ্রুপের জন্য ICMR-NIN 2020-এর সংখ্যা (শক্তি NIN-এর আনুমানিক প্রয়োজন)। অ্যাডেড সুগার শক্তির 5% (ঊর্ধ্ব 10%) ও স্যাচুরেটেড ফ্যাট শক্তির 10% (WHO)। সোডিয়াম ICMR-NIN 2020-এর প্রাপ্তবয়স্ক সীমা 2,000 মিগ্রা, ছোট শিশুদের জন্য শক্তি অনুযায়ী কমানো। যে সারিতে লিঙ্গ নেই তা দুটির গড়।</p>
+  </div>
+</section>
+
+<!-- TEN METRICS -->
+<section class="section" id="ten-metrics" style="background:var(--bg-alt); border-radius:var(--radius-lg);">
+  <div class="bg-pkg bp1" aria-hidden="true"></div>
+  <div class="bg-pkg bp2" aria-hidden="true"></div>
+  <div class="bg-pkg bp3" aria-hidden="true"></div>
+  <div class="bg-pkg bp4" aria-hidden="true"></div>
+
+  <div class="section-eyebrow">ধাপ 2</div>
+  <h2>দশটি পরীক্ষা, প্রতিটি হ্যাঁ বা না</h2>
+
+  <div class="metrics-intro-row">
+    <p class="intro">
+      নিচে প্রতিটি পরীক্ষা ঠিক কী হলে হ্যাঁ আর কী হলে না তা দেখায়। হ্যাঁ গুনুন ও 10 দিয়ে গুণ করুন, 0 থেকে 100 পর্যন্ত স্কোর পাবেন। এই কারণেই আমরা প্যাকের সামনের অংশে ভরসা করি না: দেখুন সেখানে কী ছাপা আর পেছনে আসলে কী আছে।
+    </p>
+    <div class="flip-stage" aria-hidden="true">
+      <div class="flip-card">
+        <div class="flip-face flip-front">
+          <div class="badge-check">✓</div>
+          <div class="claim">"প্রিজারভেটিভ <br>ছাড়া"</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="panel-title">উপকরণ</div>
+          <div class="panel-line w90"></div>
+          <div class="panel-line w70"></div>
+          <div class="panel-line hl w50"></div>
+          <div class="panel-line w80"></div>
+          <div class="panel-line w60"></div>
+          <div class="panel-line hl w40"></div>
+          <div class="panel-line w70"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tiers" class="tiers" aria-live="polite"></div>
+  <div id="metricList" aria-live="polite"><p class="intro">পদ্ধতি লোড হচ্ছে…</p></div>
+</section>
+
+<!-- WORKED EXAMPLE -->
+<section class="section" id="worked-example">
+  <div class="section-eyebrow">ধাপ 3</div>
+  <h2>বয়সের সঙ্গে উত্তর কেন বদলায়: একটি বাস্তব উদাহরণ</h2>
+  <p class="intro" id="exIntro">উদাহরণ লোড হচ্ছে…</p>
+  <div class="example">
+    <h3 id="exTitle">এক সার্ভিংয়ে সোডিয়াম</h3>
+    <p class="sub">সোডিয়ামের পরিমাণ একই থাকে। শুধু বয়সের গ্রুপের দৈনিক রেফারেন্স বদলায়।</p>
+    <div class="example-grid" id="exGrid"></div>
+  </div>
+  <p class="intro" style="margin-top:18px;">
+    একই লেবেল এক বয়সে পাস আর অন্য বয়সে ফেল করতে পারে, তাই 100-এর মধ্যে স্কোরও বদলায়। <a href="/bn/products">প্রোডাক্ট পেজে</a> বয়সের গ্রুপ বেছে নিন, পুরো ক্যাটালগের স্কোর ওই বয়সের জন্য আবার হিসাব হবে।
+  </p>
+</section>
+
+<!-- SOURCES -->
+<section class="section" id="sources">
+  <div class="section-eyebrow">তথ্যসূত্র</div>
+  <h2>এই পেজের প্রতিটি সংখ্যা, উৎসসহ</h2>
+  <ol class="sources-list">
+    <li><b>[1] ICMR-NIN (জাতীয় পুষ্টি প্রতিষ্ঠান), "ভারতীয়দের জন্য পুষ্টি উপাদানের প্রয়োজন: প্রস্তাবিত খাদ্য ভাতা ও আনুমানিক গড় প্রয়োজন," 2020।</b> এই পেজের প্রতিটি গ্রুপের শক্তির প্রয়োজন, প্রোটিন RDA ও খাদ্যতন্তু RDA-র উৎস: শিশু 1–3, 4–6 ও 7–9; ছেলে ও মেয়ে 10–12, 13–15 ও 16–18; পুরুষ ও মহিলা বসে থাকার, মাঝারি ও ভারী কাজে। এটি দিনে 2,000 মিগ্রা (নুন 5 গ্রাম) প্রাপ্তবয়স্ক সোডিয়াম সীমাও দেয়, যা WHO (2012) থেকে নেওয়া।</li>
+    <li><b>[2] WHO, "নির্দেশিকা: প্রাপ্তবয়স্ক ও শিশুদের শর্করা গ্রহণ," 2015।</b> ফ্রি সুগার শক্তির 10%-এর কম, 5%-এর কমে আরও সুবিধা। আমরা প্রতিটি গ্রুপের শক্তির 5% দৈনিক আদর্শ ও 10% ঊর্ধ্বসীমা হিসেবে ব্যবহার করি, 4 কিলোক্যালরি/গ্রামে গ্রামে রূপান্তর করে।</li>
+    <li><b>[3] স্যাচুরেটেড ফ্যাট সম্পর্কে WHO-র নির্দেশনা</b> (স্যাচুরেটেড ও ট্রান্স ফ্যাটি অ্যাসিড গ্রহণ নিয়ে 2023-এর নির্দেশিকা, এবং FAO/WHO ফ্যাট পরামর্শ)। স্যাচুরেটেড ফ্যাট শক্তির 10%-এর কম, 9 কিলোক্যালরি/গ্রামে গ্রামে রূপান্তরিত।</li>
+    <li><b>[4] WHO, "নির্দেশিকা: প্রাপ্তবয়স্ক ও শিশুদের সোডিয়াম গ্রহণ," 2012।</b> শিশুদের জন্য প্রাপ্তবয়স্ক সীমা তাদের কম শক্তির প্রয়োজন অনুযায়ী কমানো হয়। ICMR-NIN 2020 শিশুদের জন্য কোনো সংখ্যা দেয় না, তাই আমরা নিজেরাই এই নিয়ম প্রয়োগ করি: 2,000 মিগ্রা প্রাপ্তবয়স্ক সীমা প্রতিটি গ্রুপের শক্তি অনুযায়ী কমানো, প্রায় 1 মিগ্রা প্রতি কিলোক্যালরি, কখনও 2,000 মিগ্রা-র বেশি নয়। শিশুদের এই সীমাগুলো আমাদের হিসাব, প্রকাশিত সংখ্যা নয়।</li>
+    <li><b>[5] FSSAI, খাদ্য নিরাপত্তা ও মান (বিক্রয়ে নিষেধাজ্ঞা ও বিধিনিষেধ) প্রবিধান।</b> যেকোনো খাদ্য পণ্যে মোট তেল ও ফ্যাটের ট্রান্স ফ্যাট ≤2%-এ সীমিত, সব বয়স, সব বিভাগ।</li>
+    <li><b>[6] FSSAI, খাদ্য নিরাপত্তা ও মান (খাদ্য পণ্যের মান ও খাদ্য সংযোজন) প্রবিধান, 2011।</b> অনুমোদিত প্রিজারভেটিভ (ক্লাস II) ও সংযোজন (রং, ফ্লেভার এনহান্সার) INS নম্বর অনুযায়ী নিয়ন্ত্রণ করে।</li>
+    <li><b>[7] FSSAI সম্মতি হলফনামা, ভারতের সুপ্রিম কোর্ট, W.P.(C) নং 437/2024 — 3S ও আমাদের স্বাস্থ্য সোসাইটি বনাম ভারত সরকার, 29 আগস্ট 2026 দাখিল।</b> বেশি স্যাচুরেটেড ফ্যাট, অ্যাডেড সুগার এবং/বা নুনের (HFSS) খাবারের জন্য প্যাকের সামনে লাল ষড়ভুজ সতর্কতার প্রস্তাব, যার সীমা <i>ভারতীয়দের জন্য খাদ্য নির্দেশিকা, 2024</i> (ICMR-NIN) থেকে নেওয়া হবে। এটি একটি চলমান, বিচারাধীন কার্যক্রম, এখনও বিজ্ঞাপিত নিয়ম নয়।</li>
+    <li><b>[8] সার্ভিং সাইজ।</b> প্যাকে ছাপা সার্ভিং। যেখানে প্যাকে কিছু ছাপা নেই, সেখানে ওই ধরনের খাবারের রেফারেন্স পরিমাণ, যেখানে একটি মানায় সেখানে US FDA-এর "সাধারণত খাওয়া রেফারেন্স পরিমাণ" (21 CFR 101.12) থেকে, আর যেখানে কোনোটি মানায় না সেখানে আমাদের নিজস্ব অনুমান।</li>
+  </ol>
+</section>
+
+<p class="note">
+  <b>কোনটি উদ্ধৃতি আর কোনটি আমাদের নিজস্ব বিচার:</b> পরীক্ষা 1, 2, 3, 5 ও 6-এর পেছনের দৈনিক রেফারেন্স [1] থেকে [4] পর্যন্ত থেকে আসে, শুধু শিশুদের সোডিয়াম সীমা বাদে, যা [1]-এর আমাদের অনুপাত (দেখুন [4])। পরীক্ষা 4, 7 ও 8 উপকরণের তালিকাকে FSSAI নিয়ম [5] ও [6] দিয়ে যাচাই করে। পরীক্ষা 10 [7]-এর বেশি-ফ্যাট-চিনি-বা-নুনের ধারণার সঙ্গে মেলে, কিন্তু নিয়মটি নিজেই আমাদের। এই অংশগুলো আমাদের নিজস্ব সিদ্ধান্ত, প্রতিবার একইভাবে প্রযোগ: যে রেখার নিচে এক সার্ভিংকে চিনি, সোডিয়াম ও স্যাচুরেটেড ফ্যাটে পাস করতে থাকতে হবে (দিনের 30%, স্ন্যাকস, মিষ্টি ও মিষ্টি পানীয়ের জন্য 15%); দিনের যে 15% এক সার্ভিংকে ফাইবার ও প্রোটিনে পাস করতে দিতে হবে; মূল উপকরণের পরীক্ষা (9); কোন খাবার স্ন্যাকস গণ্য হবে; এবং ঝুঁকির পরীক্ষা ফেল করলে প্যাককে মোটামুটিতে আটকানো। 30%-এর রেখাটি সেটাই যা UK-র ট্রাফিক-লাইট লেবেল এক অংশের জন্য ব্যবহার করে। 12 মাসের কমের জন্য কোনো প্রকাশিত রেফারেন্স গ্রুপ নেই, তাই 1 থেকে 3 বছরের রেফারেন্স ব্যবহার হয়। গর্ভবতী ও স্তন্যদানকারী মহিলা এবং বয়স্কদের এখনও স্কোর করা হয় না।
+</p>
+
+<footer>
+  <b>ICMR-NIN 2020</b>, <b>WHO</b>-র নির্দেশনা ও <b>FSSAI</b>-এর নিয়ন্ত্রণের মানদণ্ডে · Poshan Score একটি স্বাধীন রেটিং, কোনো সার্টিফিকেশন নয়
+</footer>
+
+<script>
+(async function(){
+  const API='https://kidposhan-platform.mailus-pixiedust.workers.dev';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let d; try{ const r=await fetch(API+'/api/kp/score-method'); if(!r.ok) throw 0; d=await r.json() }
+  catch(e){ document.getElementById('metricList').innerHTML='<p class="intro">The method could not be loaded just now. Please refresh the page.</p>'; return }
+  document.getElementById('tiers').innerHTML=d.tiers.map(t=>'<div class="tier-card t-'+esc(t.name).replace(/ /g,'-')+'"><b>'+esc(t.name)+'</b><span>'+t.min+' to '+t.max+' out of 100</span></div>').join('');
+  const kind={risk:'Risk metric: less is better',credit:'Credit metric: more is better',check:'Check: the same at every age',composite:'Composite: worst of metrics 1, 2 and 3'};
+  document.getElementById('metricList').innerHTML=d.metrics.map(m=>{
+    const by={}; m.steps.forEach(s=>{ if(typeof s.score==='number') by[s.score]=s.rule });
+    let cells=''; [[1,'Yes','hi'],[0,'No','lo']].forEach(function(c){ cells+='<div class="rc '+c[2]+'">'+c[1]+'<small>'+(by[c[0]]?esc(by[c[0]]):'')+'</small></div>' });
+    const note=m.steps.length&&typeof m.steps[0].score!=='number'?'<p><b>'+esc(m.steps[0].score)+':</b> '+esc(m.steps[0].rule)+'</p>':'';
+    return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="img" aria-label="Yes or no for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>No = 0 points</span><span>Yes = 10 points</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
+  }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' '+esc(d.cap.effect)+'.</b> '+esc(d.bases.serving)+'</p>';
+  const ex=d.sodium_example;
+  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that serving costs against each age band\'s daily sodium reference, and whether it passes the sodium check:';
+  document.getElementById('exTitle').textContent=ex.mg+' mg sodium, '+ex.what;
+  document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score===0?'flag-high':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium check: '+(a.score?'Yes, passes':'No, fails')+'</b></div></div>').join('');
+})();
+</script>
+
+<script>
+  const tabs = document.querySelectorAll('.age-tab');
+  const panels = document.querySelectorAll('.age-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const age = tab.getAttribute('data-age');
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.getAttribute('data-age') === age));
+    });
+  });
+
+  // staggered reveal for the metric rows as they scroll into view
+  const rowObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('in-view'), i * 60);
+        rowObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.metric-row').forEach(row => rowObserver.observe(row));
+
+  // (the worked example is drawn by the loader above)
+</script>
+
+<script>
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  const isOpen = menu.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+  menu.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
+});
+</script>
+<script src="/kp-meter.js" defer></script>
+<script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
+<script src="/kp-i18n.js" defer></script>
+</body>
+</html>

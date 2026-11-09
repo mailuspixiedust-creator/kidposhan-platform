@@ -29,6 +29,8 @@ import { searchAll, siteStats, cooksShelf } from './search.js';
 import { importOffNext, importOffJob, offBrandJob } from './openfood.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
 import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
+import { translatePending, translationsFor } from './translate.js';
+import { translateUiPending, collectUi, uiMap } from './uitext.js';
 import { submitReport, listReports, resolveReport, thankPending, betaStats, BetaError } from './beta.js';
 import { autoReviewPacks, photoCheckPending } from './autoreview.js';
 import { kindCheckPending } from './kindcheck.js';
@@ -126,6 +128,10 @@ export async function routeRecipes(request, env, ctx) {
   const visitors = await routeVisitors(request, env, url, path);
   if (visitors) return visitors;
 
+  // the words of the pages in Hindi, Bengali and Gujarati: read by the pages, and what a page could not translate is sent back to be translated
+  if (request.method === 'GET' && path === '/api/kp/ui-i18n') { const r = withCors(request, json(await uiMap(env, url.searchParams.get('lang') || ''))); r.headers.set('cache-control', 'public, max-age=300'); return r; }
+  if (request.method === 'POST' && path === '/api/kp/ui-i18n/collect') { let b = {}; try { b = JSON.parse(await request.text()); } catch { /* ignore */ } return withCors(request, json(await collectUi(env, b.strings))); }
+  if (request.method === 'GET' && path === '/api/kp/recipes-i18n') return withCors(request, json(await translationsFor(env, url.searchParams.get('lang') || '')));
   if (request.method === 'GET' && (path === '/api/kp/recipes' || path === '/api/kp/recipes-index' || /^\/api\/kp\/recipes\/\d+$/.test(path))) {
     return withCors(request, await handleRecipesApi(request, env, ctx));
   }
@@ -397,6 +403,9 @@ export async function scheduledRecipes(env, cron) {
     for (const r of results) await scoreRecipe(env, r.id, { keepApproval: true });
     if (results.length) console.log('diet-fit', results.length);
   } catch (e) { console.error('diet-fit', e); }
+  // ingredient lines and steps in Hindi, Bengali and Gujarati, a few at a time within the daily cap
+  try { const t = await translatePending(env); if (t.done || t.failed) console.log('translate', JSON.stringify(t)); } catch (e) { console.error('translate', e); }
+  try { const u = await translateUiPending(env); if (u.done || u.failed) console.log('translate-ui', JSON.stringify(u)); } catch (e) { console.error('translate-ui', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
   try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }

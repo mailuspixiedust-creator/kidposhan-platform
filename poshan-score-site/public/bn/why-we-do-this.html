@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>আমরা এটি কেন করি — Poshan Score</title>
+<meta name="description" content="আমরা কেন Poshan Score বানালাম: প্যাকের পেছনে আসলে কী আছে তা পড়ার একটি সরল, স্বাধীন উপায়, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত প্রতিটি বয়সের গ্রুপের জন্য স্কোরসহ।">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="আমরা এটি কেন করি — Poshan Score">
+<meta property="og:description" content="আমরা কেন Poshan Score বানালাম: প্যাকের পেছনে আসলে কী আছে তা পড়ার একটি সরল, স্বাধীন উপায়, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত প্রতিটি বয়সের গ্রুপের জন্য স্কোরসহ।">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="আমরা এটি কেন করি — Poshan Score">
+<meta name="twitter:description" content="আমরা কেন Poshan Score বানালাম: প্যাকের পেছনে আসলে কী আছে তা পড়ার একটি সরল, স্বাধীন উপায়, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত প্রতিটি বয়সের গ্রুপের জন্য স্কোরসহ।">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
+<style>
+  :root{
+    --bg:#FDFBF6;
+    --bg-alt:#F6F0E4;
+    --card:#FFFFFF;
+    --line:#E7DFCE;
+    --ink:#221A12;
+    --ink-dim:#6B5D4B;
+    --gold:#B5790A;
+    --gold-soft:#F6E4BC;
+    --green:#3F6B3C;
+    --green-soft:#E3EEDF;
+    --red:#A6402A;
+    --red-soft:#F5E1DB;
+    --brown:#4A3423;
+    --brown-soft:#EFE6DC;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --font-display:'Iowan Old Style','Palatino Linotype','Book Antiqua', Georgia, serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  a{ color:inherit; }
+  img,svg{ max-width:100%; }
+
+  nav{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(253,251,246,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand-mark{ position:relative; width:20px; height:24px; flex-shrink:0; }
+  .brand-mark .tier{ position:absolute; left:0; right:0; height:6px; border-radius:3px; border:1px solid rgba(34,26,18,0.15); }
+  .brand-mark .tier:nth-child(1){ top:0; background:var(--green); }
+  .brand-mark .tier:nth-child(2){ top:6px; background:var(--gold); }
+  .brand-mark .tier:nth-child(3){ top:12px; background:var(--red); }
+  .brand-mark .tier:nth-child(4){ top:18px; background:var(--brown); }
+  .brand-name{ font-family:var(--font-display); font-size:18px; line-height:1.05; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-name b{ display:block; color:var(--gold); font-size:11px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px; }
+  .nav-links{ display:none; gap:22px; font-size:13.5px; color:var(--ink-dim); }
+  .nav-links a{ text-decoration:none; transition:color .2s ease; position:relative; padding-bottom:2px; }
+  .nav-links a::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
+  .nav-links a:hover{ color:var(--gold); }
+  .nav-links a:hover::after{ transform:scaleX(1); }
+  @media(min-width:860px){ .nav-links{ display:flex; } }
+  .hamburger{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+  .hamburger svg{ width:18px; height:18px; color:var(--ink); }
+  @media(min-width:860px){ .hamburger{ display:none; } }
+
+  .mobile-menu{ display:none; flex-direction:column; padding:4px 20px 14px; background:var(--card); border-bottom:1px solid var(--line); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:14px 6px; text-decoration:none; color:var(--ink); font-size:16px; border-bottom:1px solid var(--line); }
+  .mobile-menu a:last-child{ border-bottom:none; }
+  @media(min-width:860px){ .mobile-menu{ display:none !important; } }
+
+  .nav-cta{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:100px; text-decoration:none; white-space:nowrap; }
+
+  /* ---- hero ---- */
+  .hero{ position:relative; max-width:760px; margin:0 auto; padding:56px 20px 20px; }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; margin-bottom:16px; position:relative; }
+  .eyebrow::before{ content:''; width:0; height:1px; background:var(--gold); display:inline-block; animation:drawLine .6s ease forwards .1s; }
+  @keyframes drawLine{ to{ width:16px; } }
+  h1{ font-family:var(--font-display); font-weight:400; letter-spacing:-0.01em; font-size:clamp(32px, 7vw, 48px); line-height:1.1; margin:0 0 18px; color:var(--ink); opacity:0; animation:fadeUp .7s ease forwards .15s; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
+  .lede{ font-size:16px; line-height:1.7; color:var(--ink-dim); max-width:58ch; margin:0; opacity:0; animation:fadeUp .7s ease forwards .3s; }
+
+  .hero-icons{ position:absolute; inset:0; pointer-events:none; z-index:-1; }
+  .float-icon{ position:absolute; opacity:0.5; animation:float 8s ease-in-out infinite; }
+  .float-icon.leaf{ top:6%; right:4%; width:34px; animation-delay:0s; }
+  .float-icon.sprig{ top:40%; right:12%; width:26px; animation-delay:1.5s; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-10px) rotate(3deg);} }
+  @media (prefers-reduced-motion: reduce){ .float-icon{ animation:none; } }
+
+  /* ---- story timeline ---- */
+  .story{ position:relative; max-width:760px; margin:20px auto 0; padding:20px 20px 40px; }
+  .timeline-rail{
+    position:absolute; left:29px; top:0; bottom:40px; width:2px;
+    background:var(--line);
+  }
+  @media(max-width:640px){ .timeline-rail{ left:19px; } }
+  .timeline-fill{
+    position:absolute; left:0; top:0; width:100%; height:0%;
+    background:linear-gradient(var(--gold), var(--green));
+    transition:height .1s linear;
+  }
+
+  .beat{
+    position:relative; padding:0 0 46px 60px; opacity:0; transform:translateY(16px);
+  }
+  @media(max-width:640px){ .beat{ padding-left:46px; } }
+  .beat.in-view{ animation:beatRise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes beatRise{ to{ opacity:1; transform:translateY(0); } }
+  .beat:last-child{ padding-bottom:0; }
+
+  .beat-dot{
+    position:absolute; left:22px; top:4px; width:16px; height:16px; border-radius:50%;
+    background:var(--card); border:2px solid var(--line); z-index:2;
+    transition:background .3s ease, border-color .3s ease, transform .3s ease;
+  }
+  @media(max-width:640px){ .beat-dot{ left:12px; } }
+  .beat.in-view .beat-dot{ background:var(--gold); border-color:var(--gold); transform:scale(1.15); }
+
+  .beat-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+  .beat h2{ font-family:var(--font-display); font-size:clamp(20px,3.5vw,25px); font-weight:400; margin:0 0 10px; color:var(--ink); }
+  .beat p{ font-size:15px; line-height:1.75; color:var(--ink-dim); margin:0 0 12px; max-width:60ch; }
+  .beat p b{ color:var(--ink); }
+
+  .pull-quote{
+    position:relative; margin:14px 0 18px; padding:4px 0 4px 20px;
+    border-left:3px solid var(--gold);
+    font-family:var(--font-display); font-style:italic; font-size:19px; line-height:1.55;
+    color:var(--ink);
+    transition:padding-left .3s ease, border-color .3s ease;
+  }
+  .pull-quote:hover{ padding-left:26px; border-color:var(--red); }
+
+  /* ---- closing ---- */
+  .closing{ max-width:760px; margin:0 auto; padding:10px 20px 60px; }
+  .closing-card{
+    background:linear-gradient(160deg,var(--card),var(--bg-alt)); border:1px solid var(--line);
+    border-radius:var(--radius-lg); padding:32px; text-align:center;
+    opacity:0; transform:translateY(16px);
+  }
+  .closing-card.in-view{ animation:beatRise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  .closing-card h2{ font-family:var(--font-display); font-size:24px; font-weight:400; margin:0 0 12px; }
+  .closing-card p{ font-size:14.5px; line-height:1.65; color:var(--ink-dim); max-width:52ch; margin:0 auto 22px; }
+  .closing-links{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .btn{ font-family:var(--font-body); font-size:14px; font-weight:600; padding:12px 20px; border-radius:100px; text-decoration:none; transition:transform .18s ease, box-shadow .18s ease; }
+  .btn-primary{ background:var(--gold); color:#2b1c05; box-shadow:0 8px 20px -10px rgba(181,121,10,0.5); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 12px 24px -10px rgba(181,121,10,0.55); }
+  .btn-ghost{ border:1px solid rgba(34,26,18,0.22); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--ink); transform:translateY(-2px); }
+
+  footer{ text-align:center; padding:10px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
+  footer b{ color:var(--ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    .beat, .closing-card{ opacity:1; transform:none; animation:none !important; }
+    h1, .lede{ opacity:1; animation:none !important; }
+  }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
+</style>
+<link rel="canonical" href="https://www.kidposhan.in/bn/why-we-do-this">
+<meta property="og:url" content="https://www.kidposhan.in/bn/why-we-do-this">
+<link rel="alternate" hreflang="en" href="https://www.kidposhan.in/why-we-do-this">
+<link rel="alternate" hreflang="hi" href="https://www.kidposhan.in/hi/why-we-do-this">
+<link rel="alternate" hreflang="bn" href="https://www.kidposhan.in/bn/why-we-do-this">
+<link rel="alternate" hreflang="gu" href="https://www.kidposhan.in/gu/why-we-do-this">
+<link rel="alternate" hreflang="x-default" href="https://www.kidposhan.in/why-we-do-this">
+</head>
+<body>
+<p class="fine langs" lang="en"><a href="/bn/why-we-do-this" hreflang="en">English</a> · <a href="/hi/why-we-do-this" hreflang="hi">हिन्दी</a> · <b>বাংলা</b> · <a href="/gu/why-we-do-this" hreflang="gu">ગુજરાતી</a></p>
+
+<nav>
+  <a class="brand" href="/bn/">
+    <div class="brand-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="brand-name">Poshan Score<b>by Kidposhan</b></div>
+  </a>
+  <div class="nav-links">
+    <a href="/bn/">হোম</a>
+    <a href="/bn/age-metrics#ten-metrics">পদ্ধতি</a>
+    <a href="/bn/age-metrics">বয়স ও মাপকাঠি</a>
+    <a href="/bn/meal-ideas">মিল আইডিয়া</a>
+    <a href="/bn/recipes">রেসিপি</a>
+    <a href="/bn/best">র‍্যাঙ্কিং</a>
+    <a href="/bn/products">প্রোডাক্ট</a>
+    <a href="/bn/scan">প্যাক স্ক্যান করুন</a>
+    <a href="/bn/why-we-do-this" aria-current="page">আমরা এটি কেন করি</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="মেনু" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+    <a class="nav-cta" href="/bn/products">প্রোডাক্ট দেখুন</a>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="/bn/">হোম</a>
+    <a href="/bn/age-metrics#ten-metrics">পদ্ধতি</a>
+    <a href="/bn/age-metrics">বয়স ও মাপকাঠি</a>
+    <a href="/bn/meal-ideas">মিল আইডিয়া</a>
+    <a href="/bn/recipes">রেসিপি</a>
+    <a href="/bn/best">র‍্যাঙ্কিং</a>
+    <a href="/bn/products">প্রোডাক্ট</a>
+    <a href="/bn/scan">প্যাক স্ক্যান করুন</a>
+    <a href="/bn/why-we-do-this" aria-current="page">আমরা এটি কেন করি</a>
+  </div>
+
+<header class="hero">
+  <div class="hero-icons">
+    <svg class="float-icon leaf" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 50C10 20 40 8 52 8C52 34 34 50 10 50Z" fill="#3F6B3C"/>
+    </svg>
+    <svg class="float-icon sprig" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 88V10" stroke="#B5790A" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="20" cy="20" rx="8" ry="5" fill="#F6E4BC" transform="rotate(-30 20 20)"/>
+      <ellipse cx="30" cy="8" rx="6" ry="9" fill="#F6E4BC"/>
+    </svg>
+  </div>
+  <div class="eyebrow">আমরা এটি কেন করি</div>
+  <h1>আমি লেবেলে ভরসা না করে সেগুলো পড়তে শুরু করলাম।</h1>
+  <p class="lede">
+    এটি শুরু হয়েছিল একজন অভিভাবকের অভ্যাস হিসেবে, রুব্রিক হওয়ার আগে। এই হল স্প্রেডশিট, বয়সের গ্রুপ বা উদ্ধৃতি ছাড়া সংস্করণ।
+  </p>
+</header>
+
+<section class="story" id="story">
+  <div class="timeline-rail"><div class="timeline-fill" id="timelineFill"></div></div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">দোকানের গলি</div>
+    <h2>কিছুদিন প্যাকের সামনের অংশই যথেষ্ট ছিল।</h2>
+    <p>
+      বাচ্চাদের ভালো খাওয়ানো অনেকদিন ধরে বাক্সের সামনের অংশ পড়ার মতোই মনে হত। "কোনো অ্যাডেড সুগার নেই।" "ফাইবারে ভরপুর।" "পুষ্টিবিদদের ভরসা।" আমি সামনের অংশে সেভাবেই ভরসা করতাম যেভাবে বেশিরভাগ অভিভাবক করেন, কারণ প্যাক উল্টে ছয় পয়েন্টের ছোট অক্ষরে নয় লাইনের উপকরণ পড়া এমন কিছু নয় যার জন্য কারও সময় বা ধৈর্য আছে, গলিতে দাঁড়িয়ে, যখন শিশু আস্তিন টানছে।
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">উল্টে দেখা</div>
+    <h2>কোথাও পথে আমি তবুও প্যাক উল্টে দেখতে শুরু করলাম।</h2>
+    <p>
+      প্রথমে সন্দেহ থেকে নয়, বরং অভ্যাস থেকে, যেমন আপনি দামের ট্যাগ দুবার দেখেন। আর সামনে যা দাবি ছিল আর উপকরণের প্যানেলে আসলে যা লেখা ছিল, তার ফারাক এমন জায়গায় দেখা যেতে থাকল যা আমি আশা করিনি। একটি "পুষ্টিকর" মুসেলি যার তালিকায় কয়েক উপকরণ নিচে চিনি বসে ছিল। একটি কেচাপ যাতে টমেটো প্রথম নামও ছিল না। একটি মশলার প্যাকেট যার ছাপা "সার্ভিং সাইজ" এত ছোট ছিল যে সোডিয়ামের হিসাব তখনই ঠিক মনে হত যদি কেউ খাবারে পুরো প্যাকেট ব্যবহার না করে।
+    </p>
+    <div class="pull-quote">
+      "লেবেল মিথ্যা বলছিল না। সেটা শুধু এমন কারও জন্য লেখা হয়নি যে পনেরো সেকেন্ড আর একটি ক্লান্ত শিশুকে নিয়ে গলিতে দাঁড়িয়ে আছে।"
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">প্যাটার্ন</div>
+    <h2>কিছুই লুকানো ছিল না। শুধু সেটা পড়া হচ্ছিল না।</h2>
+    <p>
+      আমি যা কিছু পেতে থাকলাম সবই আইন মেনে, সঠিক ফন্ট সাইজে ছাপা ছিল। এটা ব্র্যান্ডের নিয়ম ভাঙার গল্প ছিল না: এটা ছিল খাবারের লেবেল প্রযুক্তিগতভাবে, সত্য কথায়, কতটা বলতে পারে আর তবুও অভিভাবকের মনে ভুল ছবি রেখে যেতে পারে যে তাঁদের সন্তানের ভেতরে আসলে কী যাচ্ছে সে সম্পর্কে। <b>নিয়ম মানা হচ্ছিল। মূল কথাটা তবুও ছুটে যাচ্ছিল।</b>
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">সিদ্ধান্ত</div>
+    <h2>আমি "ভালো" আর "খারাপ" স্ন্যাকস নিয়ে আরেকটি মতামত চাইনি।</h2>
+    <p>
+      এই ধরনের কথা আগে থেকেই যথেষ্ট আছে: এক ইনস্টাগ্রাম পোস্ট থেকে আরেকটিতে বদলে যায়, আর ব্যক্তিগত পছন্দের চেয়ে শক্ত কিছুর বিরুদ্ধে খুব কমই যাচাই হয়। আমি চেয়েছিলাম একই সংখ্যা, একইভাবে পড়া, প্রতিবার, কোনো আসল জিনিসের বিরুদ্ধে যাচাই করা: <b>ICMR-NIN-এর খাদ্য নির্দেশিকা, FSSAI-এর নিজস্ব নিয়ম</b>, কোনো ব্র্যান্ডের মার্কেটিংয়ের বদলে। আর আমি চেয়েছিলাম আমাদের নিজেদের প্রোডাক্টও একই মাপকাঠিতে রাখা হোক, শুধু তাকে থাকা বাকিদের নয়।
+    </p>
+  </div>
+
+  <div class="beat">
+    <div class="beat-dot"></div>
+    <div class="beat-label">এটি কী হল</div>
+    <h2>Poshan Score সেই অভ্যাসটাই লিখে রাখে।</h2>
+    <p>
+      এটা সেই জিনিসই যা আমি আগে থেকে তাকের সামনে করছিলাম, মাথায় রাখার বদলে একটি রুব্রিকে পরিণত: দশটি সংখ্যা, যে বয়সের গ্রুপে সেগুলো আসলে প্রযোজ্য, আর প্রতিটির পেছনের উদ্ধৃতি। এটা আপনাকে বলবে না আপনার সন্তানদের কী খাওয়াবেন। সেটা এখনও আপনার সিদ্ধান্ত, আর তাই থাকা উচিত। এটা শুধু আপনাকে সরাসরি বলবে সিদ্ধান্তের আগে প্যাকে আসলে কী আছে।
+    </p>
+  </div>
+</section>
+
+<section class="closing">
+  <div class="closing-card" id="closingCard">
+    <h2>দেখুন প্যাকে আসলে কী আছে।</h2>
+    <p>আমরা যে প্রোডাক্টই রেট করি তাকে দশটি হ্যাঁ-না পরীক্ষায় স্কোর করা হয়, 6 মাস থেকে প্রাপ্তবয়স্ক পর্যন্ত প্রতিটি বয়সের গ্রুপের জন্য: শিশু, ছেলে ও মেয়ে, পুরুষ ও মহিলা।</p>
+    <div class="closing-links">
+      <a class="btn btn-primary" href="/bn/products">প্রোডাক্ট দেখুন →</a>
+      <a class="btn btn-ghost" href="/bn/age-metrics">দেখুন স্কোর কীভাবে কাজ করে</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <b>ICMR-NIN 2020</b>, <b>WHO</b>-র নির্দেশনা ও <b>FSSAI</b>-এর নিয়ন্ত্রণের মানদণ্ডে · Poshan Score একটি স্বাধীন রেটিং, কোনো সার্টিফিকেশন নয়
+</footer>
+
+<script>
+  // reveal each story beat as it scrolls into view
+  const beatObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        beatObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.25 });
+  document.querySelectorAll('.beat, #closingCard').forEach(el => beatObserver.observe(el));
+
+  // scroll-linked timeline fill, tracking progress through the story section
+  const storyEl = document.getElementById('story');
+  const fillEl = document.getElementById('timelineFill');
+  let ticking = false;
+
+  function updateTimeline(){
+    const rect = storyEl.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    const total = rect.height;
+    // progress: how much of the story block has scrolled past the vertical center of the viewport
+    const scrolled = Math.min(Math.max(viewportH * 0.5 - rect.top, 0), total);
+    const pct = total > 0 ? (scrolled / total) * 100 : 0;
+    fillEl.style.height = pct + '%';
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(updateTimeline);
+      ticking = true;
+    }
+  });
+  window.addEventListener('resize', updateTimeline);
+  window.addEventListener('load', updateTimeline);
+
+  // gentle parallax drift on the hero's floating icons
+  const floatIcons = document.querySelectorAll('.float-icon');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let parallaxTicking = false;
+  function updateParallax(){
+    if (prefersReducedMotion) return;
+    const y = window.scrollY;
+    floatIcons.forEach((el, i) => {
+      const speed = 0.06 + i * 0.03;
+      el.style.marginTop = (y * speed * -1) + 'px';
+    });
+    parallaxTicking = false;
+  }
+  if (!prefersReducedMotion) {
+    window.addEventListener('scroll', () => {
+      if (!parallaxTicking) {
+        requestAnimationFrame(updateParallax);
+        parallaxTicking = true;
+      }
+    });
+  }
+</script>
+
+<script>
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  const isOpen = menu.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+  menu.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
+});
+</script>
+<script src="/kp-meter.js" defer></script>
+<script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
+<script src="/kp-i18n.js" defer></script>
+</body>
+</html>
