@@ -103,6 +103,7 @@ fs.copyFileSync(path.join(root, '..', 'public', 'kp-search.js'), path.join(out, 
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-i18n.js'), path.join(out, 'kp-i18n.js'));
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-qr.js'), path.join(out, 'kp-qr.js'));
 fs.copyFileSync(path.join(root, '..', 'public', 'kp-buy.js'), path.join(out, 'kp-buy.js'));
+fs.copyFileSync(path.join(root, '..', 'public', 'kp-shop.js'), path.join(out, 'kp-shop.js'));
 fs.copyFileSync(path.join(root, '..', 'public', 'qrcode.js'), path.join(out, 'qrcode.js'));
 for (const f of fs.readdirSync(out).filter((n) => n.endsWith('.html') && !/^google[0-9a-f]+\.html$/.test(n))) {
   let h = fs.readFileSync(path.join(out, f), 'utf8');

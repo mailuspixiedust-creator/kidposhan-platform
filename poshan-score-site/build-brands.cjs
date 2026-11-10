@@ -91,7 +91,7 @@ ${common.length ? `<h2>What holds ${esc(b.name)} back</h2><p>Across these packs 
 <h2>More</h2><p><a href="/best/health-drink">All health drinks ranked</a>${others.map((o) => ` · <a href="/brands/${o.slug}">${esc(o.name)}</a>`).join('')}</p>
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. ${esc(b.name)} is the trademark of its owner; KidPoshan is not connected with it. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
-</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
     html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `brands/${b.slug}`);
     files.push({ path: `brands/${b.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });
@@ -113,7 +113,7 @@ ${NAV}
 <p><a href="/best/health-drink">All health drinks ranked</a></p>
 <p style="margin-top:22px"><a class="cta" href="/products">See all products</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Brand names belong to their owners; KidPoshan is not connected with them.</p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/brands`, title: hubTitle, desc: hubDesc }), SITE, 'brands');
   files.push({ path: 'brands.html', html: hub });
   urls.push({ loc: `${SITE}/brands`, pr: '0.8' });

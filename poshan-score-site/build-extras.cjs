@@ -30,15 +30,19 @@ function ingName(t) {
   s = s.replace(/\s+/g, ' ').trim();
   return /^(water|ice|ice water|hot water|warm water)$/.test(s) ? '' : s;
 }
-function buyRecipe(ings, title, url) {
-  const rows = [], seen = new Set();
-  for (const i of ings || []) { const n = ingName(i); if (n.length < 3 || n.length > 40 || seen.has(n)) continue; seen.add(n); rows.push(`<li><span>${escA(n)}</span>${buyLinks(n)}</li>`); }
-  if (rows.length < 2) return '';
-  const lines = (ings || []).map((x) => String(x).replace(/\s+/g, ' ').trim()).filter(Boolean), head = `Shopping list: ${title}`;
-  const wa = 'https://wa.me/?text=' + encodeURIComponent(head + '\n' + lines.map((l) => '- ' + l).join('\n') + '\n\n' + url);
-  return `<details class="buy buyr"><summary>Get the ingredients delivered</summary><div class="blist"><button type="button" data-buy="list-copy" data-q="${escA(title)}" data-title="${escA(head)}" data-items="${escA(JSON.stringify(lines))}">Copy the whole list</button><a data-buy="list-whatsapp" data-q="${escA(title)}" href="${wa}" target="_blank" rel="noopener">Send the list on WhatsApp</a></div><ul>${rows.join('')}</ul><p class="fine">The apps do not let a website fill a cart, so each link searches one item and copies its name. Or copy the whole list and paste it into the app or a message. We earn nothing from these links.</p></details>${BUY_JS}`;
+// a recipe's ingredients as a checklist: tick "At home" or "To buy" on each; what is to buy appears below with a search link in each store of the visitor's country (/kp-shop.js)
+function shopHtml(ings, title, url, id) {
+  const rows = (ings || []).map((raw, i) => {
+    const line = String(raw).replace(/\s+/g, ' ').trim(), q = ingName(line) || line.toLowerCase().slice(0, 40);
+    return `<li class="ingrow" data-i="${i}" data-q="${escA(q)}" data-line="${escA(line)}"><span class="ingn">${escA(line)}</span><label class="tk"><input type="checkbox" data-s="home"><span>At home</span></label><label class="tk tb"><input type="checkbox" data-s="buy"><span>To buy</span></label></li>`;
+  }).join('');
+  return `<div class="shop" data-id="${id}" data-title="${escA('Shopping list: ' + title)}" data-url="${escA(url)}"><div class="shophead"><span class="fine">Tick what you have at home and what you need to buy. We keep your ticks on this device.</span><button type="button" class="shopall">Mark all to buy</button></div><ul class="ing shoplist">${rows}</ul><div class="tobuy" hidden></div></div><script src="/kp-buy.js" defer></script><script src="/kp-shop.js" defer></script>`;
 }
 const BUY_CSS = `.buy{margin:14px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.buy a{font-size:14px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--ink);background:var(--card)}.buy .fine{flex-basis:100%}
+.shophead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:6px 0}.shophead button,.tobuy button,.tobuy .wa{font:600 14px system-ui;border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;background:var(--card);color:var(--ink);text-decoration:none;cursor:pointer}
+.shoplist{list-style:none;padding:0;margin:0}.ingrow{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.ingn{flex:1 1 220px}.ingrow.isbuy .ingn{font-weight:700}
+.tk{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer}.tk input{width:20px;height:20px;accent-color:#3F6B3C}
+.tobuy{margin:16px 0;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:var(--card)}.tobuy>b{font-size:17px}.tbs{margin-top:12px}.tbs>b{display:block;font-size:14px;margin-bottom:6px}.tbl{display:flex;flex-wrap:wrap;gap:6px}.tbl a{font-size:13.5px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--ink)}.tbt{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .blist{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.blist button,.blist a{font:600 14px system-ui;border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;background:var(--card);color:var(--ink);text-decoration:none;cursor:pointer}.buyr{display:block}.buyr summary{cursor:pointer;font-weight:700}.buyr ul{list-style:none;padding:0;margin:10px 0}.buyr li{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}.buyr li span{flex:1 1 140px;text-transform:capitalize}.buyr li a{padding:4px 10px;font-size:13px}`;
 
 // a "Share on WhatsApp" link and a QR code button for any page (the QR code is drawn in the browser by /kp-qr.js)
@@ -108,7 +112,7 @@ ${shareHtml(SITE, rel, `Best ${low} for ${a.short}, ranked by Poshan Score: top 
 <h2>Other ages</h2><p>${others.map((o) => `<a href="/best/${o.slug}">${esc(o.x.short)}</a>`).join(' · ')} · <a href="/best/${g.slug}">${esc(label)} (all ages)</a></p>
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/compare">Compare two packs</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. The age guide is general, not medical advice.</p>
-</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
       html = withMeta(html, { url, title, desc });
       files.push({ path: `${rel}.html`, html }); urls.push({ loc: url, pr: '0.7' });
       (ageLinks[g.slug] = ageLinks[g.slug] || []).push({ href: `/best/${slug}`, text: a.short });
@@ -179,7 +183,7 @@ ${homemade.length ? `<h2>${esc(hm.title)}</h2><p>Made at home, these score well 
 <div class="faq"><h2>Common questions</h2>${faq.map(([q, an]) => `<h3>${esc(q)}</h3><p>${esc(an)}</p>`).join('')}</div>
 <p style="margin-top:22px"><a class="cta" href="/compare?a=${A.item.id}&b=${B.item.id}">Change the age or the packs</a><a class="cta alt" href="/best/${g.slug}">All ${esc(low)} ranked</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Brand names belong to their owners; KidPoshan is not connected with them. The age guide is general, not medical advice.</p>
-</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
       html = withMeta(html, { url, title, desc: `${na} vs ${nb}: ${verdict} See all ten checks and the score at every age.` });
       cmpFiles.push({ path: `${rel}.html`, html }); urls.push({ loc: url, pr: '0.6' });
       (pairLinks[g.slug] = pairLinks[g.slug] || []).push({ href: `/${rel}`, text: `${na} vs ${nb}` });
@@ -189,4 +193,4 @@ ${homemade.length ? `<h2>${esc(hm.title)}</h2><p>Made at home, these score well 
   return { files, urls, ageLinks, pairLinks, count: { age: files.length - cmpFiles.length, cmp: cmpFiles.length } };
 }
 
-module.exports = { build, buyProduct, buyRecipe, shareHtml, SHARE_CSS: SHARE_CSS + BUY_CSS, QR_SCRIPT, AGES };
+module.exports = { build, buyProduct, shopHtml, shareHtml, SHARE_CSS: SHARE_CSS + BUY_CSS, QR_SCRIPT, AGES };

@@ -173,7 +173,7 @@ const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const HOW = { everyday: ['Everyday', 'Fine most days, with variety'], often: ['Often', 'A few times a week'], sometimes: ['Sometimes', 'About once a week'], occasionally: ['Occasionally', 'A treat, once in a while'] };
 const TR_LANGS = { hi: true, bn: false, gu: false };   // languages whose machine-translated ingredients and steps are shown (the others wait until a native speaker has read samples)
 const STEPS_I18N = true;        // method steps in Hindi, Bengali and Gujarati: off until the owner has decided about translating the creators' text
-const { shareHtml, SHARE_CSS, QR_SCRIPT, buyProduct, buyRecipe } = require('./build-extras.cjs');
+const { shareHtml, SHARE_CSS, QR_SCRIPT, buyProduct, shopHtml } = require('./build-extras.cjs');
 const SHOW_HOW = true;        // switch on when most recipes have their diet tags
 const howLine = (d) => (SHOW_HOW && d.how_often && HOW[d.how_often] ? `<p class="howline"><b>How often:</b> <span class="how how-${d.how_often}">${HOW[d.how_often][0]}${d.how_often_why ? ' · ' + esc(d.how_often_why) : ''}</span> ${HOW[d.how_often][1]}. The Poshan Score shows how one serving does against a child's daily limits; this line is about how the food is made.</p>` : '');
 const MEAL_LABEL = { breakfast: 'Breakfast', lunchbox: 'School lunchbox', lunch: 'Lunch', snack_4pm: '4 PM snack', dinner: 'Dinner' };
@@ -270,12 +270,12 @@ ${shareHtml(SITE, `recipes/${slug}`, `${nm}: Poshan Score ${score}/100 for ${sc.
 ${d.kid_note ? `<p class="note">${esc(d.kid_note)}</p>` : ''}
 <h2>The score at every age</h2><table>${byAge || '<tr><td>Open the recipe to see the score for your child\'s age.</td></tr>'}</table>
 ${fitHtml}
-${ings.length ? `<h2>Ingredients</h2><ul class="ing">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>${buyRecipe(ings, nm, `${SITE}/recipes/${slug}`)}` : ''}
+${ings.length ? `<h2>Ingredients</h2>${shopHtml(ings, nm, `${SITE}/recipes/${slug}`, d.id)}` : ''}
 ${stepsHtml ? `<h2>Method</h2>${stepsHtml}<p class="fine">Method by ${esc(credit)}${d.source?.url ? `. <a href="${esc(d.source.url)}" target="_blank" rel="noopener">See the original recipe</a>` : ''}.</p>` : (d.source?.url ? `<p><a class="cta alt" href="${esc(d.source.url)}" target="_blank" rel="noopener">See the method on ${esc(credit)}</a></p>` : '')}
 ${moreHtml}
 <p style="margin-top:22px"><a class="cta" href="/meal-ideas#/r/${d.id}">Save it, check it for your child's age and plan your week</a><a class="cta alt" href="/recipes">More recipes</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice. Recipe text and photos belong to their creators and link back to the original.</p>
-</main>${QR_SCRIPT}<script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;document.getElementById('kpm').innerHTML=m({score:${score},band:${JSON.stringify(sc.band)},capped:${!!sc.capped},why:[],legend:true});m.animate(document)})();</script><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;document.getElementById('kpm').innerHTML=m({score:${score},band:${JSON.stringify(sc.band)},capped:${!!sc.capped},why:[],legend:true});m.animate(document)})();</script><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   html = withMeta(html, { url, title, desc, type: 'article' });
   return { html, url, title };
 }
@@ -301,7 +301,7 @@ ${NAV}
 <p><a class="cta" href="/meal-ideas">Find recipes for my child's age, meal and season</a><a class="cta alt" href="/ideas">Browse by taste, meal and age</a></p>
 ${sections}
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice.</p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   html = withMeta(html, { url, title, desc });
   return { html, url, title };
 }
@@ -417,7 +417,7 @@ if(q.get('confirm')){form.style.display='none';call('/api/kp/newsletter/confirm?
 else if(q.get('unsubscribe')){form.style.display='none';call('/api/kp/newsletter/unsubscribe?t='+encodeURIComponent(q.get('unsubscribe'))).then(function(d){say(d&&d.ok?'You are unsubscribed. We will not send you any more email.':'You are already unsubscribed, or the link is not valid.');}).catch(function(){say('Something went wrong. Please try the link again.');});}
 form.addEventListener('submit',function(e){e.preventDefault();var b=form.querySelector('button');b.disabled=true;
 call('/api/kp/newsletter/subscribe',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({email:document.getElementById('nlemail').value,band:document.getElementById('nlband').value,diet:document.getElementById('nldiet').value,consent:document.getElementById('nlok').checked})}).then(function(d){say(d&&d.message||'Done.');if(d&&d.ok)form.style.display='none';b.disabled=false;}).catch(function(){say('Something went wrong. Please try again.');b.disabled=false;});});})();</script>
-<script src="/kp-visits.js" defer></script></body></html>`;
+<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
     nl = withMeta(nl, { url: `${SITE}/newsletter`, title: NL_TITLE, desc: NL_DESC });
     fs.writeFileSync(path.join(out, 'newsletter.html'), nl);
     urls.push({ loc: `${SITE}/newsletter`, pr: '0.5' });

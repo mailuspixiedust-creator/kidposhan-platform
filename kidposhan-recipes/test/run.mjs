@@ -1035,6 +1035,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   db.prepare('UPDATE kp_recipes SET total_minutes = NULL WHERE id = ?').run(rid3);
   const got = await SR.searchAll(env, 'ragi dosa');
   ok(got.recipes.some((r) => r.id === rid) && !got.recipes.some((r) => r.id === rid2) && !got.recipes.some((r) => r.id === rid3), 'Recipe search finds a dish by words in its name, and leaves out a batter and a recipe with no cooking time');
+  const filler = await SR.searchAll(env, 'ragi dosa recipes for kids');
+  ok(filler.recipes.some((r) => r.id === rid) && (await SR.searchAll(env, 'recipes for kids')).recipes.length >= 0, 'Words like "recipes for kids" do not stop a search from finding the dish');
   const gp = await SR.searchAll(env, 'organic ragi');
   ok(gp.products.some((p) => /Ragi Flour/.test(p.name)) && (await SR.searchAll(env, 'zzzz')).products.length === 0, 'Product search finds an approved product by name');
   const sres = await routeRecipes(new Request('https://w/api/kp/search?q=ragi', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
