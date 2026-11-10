@@ -2,6 +2,7 @@
 // and an index page that lists them all. Everything on a page is worked out from the packs' real scores (ages 4-6), so the text is data, not filler.
 // Called from build-seo.cjs with the packs it has already fetched: [{ item, detail }].
 const i18n = require('./build-i18n.cjs');
+const { shareHtml, SHARE_CSS, QR_SCRIPT } = require('./build-extras.cjs');
 const MIN_PACKS = 3;                 // a page with one or two packs is thin and does not rank: those kinds are left out
 // a kind whose stored name says less than it holds (the noodles kind also holds pasta, spaghetti and vermicelli)
 const LABEL_OVERRIDE = { instant_noodles: 'Noodles and pasta' };
@@ -40,7 +41,7 @@ function build(packs, ctx) {
   groups.sort((a, b) => a.label.localeCompare(b.label));
 
   const files = [], urls = [];
-  const css = RECIPE_CSS + `
+  const css = RECIPE_CSS + SHARE_CSS + `
 .rank{width:100%;border-collapse:collapse;font-size:15px}.rank td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
 .rank .n{width:30px;color:var(--dim);text-align:center}.rank img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line);display:block}
 .rank .nm a{color:var(--ink);font-weight:600;text-decoration:none}.rank .nm small{display:block;color:var(--dim);font-weight:400}
@@ -89,6 +90,7 @@ ${NAV}
 <h1>Best ${esc(low)} for kids in India, ranked</h1>
 <p>We have scored <b>${n}</b> ${esc(low)}. Each gets a Poshan Score out of 100 for a child aged 4 to 6, worked out from the label for one serving. Open any pack to see the score for every age, from toddlers to adults.</p>
 <div class="tiers"><span style="background:${TIER_COLOR.Good}">${cnt.Good} Good (80+)</span><span style="background:${TIER_COLOR.OK}">${cnt.OK} OK (50–79)</span><span style="background:${TIER_COLOR['Do not use']}">${cnt['Do not use']} Do not use (under 50)</span></div>
+${shareHtml(SITE, `best/${g.slug}`, `Best ${low} for kids in India, ranked by Poshan Score: top pick ${top.name} (${top.score}/100).`)}
 <table class="rank">${rowsHtml}</table>
 ${help ? `<h2>What to check on the label</h2><p>The checks ${esc(low)} most often fail:</p><ul>${help}</ul>` : ''}
 <div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
@@ -96,7 +98,7 @@ ${g.kind === 'health_drink' && brandLinks.length ? `<h2>Brand guides</h2><p>${br
 ${related.length ? `<h2>Related rankings</h2><p>${related.map((x) => `<a href="/best/${x.slug}">${esc(x.label)}</a>`).join(' · ')}</p>` : ''}
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
     html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `best/${g.slug}`);
     files.push({ path: `best/${g.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });

@@ -28,9 +28,10 @@ import { listProducts, productDetail, approveScored, isAgeId } from './products.
 import { searchAll, siteStats, cooksShelf } from './search.js';
 import { importOffNext, importOffJob, offBrandJob } from './openfood.js';
 import { startSync, verifySync, syncUser, readSync, writeSync, endSync } from './sync.js';
-import { recordPageview, recordSeconds, trafficReport, pruneViews } from './traffic.js';
+import { recordPageview, recordClick, recordSeconds, trafficReport, pruneViews } from './traffic.js';
 import { translatePending, translationsFor } from './translate.js';
 import { translateUiPending, collectUi, uiMap } from './uitext.js';
+import { subscribe as nlSubscribe, confirm as nlConfirm, unsubscribe as nlUnsubscribe, composeIssue, sendWeekly, subscriberCounts, mailReady, issueFooter } from './newsletter.js';
 import { submitReport, listReports, resolveReport, thankPending, betaStats, BetaError } from './beta.js';
 import { autoReviewPacks, photoCheckPending } from './autoreview.js';
 import { kindCheckPending } from './kindcheck.js';
@@ -62,8 +63,8 @@ export function withCors(request, res) {
 // Visitor endpoints (login, rate, remark, support). Called from the main site too, so they answer CORS preflights for the allowed origins.
 async function routeVisitors(request, env, url, path) {
   const m = path.match(/^\/api\/kp\/recipes\/(\d+)\/(social|rate|remarks|support)$/);
-  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/'), isPv = path === '/api/kp/pv' || path === '/api/kp/pv/time', isScan = path === '/api/kp/scan/lookup' || path === '/api/kp/scan/submit', isReport = path === '/api/kp/report';
-  if (!m && !isAuth && !isPay && !isVisit && !isSync && !isPv && !isScan && !isReport) return null;
+  const isAuth = path.startsWith('/api/kp/auth/'), isPay = path === '/api/kp/pay/config', isVisit = path === '/api/kp/visit', isSync = path.startsWith('/api/kp/sync/'), isPv = path === '/api/kp/pv' || path === '/api/kp/pv/time', isScan = path === '/api/kp/scan/lookup' || path === '/api/kp/scan/submit', isReport = path === '/api/kp/report', isClick = path === '/api/kp/click', isGeo = path === '/api/kp/geo';
+  if (!m && !isAuth && !isPay && !isVisit && !isSync && !isPv && !isScan && !isReport && !isClick && !isGeo) return null;
   const origin = request.headers.get('origin');
   if (request.method === 'OPTIONS') {
     if (!origin || !ALLOWED_ORIGIN.test(origin)) return new Response(null, { status: 403 });
@@ -81,6 +82,8 @@ async function routeVisitors(request, env, url, path) {
       const cf = request.cf || {};
       return reply(await recordPageview(env, body, { ua: request.headers.get('user-agent') || '', country: cf.country || request.headers.get('cf-ipcountry'), region: cf.region, city: cf.city, cf }));
     }
+    if (isGeo) return reply({ country: String((request.cf || {}).country || request.headers.get('cf-ipcountry') || '').toUpperCase().slice(0, 2) || null });
+    if (isClick && request.method === 'POST') return reply(await recordClick(env, body, { ua: request.headers.get('user-agent') || '', cf: request.cf || {} }));
     // The scanner: look a barcode up, or send a pack's photos to be read and scored
     if (isReport && request.method === 'POST') return reply(await submitReport(env, body, { who: await whoHash(request) }));
     if (isScan) {
@@ -129,6 +132,9 @@ export async function routeRecipes(request, env, ctx) {
   if (visitors) return visitors;
 
   // the words of the pages in Hindi, Bengali and Gujarati: read by the pages, and what a page could not translate is sent back to be translated
+  if (path === '/api/kp/newsletter/subscribe' && request.method === 'POST') { let b = {}; try { b = JSON.parse(await request.text()); } catch { /* ignore */ } return withCors(request, json(await nlSubscribe(env, b, { who: await whoHash(request) }))); }
+  if (path === '/api/kp/newsletter/confirm' && (request.method === 'POST' || request.method === 'GET')) return withCors(request, json(await nlConfirm(env, url.searchParams.get('t'))));
+  if (path === '/api/kp/newsletter/unsubscribe' && (request.method === 'POST' || request.method === 'GET')) return withCors(request, json(await nlUnsubscribe(env, url.searchParams.get('t'))));
   if (request.method === 'GET' && path === '/api/kp/ui-i18n') { const r = withCors(request, json(await uiMap(env, url.searchParams.get('lang') || ''))); r.headers.set('cache-control', 'public, max-age=300'); return r; }
   if (request.method === 'POST' && path === '/api/kp/ui-i18n/collect') { let b = {}; try { b = JSON.parse(await request.text()); } catch { /* ignore */ } return withCors(request, json(await collectUi(env, b.strings))); }
   if (request.method === 'GET' && path === '/api/kp/recipes-i18n') return withCors(request, json(await translationsFor(env, url.searchParams.get('lang') || '')));
@@ -219,6 +225,13 @@ export async function routeRecipes(request, env, ctx) {
     }
     // POST /api/kp/admin/products/approve-scored   approve every waiting product whose label was read and scored
     if (path === '/api/kp/admin/products/approve-scored' && request.method === 'POST') return json(await approveScored(env));
+    if (path === '/api/kp/admin/newsletter/preview' && request.method === 'GET') {
+      const issue = await composeIssue(env, { band: url.searchParams.get('band') || '4-6', diet: url.searchParams.get('diet') || 'veg' });
+      if (!issue) return json({ error: 'Not enough Good, not-fried lunchbox recipes for that age group and diet this week' }, 404);
+      const f = issueFooter('PREVIEW');
+      if (url.searchParams.get('format') === 'html') return new Response(issue.html + f.html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+      return json({ subject: issue.subject, week: issue.week, items: issue.items, subscribers: await subscriberCounts(env), mail_ready: mailReady(env), switched_on: String(env.NEWSLETTER_ON || '').toLowerCase() === 'on' });
+    }
     if (path === '/api/kp/admin/products/rescore' && request.method === 'POST') return json(await rescoreAllPacks(env));      // after the scoring method changed
     const pm = path.match(/^\/api\/kp\/admin\/products\/(\d+)$/);
     if (pm && request.method === 'POST') return json(await reviewPack(env, +pm[1], await request.json()));
@@ -406,6 +419,7 @@ export async function scheduledRecipes(env, cron) {
   // ingredient lines and steps in Hindi, Bengali and Gujarati, a few at a time within the daily cap
   try { const t = await translatePending(env); if (t.done || t.failed) console.log('translate', JSON.stringify(t)); } catch (e) { console.error('translate', e); }
   try { const u = await translateUiPending(env); if (u.done || u.failed) console.log('translate-ui', JSON.stringify(u)); } catch (e) { console.error('translate-ui', e); }
+  try { const n = await sendWeekly(env); if (n.sent || n.failed) console.log('newsletter', JSON.stringify(n)); } catch (e) { console.error('newsletter', e); }
   try { console.log('thanks', JSON.stringify(await thankPending(env))); } catch (e) { console.error('thanks', e); }
   try { await pruneScans(env); console.log('scan-labels', JSON.stringify(await readScansPending(env, { limit: 2 }))); } catch (e) { console.error('scan-labels', e); }
   try { const t = await tastesBackfill(env, { limit: 600 }); if (t.looked) console.log('tastes', JSON.stringify(t)); } catch (e) { console.error('tastes', e); }

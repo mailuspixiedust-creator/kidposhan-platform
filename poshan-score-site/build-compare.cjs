@@ -1,6 +1,7 @@
 // Compare two packs side by side: pick any two products, see the score, the ten yes-or-no checks and the score at every age next to each other.
 // A static page: the picking and the numbers come from the live API in the visitor's browser (the packs are searched by name, scored for the chosen age).
 // The address keeps the choice (?a=283&b=292&age=4-6y), so a comparison can be shared.
+const { SHARE_CSS, QR_SCRIPT } = require('./build-extras.cjs');
 const CLIENT_JS = String.raw`(function () {
   var API = '__API__';
   var AGES = [['1-3y', '1–3 years'], ['4-6y', '4–6 years'], ['7-9y', '7–9 years'], ['10-12y', '10–12 years'], ['13-15y', '13–15 years'], ['16-18y', '16–18 years'], ['adult', 'Adults']];
@@ -83,7 +84,10 @@ const CLIENT_JS = String.raw`(function () {
       var fixed = (hi.metrics || []).filter(function (m, k) { return m.score && lo.metrics && lo.metrics[k] && !lo.metrics[k].score; }).map(function (m) { return m.id === 'hfss' || /^HFSS/i.test(m.name) ? 'not being high in fat, sugar or salt' : m.name.toLowerCase(); });
       verdict = String(hi.name).split('|')[0] + ' scores higher for ' + label + ': ' + hs + ' against ' + ls + ' out of 100' + (fixed.length ? '. It passes ' + fixed.slice(0, 4).join(', ') + ', which the other does not' : '') + '.';
     }
-    out.innerHTML = '<p class="verdict">' + esc(verdict) + '</p><div class="scroll"><table class="cmp"><tr><th></th><th>' + esc(String(A.name).split('|')[0]).slice(0, 40) + '</th><th>' + esc(String(B.name).split('|')[0]).slice(0, 40) + '</th></tr>' +
+    var pageUrl = location.origin + '/compare?a=' + encodeURIComponent(A.id) + '&b=' + encodeURIComponent(B.id) + '&age=' + state.age;
+    var shareText = String(A.name).split('|')[0] + ' vs ' + String(B.name).split('|')[0] + ' for ' + label + ': ' + sa + ' vs ' + sb + ' out of 100 on Poshan Score.';
+    var share = '<p class="share" translate="no"><a class="wa" href="https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl) + '" target="_blank" rel="noopener">Share on WhatsApp</a> <button type="button" class="qrb" data-qr-url="' + esc(pageUrl) + '">QR code</button></p><div class="qrbox" hidden></div>';
+    out.innerHTML = '<p class="verdict">' + esc(verdict) + '</p>' + share + '<div class="scroll"><table class="cmp"><tr><th></th><th>' + esc(String(A.name).split('|')[0]).slice(0, 40) + '</th><th>' + esc(String(B.name).split('|')[0]).slice(0, 40) + '</th></tr>' +
       '<tr class="sum"><td class="cn">Checks passed (of 10)</td><td><b>' + passA + '</b></td><td><b>' + passB + '</b></td></tr>' + rows + '</table></div>' +
       '<h2>Score at every age</h2><div class="scroll"><table class="cmp"><tr><th></th><th>' + esc(String(A.name).split('|')[0]).slice(0, 40) + '</th><th>' + esc(String(B.name).split('|')[0]).slice(0, 40) + '</th></tr>' + ages + '</table></div>' +
       '<p class="fine">Scores are out of 100 for one serving as the label gives it. Packs of different sizes or kinds are compared on their own serving.</p>';
@@ -96,7 +100,7 @@ const CLIENT_JS = String.raw`(function () {
 
 function build(ctx) {
   const { withMeta, SITE, RECIPE_CSS, NAV, PLATFORM } = ctx;
-  const css = RECIPE_CSS + `
+  const css = RECIPE_CSS + SHARE_CSS + `
 .pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.pick label{font-size:13px;color:var(--dim);font-weight:600;display:block;margin-bottom:4px}
 .pick input,.agebar select{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
 .res{display:grid;gap:4px;margin-top:6px}.res button{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;color:var(--ink);cursor:pointer}.res button small{display:block;color:var(--dim)}
@@ -125,7 +129,7 @@ ${NAV}
 <div id="out"></div>
 <p style="margin-top:22px"><a class="cta" href="/products">All products</a><a class="cta alt" href="/best">Best by food type</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts. The age guide is general, not medical advice.</p>
-</main><script>${CLIENT_JS.replace('__API__', PLATFORM)}</script><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script>${CLIENT_JS.replace('__API__', PLATFORM)}</script><script src="/kp-visits.js" defer></script></body></html>`;
   html = withMeta(html, { url: `${SITE}/compare`, title, desc });
   return { html, url: `${SITE}/compare` };
 }

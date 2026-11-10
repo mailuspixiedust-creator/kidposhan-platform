@@ -2,6 +2,7 @@
 // Everything on a page is worked out from the packs' real scores and label readings, so the text is data, not filler.
 // Called from build-seo.cjs with the packs it has already fetched: [{ item, detail }].
 const i18n = require('./build-i18n.cjs');
+const { shareHtml, SHARE_CSS, QR_SCRIPT } = require('./build-extras.cjs');
 const MIN_PACKS = 2;
 // brand names are people's own trademarks: the pages say so, and say that nobody here is affiliated with them
 const BRANDS = [
@@ -32,7 +33,7 @@ function build(packs, ctx) {
   const files = [], urls = [];
   if (!brands.length) return { files, urls, count: 0, links: [] };
 
-  const css = RECIPE_CSS + `
+  const css = RECIPE_CSS + SHARE_CSS + `
 .tbl{width:100%;border-collapse:collapse;font-size:15px}.tbl th,.tbl td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:center}.tbl th{font-size:13px;color:var(--dim);font-weight:600}
 .tbl td:first-child,.tbl th:first-child{text-align:left}.tbl td:first-child a{color:var(--ink);font-weight:600;text-decoration:none}.tbl small{display:block;color:var(--dim);font-weight:400}
 .pill{display:inline-block;min-width:38px;color:#fff;border-radius:999px;padding:2px 9px;font-size:14px;font-weight:700}
@@ -81,6 +82,7 @@ ${NAV}
 <h1>Is ${esc(b.name)} healthy for kids?</h1>
 <p>We scored <b>${n}</b> ${esc(b.name)} ${n === 1 ? 'pack' : 'packs'} from what is printed on the label. For a child aged 4 to 6 they score <b>${esc(range)} out of 100</b>.</p>
 <div class="tiers"><span style="background:${TIER_COLOR.Good}">${cnt.Good} Good (80+)</span><span style="background:${TIER_COLOR.OK}">${cnt.OK} OK (50–79)</span><span style="background:${TIER_COLOR['Do not use']}">${cnt['Do not use']} Do not use (under 50)</span></div>
+${shareHtml(SITE, `brands/${b.slug}`, `Is ${b.name} healthy for kids? Poshan Score: ${range} out of 100 for a child aged 4 to 6.`)}
 <h2>Score of each pack, by age</h2>
 <div class="scroll"><table class="tbl">${head}${body}</table></div>
 <p class="fine">Scores are out of 100 for one serving as the label gives it. The same drink scores differently as a child grows, because the daily limits for sugar and salt grow with them.</p>
@@ -89,7 +91,7 @@ ${common.length ? `<h2>What holds ${esc(b.name)} back</h2><p>Across these packs 
 <h2>More</h2><p><a href="/best/health-drink">All health drinks ranked</a>${others.map((o) => ` · <a href="/brands/${o.slug}">${esc(o.name)}</a>`).join('')}</p>
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. ${esc(b.name)} is the trademark of its owner; KidPoshan is not connected with it. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
     html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `brands/${b.slug}`);
     files.push({ path: `brands/${b.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });

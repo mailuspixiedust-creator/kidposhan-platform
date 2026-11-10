@@ -51,6 +51,17 @@ export async function recordSeconds(env, { id, tok, seconds } = {}) {
   return { ok: true };
 }
 
+const STORE_ID = /^[a-z0-9][a-z0-9-]{1,24}$/;
+// A tap on a "buy" link: which page, which store, what was searched for. Bots are not counted.
+export async function recordClick(env, { vid, path, store, what } = {}, meta = {}) {
+  const p = normalizePath(path);
+  if (!p || !STORE_ID.test(String(store)) || isBot(meta.ua, meta.cf) || !/^[A-Za-z0-9]{16,40}$/.test(String(vid || ''))) return { ok: false };
+  const hour = await env.DB.prepare('SELECT count(*) n FROM kp_clicks WHERE ts > ?').bind(now() - 3600).first();
+  if (hour.n > 5000) return { ok: false };
+  await env.DB.prepare('INSERT INTO kp_clicks (ts, vid, path, store, what) VALUES (?,?,?,?,?)').bind(now(), vid, p, String(store), clean(what, 80)).run();
+  return { ok: true };
+}
+
 export async function pruneViews(env) {
   const r = await env.DB.prepare('DELETE FROM kp_pageviews WHERE ts < ?').bind(now() - KEEP_DAYS * 86400).run();
   return { deleted: r.meta?.changes || 0 };
@@ -74,11 +85,13 @@ export async function trafficReport(env, { days = 30, path = null } = {}) {
   const ids = pages.map((p) => (p.path.match(/^\/meal-ideas\/recipe\/(\d+)$/) || [])[1]).filter(Boolean);
   const names = new Map();
   if (ids.length) for (const r of await all(`SELECT id, name FROM kp_recipes WHERE id IN (${ids.map(() => '?').join(',')})`, ...ids)) names.set(String(r.id), String(r.name).split('|')[0].trim());
+  const clicks = await all('SELECT store, COUNT(*) taps, COUNT(DISTINCT vid) visitors FROM kp_clicks WHERE ts >= ? GROUP BY store ORDER BY taps DESC', since).catch(() => []);
+  const click_pages = await all('SELECT path, store, what, COUNT(*) taps FROM kp_clicks WHERE ts >= ? GROUP BY path, store ORDER BY taps DESC LIMIT 40', since).catch(() => []);
   const rnd = (v) => (v == null ? null : Math.round(v));
   return {
     days: d, path,
     totals: { views: totals.views, visitors: totals.visitors, avg_seconds: rnd(totals.avg_s), bots_excluded: bots.n },
     pages: pages.map((p) => ({ path: p.path, label: names.get((p.path.match(/\/(\d+)$/) || [])[1]) ? 'Recipe: ' + names.get(p.path.match(/\/(\d+)$/)[1]) : null, views: p.views, visitors: p.visitors, avg_seconds: rnd(p.avg_s), timed: p.timed })),
-    countries, cities, by_day, referrers,
+    countries, cities, by_day, referrers, clicks, click_pages,
   };
 }

@@ -103,14 +103,22 @@ export async function translateUiPending(env, { calls } = {}) {
         if (!a.error && !b.error) res = { model: a.model, out: [...a.out, ...b.out] };
         else res = { model: (a.model || b.model), out: [...(a.error ? keys.slice(0, mid).map(() => null) : a.out), ...(b.error ? keys.slice(mid).map(() => null) : b.out)] };
       }
-      if (res.error) { failed += keys.length; for (const k of keys) await env.DB.prepare('INSERT INTO kp_ui_fail (key, lang, why, at) VALUES (?,?,?,datetime(\'now\'))').bind(k, lang, res.error).run(); continue; }
-      for (let i = 0; i < keys.length; i++) {
-        const bad = checkLine(lang, keys[i], res.out[i]);
-        if (bad) { failed++; await env.DB.prepare('INSERT INTO kp_ui_fail (key, lang, why, at) VALUES (?,?,?,datetime(\'now\'))').bind(keys[i], lang, bad).run(); continue; }
-        await env.DB.prepare(`INSERT INTO kp_ui_i18n (key, lang, tgt, status, model, updated_at) VALUES (?,?,?,'machine',?,datetime('now'))
-          ON CONFLICT(key, lang) DO UPDATE SET tgt = excluded.tgt, model = excluded.model, updated_at = excluded.updated_at WHERE kp_ui_i18n.status = 'machine'`).bind(keys[i], lang, res.out[i].trim(), res.model).run();
-        done++;
+      // the free allowance for today is used up: stop, and do not blame the lines
+      if (res.error && /daily free allocation|4006/.test(res.error)) return { calls: made, done, failed, stopped: 'the free AI allowance for today is used up' };
+      // everything this call decided is written in one go (a Worker run may make only so many database calls)
+      const stmts = [];
+      const failWith = (k, why) => { failed++; stmts.push(env.DB.prepare("INSERT INTO kp_ui_fail (key, lang, why, at) VALUES (?,?,?,datetime('now'))").bind(k, lang, String(why).slice(0, 200))); };
+      if (res.error) { for (const k of keys) failWith(k, res.error); }
+      else {
+        for (let i = 0; i < keys.length; i++) {
+          const bad = checkLine(lang, keys[i], res.out[i]);
+          if (bad) { failWith(keys[i], bad); continue; }
+          stmts.push(env.DB.prepare(`INSERT INTO kp_ui_i18n (key, lang, tgt, status, model, updated_at) VALUES (?,?,?,'machine',?,datetime('now'))
+            ON CONFLICT(key, lang) DO UPDATE SET tgt = excluded.tgt, model = excluded.model, updated_at = excluded.updated_at WHERE kp_ui_i18n.status = 'machine'`).bind(keys[i], lang, res.out[i].trim(), res.model));
+          done++;
+        }
       }
+      if (stmts.length) await env.DB.batch(stmts);
     }
   }
   return { calls: made, done, failed };
