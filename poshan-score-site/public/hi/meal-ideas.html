@@ -680,6 +680,8 @@ if(window.kpBuy)window.kpBuy.country(cc=>setTimeout(()=>{const set=cc==='IN'?nul
  const next=set.map(st=>({id:st[0],label:st[1],kind:'Delivery',url:q=>st[3]?st[2]:st[2]+q+(st[4]||'')}));next.__cc=cc;RETAILERS=next;try{route()}catch(e){}},0));
 // the store links for one ingredient, made from the stores of the visitor's country at the time they are shown (so a list saved earlier follows the country too)
 const buyFor=n=>RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(String(n).split(',')[0].replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim()))}));
+// in India keep the links the platform sent (live product pages and prices); elsewhere use the stores of the visitor's country
+const buysOf=(name,sent)=>RETAILERS.__cc?buyFor(name):(sent||[]);
 const lab=(arr,v)=>(arr.find(a=>a[0]===v)||[])[1]||v;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ageTxt=m=>{if(m<12)return `${m} months+`;const y=Math.floor(m/12);return `${y} ${y===1?'year':'years'}+`};
@@ -1210,8 +1212,8 @@ async function renderRecipe(id){
   const galleryHTML=photos.length?`<section class="section gallery"><h2>Photos <span class="count">${photos.length}</span></h2><div class="carousel gal" role="list">${photos.map((u,i)=>`<button class="gal-item" role="listitem" data-g="${i}" aria-label="Open photo ${i+1} of ${photos.length}"><img src="/$%7Besc(u)%7D" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.gal-item').remove()"></button>`).join('')}</div><p class="credit">Photos: ${esc(r.source?r.source.name:'the creator')}. ${r.source?`<a href="/$%7Besc(r.source.url)%7D" target="_blank" rel="noopener">See the original</a>`:''}</p></section>`:'';
   const buyList=r.ings.map((ing,i)=>({ing,k:`${r.id}:${i}`})).filter(x=>S.items[x.k].state==='buy');
   const india=(r.world||'india')==='india';
-  const platforms=byPlatform(buyList.map(({ing})=>({name:ing.name,qty:ing.qty,buy:ing.buy})));
-  const noLink=buyList.filter(({ing})=>!(ing.buy||[]).length).map(({ing})=>ing.name);
+  const platforms=byPlatform(buyList.map(({ing})=>({name:ing.name,qty:ing.qty,buy:buysOf(ing.name,ing.buy)})));
+  const noLink=buyList.filter(({ing})=>!buysOf(ing.name,ing.buy).length).map(({ing})=>ing.name);
   const buyHTML=!india?(buyList.length?`<ul class="plain-buy">${buyList.map(({ing})=>`<li>${esc(ing.name)}${ing.qty?` <small>${esc(ing.qty)}</small>`:''}</li>`).join('')}</ul><p class="empty-packs">Store links are for India only, so this is your shopping list.</p>`:`<p class="empty-packs">Tick "To buy" on an ingredient to build a shopping list.</p>`):buyList.length?`<div class="carousel packs" role="list">${platforms.map(p=>`<div class="pack buy-card" role="listitem"><div class="buy-head"><h3>${esc(p.label)}</h3><span class="size">${p.lines.length} ${p.lines.length===1?'item':'items'} to buy</span></div><div class="buy-list">${p.lines.map(l=>`<a href="/$%7Besc(l.url)%7D" target="_blank" rel="noopener"><span>${esc(l.name)}</span>${l.qty?`<small>${esc(l.qty)}</small>`:''}${l.price?`<em>₹${esc(l.price)}</em>`:''}</a>`).join('')}</div></div>`).join('')}</div>${noLink.length?`<p class="empty-packs">No store link yet: ${esc(noLink.join(', '))}.</p>`:''}`:`<p class="empty-packs">Tick "To buy" on an ingredient and it appears here, grouped under each store.</p>`;
   let stepsHTML;
   if(r.steps&&r.steps.length){
@@ -1263,7 +1265,7 @@ async function renderRecipe(id){
 const tray=document.getElementById('tray'),tbody=document.getElementById('tbody'),ttoggle=document.getElementById('ttoggle');
 ttoggle.onclick=()=>{const o=tray.classList.toggle('open');ttoggle.setAttribute('aria-expanded',o);ttoggle.textContent=o?'Hide list':'See list'};
 function renderTray(){
-  const merged={};Object.values(S.items).filter(i=>i.state==='buy').forEach(i=>{const k=i.key||i.name;(merged[k]=merged[k]||{name:i.name,buy:buyFor(i.name),recipes:new Set()}).recipes.add(i.recipe)});
+  const merged={};Object.values(S.items).filter(i=>i.state==='buy').forEach(i=>{const k=i.key||i.name;(merged[k]=merged[k]||{name:i.name,buy:buysOf(i.name,i.buy),recipes:new Set()}).recipes.add(i.recipe)});
   const list=Object.values(merged);
   tray.classList.toggle('show',list.length>0);
   document.getElementById('tcount').textContent=`${list.length} ${list.length===1?'item':'items'} to buy`;
