@@ -77,6 +77,8 @@ db.exec(fs.readFileSync('migrations/0038_referrer.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0039_diet_fit.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0040_recipe_i18n.sql', 'utf8'));
 db.exec(fs.readFileSync('migrations/0041_ui_i18n.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0042_newsletter.sql', 'utf8'));
+db.exec(fs.readFileSync('migrations/0043_clicks.sql', 'utf8'));
 // Like D1, bind() returns a NEW bound statement (so one prepared statement can be bound many times in a batch).
 const wrap = (sql, args = []) => ({
   bind: (...x) => wrap(sql, x),
@@ -1808,6 +1810,46 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const ml = db.prepare("SELECT model FROM kp_ui_i18n WHERE key = ? AND lang = 'hi'").get('Claude should translate this line');
   ok(ml && ml.model.startsWith('claude'), 'The lines of the pages are translated by Claude too');
   globalThis.fetch = realFetch;
+}
+
+// ---- the weekly healthy tiffin email ----
+{
+  const NL = await import('../../src/recipes/newsletter.js');
+  const names = ['Alpha Rice Bowl', 'Bravo Dal Tadka', 'Charlie Veg Pulao', 'Delta Paneer Wrap', 'Echo Ragi Dosa', 'Foxtrot Fried Puri', 'Golf Khichdi'];
+  const ids = names.map((n, k) => { const id = mkRecipe('https://nl.example/' + k + '/', { status: 'approved', name: n, score: 92 }); db.prepare("UPDATE kp_recipes SET poshan_score = 92, score_46 = 92, cap_46 = 0, diet = 'veg', age_min_months = 24, age_max_months = 144, diet_tags = ?, total_minutes = 25 WHERE id = ?").run(k === 5 ? ',fried,' : ',whole_grain,', id); db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'lunchbox')").run(id); return id; });
+  const issue = await NL.composeIssue(env, { band: '4-6', diet: 'veg', week: '2026-W45' });
+  ok(issue && issue.items.length >= 3 && issue.items.every((x) => x.score >= 80 && /^https:\/\/www\.kidposhan\.in\/recipes\/\d+-/.test(x.url)) && !issue.items.some((x) => x.id === ids[5]), 'The weekly email has lunchbox ideas that score Good for the age, and leaves out a fried one: ' + (issue && issue.items.map((x) => x.name).join(', ')));
+  const again = await NL.composeIssue(env, { band: '4-6', diet: 'veg', week: '2026-W45' });
+  ok(JSON.stringify(again.items.map((x) => x.id)) === JSON.stringify(issue.items.map((x) => x.id)), 'Everyone in an age group and diet gets the same five that week');
+  const bad = await NL.subscribe(env, { email: 'not an email', consent: true });
+  const noConsent = await NL.subscribe(env, { email: 'parent@example.com', consent: false });
+  ok(!bad.ok && !noConsent.ok, 'A bad address, or no tick in the consent box, is refused');
+  const sub = await NL.subscribe(env, { email: 'Parent@Example.com', band: '4-6', diet: 'veg', consent: true }, { who: 'whoNL1' });
+  const row = db.prepare("SELECT status, token, email FROM kp_subscribers WHERE email = 'parent@example.com'").get();
+  ok(sub.ok && row && row.status === 'pending', 'Signing up saves a pending subscriber, not yet confirmed');
+  ok((await NL.subscribe(env, { email: 'parent@example.com', consent: true })).message === sub.message, 'A known address gets the same answer as a new one');
+  const sentMail = []; const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { if (String(url).startsWith('https://api.resend.com/')) { sentMail.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); } return realFetch(url, init); };
+  const mailEnv = { ...env, RESEND_API_KEY: 'k', MAIL_FROM: 'KidPoshan <hello@kidposhan.in>' };
+  ok((await NL.sendWeekly({ ...mailEnv, NEWSLETTER_ON: 'on' }, { week: '2026-W45' })).sent === 0, 'Nothing is sent to someone who has not confirmed');
+  ok((await NL.confirm(env, row.token)).ok && db.prepare("SELECT status FROM kp_subscribers WHERE email = 'parent@example.com'").get().status === 'active', 'The confirm link activates the subscriber');
+  ok((await NL.sendWeekly(mailEnv, { week: '2026-W45' })).skipped && (await NL.sendWeekly({ ...env, NEWSLETTER_ON: 'on' }, { week: '2026-W45' })).skipped, 'Nothing is sent until the owner has switched it on and set up a mail service');
+  const out1 = await NL.sendWeekly({ ...mailEnv, NEWSLETTER_ON: 'on' }, { week: '2026-W45' });
+  ok(out1.sent === 1 && sentMail.length === 1 && /unsubscribe=/.test(sentMail[0].html) && sentMail[0].headers['List-Unsubscribe'], 'It sends the issue with a one-click unsubscribe link: ' + JSON.stringify(out1));
+  ok((await NL.sendWeekly({ ...mailEnv, NEWSLETTER_ON: 'on' }, { week: '2026-W45' })).sent === 0, 'It sends only once a week to each person');
+  ok((await NL.unsubscribe(env, row.token)).ok && (await NL.sendWeekly({ ...mailEnv, NEWSLETTER_ON: 'on' }, { week: '2026-W46' })).sent === 0, 'After unsubscribing, nothing more is sent');
+  globalThis.fetch = realFetch;
+}
+
+// ---- taps on the buy links
+{
+  const T = await import('../../src/recipes/traffic.js');
+  const vid = 'abcdef0123456789abcd';
+  const real = { ua: 'Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile', cf: {} };
+  ok((await T.recordClick(env, { vid, path: '/products/1-x', store: 'zepto', what: 'Bournvita' }, real)).ok, 'A tap on a buy link is recorded');
+  ok(!(await T.recordClick(env, { vid, path: '/products/1-x', store: 'Evil Store!', what: 'x' }, real)).ok && !(await T.recordClick(env, { vid, path: '/products/1-x', store: 'zepto' }, { ua: 'Googlebot', cf: {} })).ok && !(await T.recordClick(env, { vid: 'x', path: '/p', store: 'zepto' }, real)).ok, 'An unknown store, a bot and a missing visitor id are not counted');
+  const rep = await T.trafficReport(env, { days: 1 });
+  ok(rep.clicks.length === 1 && rep.clicks[0].store === 'zepto' && rep.clicks[0].taps === 1, 'The traffic report shows the taps by store: ' + JSON.stringify(rep.clicks));
 }
 
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

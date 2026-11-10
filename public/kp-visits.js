@@ -37,6 +37,11 @@
     var v = view = { id: null, tok: null, shown: 0, last: Date.now(), visible: document.visibilityState === 'visible', sent: 0 };
     post('/api/kp/pv', { vid: vid, path: currentPath(), ref: takeRef() }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.id) { v.id = d.id; v.tok = d.tok; } }).catch(function () {});
   }
+  // a tap on a "buy" link (Blinkit, Zepto, Instamart or the seller): which store and what was searched, nothing about the person
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-buy]'); if (!a) return;
+    post('/api/kp/click', { vid: vid, path: location.pathname, store: a.getAttribute('data-buy'), what: a.getAttribute('data-q') || '' }).catch(function () {});
+  });
   document.addEventListener('visibilitychange', function () { if (!view) return; seconds(); view.visible = document.visibilityState === 'visible'; view.last = Date.now(); if (!view.visible) flush(); });
   window.addEventListener('pagehide', flush);
   window.addEventListener('hashchange', function () { var p = currentPath(); if (!view || p !== view.path) { start(); view.path = p; } });

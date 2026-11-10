@@ -7,8 +7,10 @@ INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('. Scores are fo
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('. Thank you for helping us get it right.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('. The score comes from the nutrition table and the ingredients on your back photo.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('. Try leaving out the taste or the meal, or a different age.', 1, datetime('now'));
+INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('<b_a>Your email address and your choices, for the weekly tiffin email</b_a>, only if you sign up at <a_b>kidposhan.in/newsletter</a_b>: the address, your child''s age group and food preference, and when you agreed. We send a first email to confirm it is yours, and nothing more until you confirm. Every email has a one-click unsubscribe link, and after you unsubscribe we send nothing. Your address is used only for this email and is not shared. To have it deleted, write to <a_c>kidposhan@gmail.com</a_c>.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A chocolate breakfast cereal, read the honest way.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A few times a week', 1, datetime('now'));
+INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A healthy tiffin plan every week', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A parent', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A random pick from recipes scoring {#} or more. Press Shuffle for a new set.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('A treat, once in a while', 1, datetime('now'));
@@ -62,8 +64,10 @@ INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Estimated from 
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Fibre', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Fine most days, with variety', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Fine most days, with variety.', 1, datetime('now'));
+INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Five lunchbox ideas for your child''s age, each scoring Good. Free, one email a week.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Front of pack versus back of pack', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Fruit-and-nut muesli', 1, datetime('now'));
+INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Get the weekly email', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Good any season', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Held at OK, whatever the total, because one risk check failed. The', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Hold the pack so the', 1, datetime('now'));
@@ -172,6 +176,7 @@ INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('See the origina
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Select the UPI id and copy it.', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Send', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Sending the code…', 1, datetime('now'));
+INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Share on WhatsApp', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Showing', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Showing results for', 1, datetime('now'));
 INSERT OR IGNORE INTO kp_ui_src (key, hits, first_seen) VALUES ('Sodium', 1, datetime('now'));

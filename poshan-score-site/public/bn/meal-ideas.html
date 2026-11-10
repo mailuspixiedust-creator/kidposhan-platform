@@ -594,6 +594,7 @@ body.lb-open{overflow:hidden}
   <div class="tray-body" id="tbody"></div>
 </div></div>
 
+<script src="/kp-buy.js"></script>
 <script>
 /* ===== mode: live API on kidposhan.in / workers.dev, demo data elsewhere ===== */
 const QS=new URLSearchParams(location.search);
@@ -667,13 +668,18 @@ const DIET_LABEL={veg:'Veg',jain:'Jain',egg:'Egg',nonveg:'Non-veg'};
 const mayoInNonveg=(diet,mayo)=>(S.pref||[]).includes('nonveg')&&!(S.pref||[]).includes('veg')&&!(S.pref||[]).includes('jain')&&!!mayo&&(diet==='veg'||diet==='jain');
 // Jain is a kind of Veg, so under Veg a Jain dish reads "Veg · Jain-friendly" (not just "Jain", which looks like a mistake).
 const dietLabel=(diet,mayo)=>mayoInNonveg(diet,mayo)?'With mayonnaise':((S.pref||[]).includes('veg')&&diet==='jain')?'Veg · Jain-friendly':(DIET_LABEL[diet]||'');
-const RETAILERS=[
+let RETAILERS=[
  {id:'blinkit',label:'Blinkit',kind:'Quick delivery',url:q=>`https://blinkit.com/s/?q=${q}`},
  {id:'instamart',label:'Instamart',kind:'Quick delivery',url:q=>`https://www.swiggy.com/instamart/search?query=${q}`},
  {id:'zepto',label:'Zepto',kind:'Quick delivery',url:q=>`https://www.zeptonow.com/search?query=${q}`},
  {id:'amazon',label:'Amazon',kind:'Marketplace',url:q=>`https://www.amazon.in/s?k=${q}`},
  {id:'bigbasket',label:'BigBasket',kind:'Grocery',url:q=>`https://www.bigbasket.com/ps/?q=${q}`},
 ];
+// Outside India the "To buy" links go to the main grocery services of the visitor's country (the list is in /kp-buy.js); in India they stay as above.
+if(window.kpBuy)window.kpBuy.country(cc=>setTimeout(()=>{const set=cc==='IN'?null:(window.kpBuy.sets[cc]||window.kpBuy.other);if(!set||RETAILERS.__cc===cc)return;
+ const next=set.map(st=>({id:st[0],label:st[1],kind:'Delivery',url:q=>st[3]?st[2]:st[2]+q+(st[4]||'')}));next.__cc=cc;RETAILERS=next;try{route()}catch(e){}},0));
+// the store links for one ingredient, made from the stores of the visitor's country at the time they are shown (so a list saved earlier follows the country too)
+const buyFor=n=>RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(String(n).split(',')[0].replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim()))}));
 const lab=(arr,v)=>(arr.find(a=>a[0]===v)||[])[1]||v;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ageTxt=m=>{if(m<12)return `${m} months+`;const y=Math.floor(m/12);return `${y} ${y===1?'year':'years'}+`};
@@ -1164,7 +1170,7 @@ function metricsHTML(ms,total){const n=ms.reduce((a,m)=>a+m.score,0);return `<ol
 async function getRecipe(id){
   if(!LIVE){const r=RECIPES.find(x=>x.id===id); if(!r) return null;
     return {...r,source:null,
-      ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:RETAILERS.map(s=>({label:s.label,kind:s.kind,url:s.url(encodeURIComponent(i.n.split(',')[0]))}))})),
+      ings:r.ings.map(i=>({name:i.n,qty:i.q,key:i.k,pantry:i.pantry,buy:buyFor(i.n)})),
       steps:[1,2,3,4].map(n=>({section:null,text:`Step ${n} from the creator's recipe appears here, word for word.`})),method_url:null,demo:true};}
   const pf=S.pref||[], prefOne=(pf.includes('veg')||pf.includes('jain'))&&!pf.includes('nonveg')?(pf.includes('veg')?'veg':'jain'):(pf.length===1?pf[0]:'');
   const qs=[prefOne?`pref=${prefOne}`:'',(S.age||[]).length?`age_months=${Math.min(...S.age)}`:'',bandParam().slice(1)].filter(Boolean).join('&');
@@ -1257,7 +1263,7 @@ async function renderRecipe(id){
 const tray=document.getElementById('tray'),tbody=document.getElementById('tbody'),ttoggle=document.getElementById('ttoggle');
 ttoggle.onclick=()=>{const o=tray.classList.toggle('open');ttoggle.setAttribute('aria-expanded',o);ttoggle.textContent=o?'Hide list':'See list'};
 function renderTray(){
-  const merged={};Object.values(S.items).filter(i=>i.state==='buy').forEach(i=>{const k=i.key||i.name;(merged[k]=merged[k]||{name:i.name,buy:i.buy,recipes:new Set()}).recipes.add(i.recipe)});
+  const merged={};Object.values(S.items).filter(i=>i.state==='buy').forEach(i=>{const k=i.key||i.name;(merged[k]=merged[k]||{name:i.name,buy:buyFor(i.name),recipes:new Set()}).recipes.add(i.recipe)});
   const list=Object.values(merged);
   tray.classList.toggle('show',list.length>0);
   document.getElementById('tcount').textContent=`${list.length} ${list.length===1?'item':'items'} to buy`;

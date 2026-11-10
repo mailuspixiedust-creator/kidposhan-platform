@@ -131,7 +131,7 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;bo
 .cta{display:inline-block;background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;text-decoration:none;font-weight:600;margin:6px 8px 6px 0}
 .cta.alt{background:none;color:var(--ink);border:1.5px solid var(--ink)}
 .fine{font-size:13px;color:var(--dim)}
-ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}ul.swaps li a{font-weight:600}ul.swaps li b{margin-left:auto;min-width:40px;text-align:center;color:#fff;border-radius:999px;padding:3px 10px}
+${SHARE_CSS}ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}ul.swaps li a{font-weight:600}ul.swaps li b{margin-left:auto;min-width:40px;text-align:center;color:#fff;border-radius:999px;padding:3px 10px}
 .more{margin:14px 0}.more>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--green);color:var(--green);background:var(--card);font-weight:700;border-radius:12px;padding:13px 16px;font-size:16px}.more>summary::-webkit-details-marker{display:none}.more[open]>summary{background:#E3EEDF;color:#2d4f2b}
 @media(max-width:520px){.hero{grid-template-columns:96px 1fr}.hero img{width:96px;height:96px}td.r{display:none}}
 </style></head><body>
@@ -144,6 +144,8 @@ ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;al
 <div id="kpm"></div><div id="kpclaim"></div>
 <p>${esc(p.brand ? p.brand + ' · ' : '')}${esc(p.kind_label || '')}${p.pack_size ? ' · ' + esc(p.pack_size) : ''}. Scored ${esc(p.basis || 'per serving')}. The same product scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${extra.swaps && extra.swaps.length ? `<h2>Better-scoring ${esc((p.kind_label || 'packs').toLowerCase())}</h2><p>${esc(nm)} scores ${score} for ${esc(p.age_label)}. These score higher on the same ten checks:</p><ul class="swaps">${extra.swaps.map((x) => `<li><a href="/products/${x.slug}">${esc(String(x.item.name).split('|')[0].replace(/\s+/g, ' ').trim())}</a> <span class="fine">${esc(x.item.brand || '')}</span> <b style="background:${TIER_COLOR[x.item.capped ? 'OK' : x.item.band] || TIER_COLOR.Good}">${Math.round(x.item.score)}</b></li>`).join('')}</ul>` : ''}
+${shareHtml(SITE, `products/${slug}`, `${nm}: Poshan Score ${score}/100 for ${p.age_label}.`)}
+${p.data_source === 'scan' ? '' : buyProduct((p.brand && !String(nm).toLowerCase().includes(String(p.brand).toLowerCase()) ? p.brand + ' ' : '') + nm)}
 <p class="fine"><a href="/compare?a=${p.id}">Compare ${esc(nm)} with another pack</a></p>
 <details class="more"><summary>See how this score is worked out</summary>
 <h2>The score at every age</h2><table>${byAge}</table>
@@ -158,7 +160,7 @@ ${p.ingredients && p.ingredients.length ? `<h2>Ingredients</h2><p>${esc(p.ingred
 <p style="margin-top:22px"><a class="cta" href="/products?open=${p.id}">Change the age and see all workings</a>${p.url && p.data_source !== 'scan' ? (p.data_source === 'openfoodfacts' ? `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="noopener">Label on Open Food Facts</a>` : `<a class="cta alt" href="${esc(p.url)}" target="_blank" rel="sponsored nofollow noopener">See price on ${esc((p.retailer || 'the seller').replace(/^./, (c) => c.toUpperCase()))}</a>`) : ''}</p>
 ${p.data_source === 'openfoodfacts' ? `<p class="fine">Label data: <a href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> contributors, under the Open Database Licence${p.added_sugar_estimated ? '. Added sugar is not printed in the database, so total sugars are used, which can make the score a little stricter than the pack deserves' : ''}.</p>` : ''}
 <p class="fine">Label values come from the pack's own product page (or Open Food Facts) and are checked before a product is listed. Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice.</p>
-</main><script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;var d=${JSON.stringify({ score, band: p.band, capped: !!p.capped, why: (p.metrics || []).filter((x) => ['sugar', 'sodium', 'satfat', 'trans'].includes(x.id) && x.score <= 3).map((x) => ({ sugar: 'added sugar', sodium: 'sodium', satfat: 'saturated fat', trans: 'trans fat' })[x.id]) })};
+</main>${QR_SCRIPT}<script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;var d=${JSON.stringify({ score, band: p.band, capped: !!p.capped, why: (p.metrics || []).filter((x) => ['sugar', 'sodium', 'satfat', 'trans'].includes(x.id) && x.score <= 3).map((x) => ({ sugar: 'added sugar', sodium: 'sodium', satfat: 'saturated fat', trans: 'trans fat' })[x.id]) })};
 document.getElementById('kpm').innerHTML=m({score:d.score,band:d.band,capped:d.capped,why:d.why,legend:true});m.animate(document);var s=document.getElementById('kpscore');if(s)s.style.display='none';var rp=document.getElementById('kpreport');if(rp)rp.onclick=function(e){e.preventDefault();if(window.kpReport)kpReport({product_id:${p.id},barcode:${JSON.stringify(p.barcode || '')},name:${JSON.stringify(nm)}})};
 fetch('${PLATFORM}/api/kp/products/${p.id}').then(function(r){return r.json()}).then(function(j){if(j&&j.claim&&window.kpClaimCard)document.getElementById('kpclaim').innerHTML=kpClaimCard(j.claim)}).catch(function(){});})();</script><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   html = withMeta(html, { url, title, desc, type: 'article' });
@@ -171,6 +173,7 @@ const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const HOW = { everyday: ['Everyday', 'Fine most days, with variety'], often: ['Often', 'A few times a week'], sometimes: ['Sometimes', 'About once a week'], occasionally: ['Occasionally', 'A treat, once in a while'] };
 const TR_LANGS = { hi: true, bn: false, gu: false };   // languages whose machine-translated ingredients and steps are shown (the others wait until a native speaker has read samples)
 const STEPS_I18N = true;        // method steps in Hindi, Bengali and Gujarati: off until the owner has decided about translating the creators' text
+const { shareHtml, SHARE_CSS, QR_SCRIPT, buyProduct, buyRecipe } = require('./build-extras.cjs');
 const SHOW_HOW = true;        // switch on when most recipes have their diet tags
 const howLine = (d) => (SHOW_HOW && d.how_often && HOW[d.how_often] ? `<p class="howline"><b>How often:</b> <span class="how how-${d.how_often}">${HOW[d.how_often][0]}${d.how_often_why ? ' · ' + esc(d.how_often_why) : ''}</span> ${HOW[d.how_often][1]}. The Poshan Score shows how one serving does against a child's daily limits; this line is about how the food is made.</p>` : '');
 const MEAL_LABEL = { breakfast: 'Breakfast', lunchbox: 'School lunchbox', lunch: 'Lunch', snack_4pm: '4 PM snack', dinner: 'Dinner' };
@@ -252,7 +255,7 @@ ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.
 <html lang="en-IN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 ${[ld, ldFaq, ldCrumb].map((o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join('')}
-<style>${RECIPE_CSS}</style></head><body>
+<style>${RECIPE_CSS}${SHARE_CSS}</style></head><body>
 ${NAV}
 <main>
 <p class="crumb"><a href="/">Home</a> › <a href="/recipes">Recipes</a> › ${extra.mealCrumb ? `<a href="/ideas/${extra.mealCrumb.slug}">${esc(cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')))}</a> › ` : ''}${esc(nm)}</p>
@@ -261,17 +264,18 @@ ${NAV}
 ${d.image_url ? `<div class="hero"><img src="${esc(d.image_url)}" alt="${esc(nm)}" width="760" height="340" loading="eager" fetchpriority="high" decoding="async" referrerpolicy="no-referrer"><span class="fine">Photo: ${esc(credit)}</span></div>` : ''}
 <div class="facts">${facts}</div>
 ${howLine(d)}
+${shareHtml(SITE, `recipes/${slug}`, `${nm}: Poshan Score ${score}/100 for ${sc.age_band_label || 'ages 4–6'}.`)}
 <div id="kpm" style="margin:18px 0 6px"></div>
 <p>${esc(nm)} scores <b>${score}</b> out of 100 (${esc(sc.capped ? 'OK, held by a risk check' : sc.band)}) for ${esc(sc.age_band_label || 'ages 4–6')}, worked out for one serving. The same dish scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${d.kid_note ? `<p class="note">${esc(d.kid_note)}</p>` : ''}
 <h2>The score at every age</h2><table>${byAge || '<tr><td>Open the recipe to see the score for your child\'s age.</td></tr>'}</table>
 ${fitHtml}
-${ings.length ? `<h2>Ingredients</h2><ul class="ing">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+${ings.length ? `<h2>Ingredients</h2><ul class="ing">${ings.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>${buyRecipe(ings, nm, `${SITE}/recipes/${slug}`)}` : ''}
 ${stepsHtml ? `<h2>Method</h2>${stepsHtml}<p class="fine">Method by ${esc(credit)}${d.source?.url ? `. <a href="${esc(d.source.url)}" target="_blank" rel="noopener">See the original recipe</a>` : ''}.</p>` : (d.source?.url ? `<p><a class="cta alt" href="${esc(d.source.url)}" target="_blank" rel="noopener">See the method on ${esc(credit)}</a></p>` : '')}
 ${moreHtml}
 <p style="margin-top:22px"><a class="cta" href="/meal-ideas#/r/${d.id}">Save it, check it for your child's age and plan your week</a><a class="cta alt" href="/recipes">More recipes</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice. Recipe text and photos belong to their creators and link back to the original.</p>
-</main><script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;document.getElementById('kpm').innerHTML=m({score:${score},band:${JSON.stringify(sc.band)},capped:${!!sc.capped},why:[],legend:true});m.animate(document)})();</script><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-meter.js"></script><script>(function(){var m=window.kpMeter;if(!m)return;document.getElementById('kpm').innerHTML=m({score:${score},band:${JSON.stringify(sc.band)},capped:${!!sc.capped},why:[],legend:true});m.animate(document)})();</script><script src="/kp-visits.js" defer></script></body></html>`;
   html = withMeta(html, { url, title, desc, type: 'article' });
   return { html, url, title };
 }
@@ -350,7 +354,7 @@ async function run(out) {
     if (fs.existsSync(pf)) { let h = fs.readFileSync(pf, 'utf8'); h = h.replace('window.KP_PRODUCT_PAGES=window.KP_PRODUCT_PAGES||{};', 'window.KP_PRODUCT_PAGES=' + JSON.stringify(map) + ';'); fs.writeFileSync(pf, h); }
   }
   // 3b. a ranking page for each kind of food that has enough scored packs, and the index that links to them
-  let nBest = 0, nBrands = 0, brandLinks = [], brandData = [];
+  let nBest = 0, nBrands = 0, brandLinks = [], brandData = [], bestGroups = [], nExtra = 0;
   // 3a. a page for each health-drink brand with at least two scored packs ("Is Bournvita healthy for kids?"), and the page that lists them
   try {
     const brands = require('./build-brands.cjs').build(packsData, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf });
@@ -366,7 +370,7 @@ async function run(out) {
     fs.mkdirSync(bdir, { recursive: true });
     for (const f of fs.readdirSync(bdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(bdir, f));
     for (const f of best.files) fs.writeFileSync(path.join(out, f.path), f.html);
-    urls.push(...best.urls); nBest = best.count;
+    urls.push(...best.urls); nBest = best.count; bestGroups = best.groups || [];
     // the rankings and the brand pages in Hindi, Bengali and Gujarati
     const lb = require('./build-i18n-best.cjs').localize({ groups: best.groups, brands: brandData, ctx: { esc, withMeta, SITE, RECIPE_CSS, TIER_COLOR } });
     for (const code of Object.keys(lb)) {
@@ -381,6 +385,43 @@ async function run(out) {
     fs.writeFileSync(path.join(out, 'compare.html'), cmp.html);
     urls.push({ loc: cmp.url, pr: '0.7' });
   } catch (e) { console.warn('no compare page this build:', e.message); }
+  // 3d. the weekly healthy tiffin email: the sign-up page (it also handles the confirm and unsubscribe links)
+  try {
+    const NL_TITLE = 'A healthy tiffin plan in your inbox every week', NL_DESC = 'Five lunchbox ideas a week for your child\'s age, each scoring Good on the Poshan Score and not deep-fried. Free, one email a week, unsubscribe in one click.';
+    let nl = `<!doctype html>
+<html lang="en-IN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${NL_TITLE}</title><style>${RECIPE_CSS}
+.nlf{display:grid;gap:12px;margin:16px 0;max-width:460px}.nlf label{font-size:14px;font-weight:600;display:block;margin-bottom:4px}.nlf input[type=email],.nlf select{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.nlf .chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:400}.nlf .chk input{margin-top:4px}.nlf button{font:700 16px system-ui;background:#3F6B3C;color:#fff;border:0;border-radius:14px;padding:14px;cursor:pointer}
+#nlmsg{margin:12px 0;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:none}
+</style></head><body>
+${NAV}
+<main>
+<p class="crumb"><a href="/">Home</a> › Weekly tiffin email</p>
+<h1>${NL_TITLE}</h1>
+<p>Every week we email five lunchbox ideas for your child's age. Each one scores <b>Good (80 or more)</b> on the Poshan Score for that age, is not deep-fried, and takes an hour or less. Free. No brand pays to be in it.</p>
+<div id="nlmsg" role="status"></div>
+<form id="nlform" class="nlf" novalidate>
+<div><label for="nlemail">Your email</label><input id="nlemail" type="email" autocomplete="email" required placeholder="you@example.com"></div>
+<div><label for="nlband">Your child's age</label><select id="nlband"><option value="1-3">1 to 3 years</option><option value="4-6" selected>4 to 6 years</option><option value="7-9">7 to 9 years</option><option value="10-12">10 to 12 years</option></select></div>
+<div><label for="nldiet">Food preference</label><select id="nldiet"><option value="veg">Vegetarian</option><option value="jain">Jain</option><option value="nonveg">Includes egg and non-veg</option></select></div>
+<label class="chk"><input id="nlok" type="checkbox"> I want this email every week. I can unsubscribe at any time with one click. See the <a href="/privacy">privacy page</a>.</label>
+<button type="submit">Send me the weekly email</button>
+</form>
+<p class="fine">We first send one email to confirm the address is yours, and nothing more until you confirm. The age guide is general, not medical advice. Poshan Score is an independent rating, not a certification.</p>
+</main>
+<script>(function(){var API='${PLATFORM}',q=new URLSearchParams(location.search),msg=document.getElementById('nlmsg'),form=document.getElementById('nlform');
+function say(t){msg.textContent=t;msg.style.display='block';}
+function call(path,opt){return fetch(API+path,opt).then(function(r){return r.json();});}
+if(q.get('confirm')){form.style.display='none';call('/api/kp/newsletter/confirm?t='+encodeURIComponent(q.get('confirm'))).then(function(d){say(d&&d.ok?'You are signed up. Your first email comes next week.':'That link is not valid any more. Please sign up again.');}).catch(function(){say('Something went wrong. Please try the link again.');});}
+else if(q.get('unsubscribe')){form.style.display='none';call('/api/kp/newsletter/unsubscribe?t='+encodeURIComponent(q.get('unsubscribe'))).then(function(d){say(d&&d.ok?'You are unsubscribed. We will not send you any more email.':'You are already unsubscribed, or the link is not valid.');}).catch(function(){say('Something went wrong. Please try the link again.');});}
+form.addEventListener('submit',function(e){e.preventDefault();var b=form.querySelector('button');b.disabled=true;
+call('/api/kp/newsletter/subscribe',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({email:document.getElementById('nlemail').value,band:document.getElementById('nlband').value,diet:document.getElementById('nldiet').value,consent:document.getElementById('nlok').checked})}).then(function(d){say(d&&d.message||'Done.');if(d&&d.ok)form.style.display='none';b.disabled=false;}).catch(function(){say('Something went wrong. Please try again.');b.disabled=false;});});})();</script>
+<script src="/kp-visits.js" defer></script></body></html>`;
+    nl = withMeta(nl, { url: `${SITE}/newsletter`, title: NL_TITLE, desc: NL_DESC });
+    fs.writeFileSync(path.join(out, 'newsletter.html'), nl);
+    urls.push({ loc: `${SITE}/newsletter`, pr: '0.5' });
+  } catch (e) { console.warn('no newsletter page this build:', e.message); }
   // 4. a page for every recipe, the collection pages ("tangy lunchbox ideas for kids") that link to them, and the Recipes index
   let nRecipes = 0, nIdeas = 0, nLang = 0;
   try {
@@ -459,6 +500,21 @@ async function run(out) {
     fs.writeFileSync(path.join(out, 'recipes.html'), hub.html);
     urls.push({ loc: hub.url, pr: '0.8', lm: have.map((r) => r.it.updated).filter(Boolean).sort().pop() || null });
     // which recipe has a page of its own: search results link to the page when it exists, and to the planner when it does not
+    // the pages parents search for: "best [food] for [age]" and "A vs B" with homemade alternatives, from the packs' real scores
+    try {
+      const ex = require('./build-extras.cjs').build(packsData, bestGroups, have, { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf, recName });
+      const cdir = path.join(out, 'compare'); fs.mkdirSync(cdir, { recursive: true });
+      for (const f of fs.readdirSync(cdir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(cdir, f));
+      for (const f of ex.files) fs.writeFileSync(path.join(out, f.path), f.html);
+      urls.push(...ex.urls); nExtra = ex.files.length;
+      // each food type's ranking page links to its age pages and its comparisons
+      for (const [slug, links] of Object.entries(ex.ageLinks)) {
+        const bf = path.join(out, 'best', slug + '.html'); if (!fs.existsSync(bf)) continue;
+        const pl = ex.pairLinks[slug] || [];
+        const block = `<h2>By age</h2><p>${links.map((l) => `<a href="${l.href}">Best for ${esc(l.text)}</a>`).join(' · ')}</p>` + (pl.length ? `<h2>Comparisons</h2><p>${pl.slice(0, 6).map((l) => `<a href="${l.href}">${esc(l.text)}</a>`).join(' · ')}</p>` : '');
+        fs.writeFileSync(bf, fs.readFileSync(bf, 'utf8').replace('<div class="faq">', block + '\n<div class="faq">'));
+      }
+    } catch (e) { console.warn('no age or comparison pages this build:', e.message); }
     fs.writeFileSync(path.join(out, 'recipe-pages.js'), `window.KP_RECIPE_PAGES=${JSON.stringify(Object.fromEntries(have.map((r) => [r.it.id, r.slug])))};\n`);
   } catch (e) { console.warn('no recipe pages this build:', e.message); }
   const today = new Date().toISOString().slice(0, 10);
@@ -495,7 +551,7 @@ async function run(out) {
     console.log(`static language pages: ${nStatic} published, ${allUnits.size} lines to translate, ${nJs} of them from the apps (ui-seed.sql)`);
   } catch (e) { console.warn('no static language pages this build:', e.message); }
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
-  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, ${nLang + nLang0} Hindi/Bengali/Gujarati pages, sitemap with ${urls.length} addresses`);
+  console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, ${nExtra} age and comparison pages, ${nLang + nLang0} Hindi/Bengali/Gujarati pages, sitemap with ${urls.length} addresses`);
 }
 
 module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage, get ctx() { return { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord }; } };
