@@ -115,7 +115,10 @@ export async function searchAll(env, q, { limit = 6, age = null, only = null } =
       if (out.recipes.length || out.products.length || pq.tastes.length || pq.mild || pq.meals.length) return out;
     }
   }
-  const words = tokens(q);
+  // words that describe the wish and not the food ("paratha recipes for kids") do not have to be in the name, unless nothing else is left
+  const FILLER = new Set(['recipe', 'recipes', 'for', 'kid', 'kids', 'child', 'children', 'toddler', 'baby', 'idea', 'ideas', 'healthy', 'easy', 'quick', 'best', 'how', 'to', 'make', 'the', 'a', 'an', 'my', 'me', 'some', 'with', 'and', 'of', 'in', 'good', 'tasty', 'yummy']);
+  const all5 = tokens(q), meaningful = all5.filter((t) => !FILLER.has(t));
+  const words = meaningful.length ? meaningful : all5;
   const band = bandForMonths(Number.isFinite(age) ? age : 60);
   const ageInfo = resolveAge(Number.isFinite(age) ? ageIdForMonths(age) : '4-6y');
   const ageLabel = Number.isFinite(age) && (age < 12 || age >= 156) ? ageInfo.label : band.label;

@@ -110,7 +110,7 @@ ${n > MAX_ON_PAGE ? `<p class="fine">Showing the top ${MAX_ON_PAGE} of ${n}. <a 
 ${sib.length ? `<h2>More ideas</h2><p class="links">${sib.map((x) => `<a href="/ideas/${x.slug}">${esc(x.h1)}</a>`).join('')}</p>` : ''}
 <p style="margin-top:22px"><a class="cta" href="/meal-ideas">Plan the week for your child's age</a><a class="cta alt" href="/recipes">All recipes</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and the age guide is general, not medical advice. Recipe text and photos belong to their creators and link back to the original.</p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
     html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `ideas/${p.slug}`);
     files.push({ path: `ideas/${p.slug}.html`, html });
     const lm = shown.map((x) => x.r.it.updated).filter(Boolean).sort().pop() || null;
@@ -133,7 +133,7 @@ ${NAV}
 <p>Pick what your child likes (tangy, spicy, sweet, creamy or crunchy), the meal, and their age. Every list is ranked by the Poshan Score for that age, and every recipe is credited to its creator.</p>
 <ul class="cats" style="list-style:none;padding:0">${hubBody}</ul>
 <p><a class="cta" href="/recipes">All recipes</a><a class="cta alt" href="/meal-ideas">Plan the week</a></p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/ideas`, title: hubTitle, desc: hubDesc }), SITE, 'ideas');
   files.push({ path: 'ideas.html', html: hub });
   urls.push({ loc: `${SITE}/ideas`, pr: '0.8', lm: null });

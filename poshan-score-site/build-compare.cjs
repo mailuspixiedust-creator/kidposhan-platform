@@ -129,7 +129,7 @@ ${NAV}
 <div id="out"></div>
 <p style="margin-top:22px"><a class="cta" href="/products">All products</a><a class="cta alt" href="/best">Best by food type</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts. The age guide is general, not medical advice.</p>
-</main>${QR_SCRIPT}<script>${CLIENT_JS.replace('__API__', PLATFORM)}</script><script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script>${CLIENT_JS.replace('__API__', PLATFORM)}</script><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   html = withMeta(html, { url: `${SITE}/compare`, title, desc });
   return { html, url: `${SITE}/compare` };
 }

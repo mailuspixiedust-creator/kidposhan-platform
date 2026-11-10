@@ -98,7 +98,7 @@ ${g.kind === 'health_drink' && brandLinks.length ? `<h2>Brand guides</h2><p>${br
 ${related.length ? `<h2>Related rankings</h2><p>${related.map((x) => `<a href="/best/${x.slug}">${esc(x.label)}</a>`).join(' · ')}</p>` : ''}
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
-</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script></body></html>`;
+</main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
     html = i18n.decorateEn(withMeta(html, { url, title, desc }), SITE, `best/${g.slug}`);
     files.push({ path: `best/${g.slug}.html`, html });
     urls.push({ loc: url, pr: '0.8' });
@@ -120,7 +120,7 @@ ${NAV}
 <p>Pick a kind of food to see every pack we have scored, best first. Scores are out of 100 for a child aged 4 to 6; open a pack to see it for any age from toddlers to adults. No brand pays to be here.</p>
 <ul class="cats" style="list-style:none;padding:0">${catHtml}</ul>
 <p><a class="cta" href="/products">See all products</a><a class="cta alt" href="/recipes">Recipes</a></p>
-</main><script src="/kp-visits.js" defer></script></body></html>`;
+</main><script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
   hub = i18n.decorateEn(withMeta(hub, { url: `${SITE}/best`, title: indexTitle, desc: indexDesc }), SITE, 'best');
   files.push({ path: 'best.html', html: hub });
   urls.push({ loc: `${SITE}/best`, pr: '0.8' });
