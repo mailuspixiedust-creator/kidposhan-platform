@@ -246,7 +246,7 @@ ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.
   })();
   const ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: nm, image: d.image_url ? [d.image_url] : undefined, author: { '@type': 'Person', name: credit }, description: desc, url,
     totalTime: d.total_minutes ? isoTime(d.total_minutes) : undefined, recipeYield: d.servings ? String(d.servings) : undefined, recipeCategory: meals[0] || undefined, recipeIngredient: ings.length ? ings : undefined,
-    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', text: st.text, url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
+    recipeInstructions: steps.length ? steps.map((st, i) => ({ '@type': 'HowToStep', name: `Step ${i + 1}`, text: st.text, url: `${url}#step-${i + 1}` })) : undefined, isBasedOn: d.source?.url || undefined, keywords: ['kids recipe', 'Poshan Score', diet].filter(Boolean).join(', ') };
   if (nutrRows.length) ld.nutrition = { '@type': 'NutritionInformation', servingSize: 'one serving', ...(nutr.protein != null ? { proteinContent: `${nutr.protein} g` } : {}), ...(nutr.fibre != null ? { fiberContent: `${nutr.fibre} g` } : {}), ...(nutr.satfat != null ? { saturatedFatContent: `${nutr.satfat} g` } : {}), ...(nutr.sodium != null ? { sodiumContent: `${nutr.sodium} mg` } : {}) };
   const ldFaq = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
   const ldCrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', item: SITE + '/' }, { name: 'Recipes', item: SITE + '/recipes' }, ...(extra.mealCrumb ? [{ name: cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')), item: `${SITE}/ideas/${extra.mealCrumb.slug}` }] : []), { name: nm, item: url }].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })) };
@@ -525,18 +525,29 @@ call('/api/kp/newsletter/subscribe',{method:'POST',headers:{'content-type':'text
     const stat = require('./build-i18n-static.cjs');
     const PAGES = [['index.html', '/'], ['age-metrics.html', '/age-metrics'], ['why-we-do-this.html', '/why-we-do-this'], ['built-with-parents.html', '/built-with-parents'], ['privacy.html', '/privacy'], ['products.html', '/products'], ['recipes.html', '/recipes'], ['scan.html', '/scan'], ['meal-ideas.html', '/meal-ideas'], ['compare.html', '/compare']];
     const COVER = 0.85;
-    for (const code of Object.keys(require('./i18n.cjs').LANGS)) {
-      let map = {}; try { map = (await getJson(`${PLATFORM}/api/kp/ui-i18n?lang=${code}`)).map || {}; } catch (e) { map = {}; }
-      const srcs = {}; for (const [file, rel] of PAGES) { const f = path.join(out, file); if (fs.existsSync(f)) srcs[rel] = [file, fs.readFileSync(f, 'utf8')]; }
-      const ok = ['/best', '/brands', '/ideas'];
+    const I18N = require('./i18n.cjs'), CODES3 = Object.keys(I18N.LANGS), CODES_ALL = Object.keys(I18N.STATIC_LANGS);
+    const maps = {}, srcs = {};
+    for (const [file, rel] of PAGES) { const f = path.join(out, file); if (fs.existsSync(f)) srcs[rel] = [file, fs.readFileSync(f, 'utf8')]; }
+    // first, which pages are translated enough in each language (the generated pages in Hindi, Bengali and Gujarati always exist; Bahasa Indonesia and Bahasa Melayu have only the static pages)
+    for (const code of CODES_ALL) {
+      let map = {};
+      // KP_UI_MAP_DIR: a folder of <code>.json translation maps, to check a build before the lines are loaded into the platform
+      if (process.env.KP_UI_MAP_DIR && fs.existsSync(path.join(process.env.KP_UI_MAP_DIR, code + '.json'))) map = JSON.parse(fs.readFileSync(path.join(process.env.KP_UI_MAP_DIR, code + '.json'), 'utf8'));
+      else try { map = (await getJson(`${PLATFORM}/api/kp/ui-i18n?lang=${code}`)).map || {}; } catch (e) { map = {}; }
+      maps[code] = map;
+      const ok = I18N.LANGS[code] ? ['/best', '/brands', '/ideas'] : [];
       for (const [rel, [file, html]] of Object.entries(srcs)) { const r = stat.bake(html, { map, rel, code, SITE, units: allUnits }); if (r.total && r.done / r.total >= COVER) ok.push(rel); }
       avail[code] = ok;
-      const have = new Set(ok);
+    }
+    // then the pages, each with links to the other languages it exists in
+    for (const code of CODES_ALL) {
+      const have = new Set(avail[code]);
       fs.mkdirSync(path.join(out, code), { recursive: true });
       for (const [rel, [file, html]] of Object.entries(srcs)) {
         const target = path.join(out, code, rel === '/' ? 'index.html' : file);
         if (!have.has(rel)) { if (fs.existsSync(target)) fs.unlinkSync(target); continue; }
-        fs.writeFileSync(target, stat.bake(html, { map, rel, code, SITE, units: new Set(), avail: have }).html);
+        const codes = [...CODES3, ...CODES_ALL.filter((c) => !I18N.LANGS[c] && avail[c].includes(rel))];
+        fs.writeFileSync(target, stat.bake(html, { map: maps[code], rel, code, SITE, units: new Set(), avail: have, codes }).html);
         urls.push({ loc: SITE + '/' + code + (rel === '/' ? '/' : rel), pr: '0.6' }); nStatic++;
       }
     }

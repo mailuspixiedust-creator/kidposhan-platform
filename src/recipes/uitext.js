@@ -4,6 +4,10 @@
 // A line a native speaker has corrected has status 'reviewed' and is never overwritten by the AI.
 // The AI may not change a {#} marker or a brand name; a translation that does, or that is not in the language, is not stored.
 import { LANGS } from './translate.js';
+
+// the languages of the interface: the three Indian languages (which also have translated recipes) and Bahasa Indonesia and Bahasa Melayu (Latin script)
+export const UI_LANGS = { ...LANGS, id: 'Indonesian (Bahasa Indonesia)', ms: 'Malay (Bahasa Melayu, as used in Malaysia)' };
+const AUDIENCE = { hi: 'Indian parents', bn: 'Indian parents', gu: 'Indian parents', id: 'parents in Indonesia', ms: 'parents in Malaysia' };
 import { ask, modelsFor, usingClaude } from './llm.js';
 
 export const UI_MODELS = ['@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/mistralai/mistral-small-3.1-24b-instruct'];
@@ -23,15 +27,17 @@ const KEEP = 'Poshan Score, KidPoshan, Open Food Facts, ICMR-NIN, NIN, FSSAI, WH
 const GLOSSARY = {
   hi: { Good: 'अच्छा', OK: 'ठीक', 'Do not use': 'न दें', Home: 'होम', Recipes: 'रेसिपी', Products: 'प्रोडक्ट', 'Meal Ideas': 'मील आइडिया', Rankings: 'रैंकिंग', 'Scan a pack': 'पैक स्कैन करें', Search: 'खोजें', Check: 'जाँचें' },
   bn: { Good: 'ভালো', OK: 'মোটামুটি', 'Do not use': 'দেবেন না', Home: 'হোম', Recipes: 'রেসিপি', Products: 'প্রোডাক্ট', 'Meal Ideas': 'মিল আইডিয়া', Rankings: 'র‍্যাঙ্কিং', 'Scan a pack': 'প্যাক স্ক্যান করুন', Search: 'খুঁজুন', Check: 'দেখুন' },
+  id: { Good: 'Baik', OK: 'Cukup', 'Do not use': 'Jangan diberikan', Home: 'Beranda', Recipes: 'Resep', Products: 'Produk', 'Meal Ideas': 'Ide Menu', Rankings: 'Peringkat', 'Scan a pack': 'Pindai kemasan', Search: 'Cari', Check: 'Periksa' },
+  ms: { Good: 'Baik', OK: 'Sederhana', 'Do not use': 'Jangan diberi', Home: 'Laman Utama', Recipes: 'Resipi', Products: 'Produk', 'Meal Ideas': 'Idea Hidangan', Rankings: 'Kedudukan', 'Scan a pack': 'Imbas pek', Search: 'Cari', Check: 'Semak' },
   gu: { Good: 'સારું', OK: 'ઠીક', 'Do not use': 'ન આપવું', Home: 'હોમ', Recipes: 'રેસીપી', Products: 'પ્રોડક્ટ', 'Meal Ideas': 'મીલ આઈડિયા', Rankings: 'રેન્કિંગ', 'Scan a pack': 'પેક સ્કેન કરો', Search: 'શોધો', Check: 'તપાસો' },
 };
 const SCRIPT = { hi: /[ऀ-ॿ]/g, bn: /[ঀ-৿]/g, gu: /[઀-૿]/g };
 
 export function buildMessages(lang, keys) {
-  const name = LANGS[lang];
+  const name = UI_LANGS[lang];
   const glossary = Object.entries(GLOSSARY[lang]).map(([a, b]) => `${a} = ${b}`).join('; ');
   return [
-    { role: 'system', content: `You translate the text of a website for Indian parents from English into ${name}. The site scores recipes and packaged foods for children's health.
+    { role: 'system', content: `You translate the text of a website for ${AUDIENCE[lang] || 'parents'} from English into ${name}. The site scores recipes and packaged foods for children's health.
 Answer with a JSON array of strings only: one translation for each line given, in the same order, nothing else.
 Rules:
 - A marker {#} stands for a number: keep every {#} exactly, in a sensible place; do not add or remove any.
@@ -56,7 +62,10 @@ export function checkLine(lang, src, tgt) {
   if (tags(src) !== tags(tgt)) return 'markers changed';
   if (/<(?![\/a-z0-9]+_[a-z]+\/?>)[^>]*>/i.test(tgt)) return 'markup added';
   const letters = (src.match(/\p{L}/gu) || []).length;
-  if (letters >= 8) {
+  if (letters >= 8 && !SCRIPT[lang]) {
+    if (tgt.trim().toLowerCase() === src.trim().toLowerCase()) return 'not translated';
+    if (tgt.length > src.length * 3 + 40 || tgt.length < src.length * 0.3) return 'length is off';
+  } else if (letters >= 8) {
     const inScript = count(tgt, SCRIPT[lang]), tl = (tgt.match(/\p{L}/gu) || []).length;
     if (!inScript || inScript / Math.max(tl, 1) < 0.3) return 'not in the language';
     if (tgt.length > src.length * 5 + 40 || tgt.length < src.length * 0.2) return 'length is off';
@@ -85,7 +94,7 @@ export async function translateUiPending(env, { calls } = {}) {
   const day = new Date().toISOString().slice(0, 10);
   const used = (await env.DB.prepare('SELECT n FROM kp_ui_calls WHERE day = ?').bind(day).first())?.n || 0;
   let room = Math.min(calls, cap - used), done = 0, failed = 0, made = 0;
-  for (const lang of Object.keys(LANGS)) {
+  for (const lang of Object.keys(UI_LANGS)) {
     while (room > 0) {
       let { results } = await env.DB.prepare(
         `SELECT s.key FROM kp_ui_src s WHERE NOT EXISTS (SELECT 1 FROM kp_ui_i18n t WHERE t.key = s.key AND t.lang = ?)
@@ -142,7 +151,7 @@ export async function collectUi(env, strings) {
 
 // everything translated so far in one language: { key: translation }
 export async function uiMap(env, lang) {
-  if (!LANGS[lang]) return { map: {} };
+  if (!UI_LANGS[lang]) return { map: {} };
   const { results } = await env.DB.prepare('SELECT key, tgt FROM kp_ui_i18n WHERE lang = ?').bind(lang).all();
   const map = {}; for (const r of results) map[r.key] = r.tgt;
   return { lang, n: results.length, map };

@@ -1,17 +1,17 @@
 // Hindi, Bengali and Gujarati versions of the collection pages ("tangy lunchbox ideas for kids") and their index, plus the links between the languages.
 // The pages are the same pages, in the same order, with the same recipes and scores: only the words around them change (see i18n.cjs).
-const { LANGS, TEXT } = require('./i18n.cjs');
+const { LANGS, STATIC_LANGS, TEXT } = require('./i18n.cjs');
 
 const CODES = Object.keys(LANGS);
 
 // <link rel="alternate" hreflang> for a page that exists in English and in every language: rel is the path without the language, e.g. "ideas/tangy-recipes-for-toddlers" or "ideas"
-function alternates(SITE, rel) {
+function alternates(SITE, rel, codes = CODES) {
   const en = `${SITE}/${rel}`;
-  return [`<link rel="alternate" hreflang="en" href="${en}">`, ...CODES.map((c) => `<link rel="alternate" hreflang="${c}" href="${SITE}/${c}/${rel}">`), `<link rel="alternate" hreflang="x-default" href="${en}">`].join('\n');
+  return [`<link rel="alternate" hreflang="en" href="${en}">`, ...codes.map((c) => `<link rel="alternate" hreflang="${c}" href="${SITE}/${c}/${rel}">`), `<link rel="alternate" hreflang="x-default" href="${en}">`].join('\n');
 }
 // the little "English · हिन्दी · বাংলা · ગુજરાતી" line at the top of a page (the language you are on is plain text, not a link)
-function switcher(rel, current, label) {
-  const bits = [['en', 'English', `/${rel}`], ...CODES.map((c) => [c, LANGS[c].name, `/${c}/${rel}`])];
+function switcher(rel, current, label, codes = CODES) {
+  const bits = [['en', 'English', `/${rel}`], ...codes.map((c) => [c, STATIC_LANGS[c].name, `/${c}/${rel}`])];
   return `<p class="fine langs" lang="en">${label ? esc0(label) + ': ' : ''}${bits.map(([c, n, href]) => (c === current ? `<b>${n}</b>` : `<a href="${href}" hreflang="${c}">${n}</a>`)).join(' · ')}</p>`;
 }
 const esc0 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

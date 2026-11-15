@@ -137,4 +137,13 @@ const gu = {
   groups: { age: 'ઉંમર મુજબ', meal: 'ભોજન મુજબ', taste: 'સ્વાદ મુજબ' }, recipesCount: (n) => `${n} રેસીપી`, plan: 'અઠવાડિયાનું આયોજન',
 };
 
-module.exports = { LANGS, TEXT: { hi, bn, gu }, AGE_IDS, MEAL_IDS, TASTE_IDS };
+// Bahasa Indonesia and Bahasa Melayu: the static pages (Home, Products, Recipes, Scan, Meal Ideas, Age & Metrics and the long pages) and the apps. They do not have the
+// generated pages (rankings, recipes, packs) in these languages yet, so they are kept apart from LANGS, which every generated page is built for.
+// NOTE FOR REVIEW: the wording was written by an AI assistant and must be read by a native speaker (especially the Privacy Policy and the nutrition wording).
+const STATIC_ONLY = {
+  id: { code: 'id', html: 'id', name: 'Bahasa Indonesia' },
+  ms: { code: 'ms', html: 'ms', name: 'Bahasa Melayu' },
+};
+const STATIC_LANGS = { ...LANGS, ...STATIC_ONLY };
+
+module.exports = { LANGS, STATIC_ONLY, STATIC_LANGS, TEXT: { hi, bn, gu }, AGE_IDS, MEAL_IDS, TASTE_IDS };
