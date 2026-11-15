@@ -2,7 +2,7 @@
 // Each page is split into the units a person reads (a heading, a paragraph with its links and bold words, a button, a table cell). A unit is looked up in the translation
 // memory kept by the platform (see src/recipes/uitext.js); the inline tags inside a unit travel as numbered markers (<a1>...</a1>) so that a link stays a link.
 // A unit with no translation yet stays in English, and is listed so that it can be queued for translation (ui-seed.sql).
-const { LANGS } = require('./i18n.cjs');
+const { LANGS, STATIC_LANGS } = require('./i18n.cjs');
 const { alternates, switcher } = require('./build-i18n.cjs');
 
 const STATIC = ['/', '/age-metrics', '/meal-ideas', '/products', '/recipes', '/scan', '/why-we-do-this', '/built-with-parents', '/privacy', '/compare', '/best', '/brands', '/ideas'];
@@ -37,9 +37,9 @@ function tokenize(html) {
 // the policy of one page: which units are not words to translate (lists of recipe names, for example)
 const SKIP_INSIDE = { '/recipes': ['li'] };
 
-function bake(html, { map, rel, code, SITE, units, avail }) {
+function bake(html, { map, rel, code, SITE, units, avail, codes }) {
   const stats = { total: 0, done: 0 };
-  const L = LANGS[code];
+  const L = STATIC_LANGS[code];
   const toks = tokenize(html);
   const out = [];
   const stack = [];                          // the open tags (to know where we are)
@@ -126,17 +126,18 @@ function bake(html, { map, rel, code, SITE, units, avail }) {
   const url = `${SITE}/${code}${rel === '/' ? '/' : rel}`;
   html2 = html2.replace(/<link rel="canonical"[^>]*>\s*/i, '').replace(/<meta property="og:url"[^>]*>\s*/i, '').replace(/<\/head>/i, (m0) => `<link rel="canonical" href="${url}">\n<meta property="og:url" content="${url}">\n${m0}`);
   const relPath = rel === '/' ? '' : rel.replace(/^\//, '');
-  html2 = html2.replace(/<\/head>/i, (m0) => alternates(SITE, relPath) + '\n' + m0).replace(/<body\b[^>]*>/i, (m0) => m0 + '\n' + switcher(relPath, code));
   // links: a page that exists in the language points to it
   html2 = html2.replace(/(<(?:a|link|script|img|source|form)\b[^>]*?\s)(href|src|action)=("([^"]*)"|'([^']*)')/gi, (m0, pre, attr, q, d1, d2) => {
     const v = d1 != null ? d1 : d2;
     if (!v || /^(#|mailto:|tel:|javascript:|data:|https?:|\/\/)/i.test(v)) return m0;
     let u; try { u = new URL(v, SITE + '/'); } catch { return m0; }
     let p = u.pathname.replace(/\/index(\.html)?$/, '/').replace(/\.html$/, ''); if (p.length > 1) p = p.replace(/\/+$/, '');
-    const local = attr === 'href' && pre.startsWith('<a') && !/^\/(hi|bn|gu)\//.test(p) && ((avail ? avail.has(p) : STATIC.includes(p)) || FOLDER.test(p));
+    const local = attr === 'href' && pre.startsWith('<a') && !/^\/(hi|bn|gu|id|ms)\//.test(p) && ((avail ? avail.has(p) : STATIC.includes(p)) || (FOLDER.test(p) && !!LANGS[code]));
     const nv = (local ? '/' + code + (p === '/' ? '/' : p) : (v.startsWith('/') ? u.pathname : '/' + u.pathname.replace(/^\//, ''))) + u.search + u.hash;
     return `${pre}${attr}="${nv}"`;
   });
+  // the links between the languages go in last, so that the link rewriting above does not touch them (the English link must stay on the English page)
+  html2 = html2.replace(/<\/head>/i, (m0) => alternates(SITE, relPath, codes) + '\n' + m0).replace(/<body\b[^>]*>/i, (m0) => m0 + '\n' + switcher(relPath, code, undefined, codes));
   return { html: html2, total: stats.total, done: stats.done };
 }
 

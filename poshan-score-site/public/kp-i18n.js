@@ -6,17 +6,18 @@
    Nothing about the visitor is sent. */
 (function () {
   var API = 'https://kidposhan-platform.mailus-pixiedust.workers.dev';
-  var NAMES = { hi: 'हिन्दी', bn: 'বাংলা', gu: 'ગુજરાતી' };
+  var NAMES = { hi: 'हिन्दी', bn: 'বাংলা', gu: 'ગુજરાતી', id: 'Bahasa Indonesia', ms: 'Bahasa Melayu' };
+  var FULL = { hi: 1, bn: 1, gu: 1 };   // the languages that also have the generated pages (recipes, packs, rankings); Bahasa Indonesia and Bahasa Melayu have the static pages only
   // pages that exist in every language, and the folders that do
   var STATIC = ['/', '/age-metrics', '/meal-ideas', '/products', '/recipes', '/scan', '/why-we-do-this', '/built-with-parents', '/privacy', '/compare', '/best', '/brands', '/ideas'];
   var FOLDERS = /^\/(products|recipes|best|ideas|brands)\//;
   var lang = String(document.documentElement.lang || 'en').slice(0, 2);
   var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   if (local) API = '/px';
-  var bare = function (p) { p = String(p || '/').replace(/^\/(hi|bn|gu)(?=\/|$)/, '').replace(/\/index(\.html)?$/, '/').replace(/\.html$/, ''); if (p.length > 1) p = p.replace(/\/+$/, ''); return p || '/'; };
+  var bare = function (p) { p = String(p || '/').replace(/^\/(hi|bn|gu|id|ms)(?=\/|$)/, '').replace(/\/index(\.html)?$/, '/').replace(/\.html$/, ''); if (p.length > 1) p = p.replace(/\/+$/, ''); return p || '/'; };
   var here = bare(location.pathname);
   var avail = {};   // { hi: ['/', '/privacy', ...] }: the static pages that exist in each language (from /i18n-pages.json)
-  var hasLocal = function (p, l) { return FOLDERS.test(p) || ((avail[l || lang] || []).indexOf(p) >= 0); };
+  var hasLocal = function (p, l) { return (FULL[l || lang] && FOLDERS.test(p)) || ((avail[l || lang] || []).indexOf(p) >= 0); };
 
   /* ---------- English pages: the language line ---------- */
   var getAvail = function (then) { fetch(local ? '/i18n-pages.json' : '/i18n-pages.json').then(function (r) { return r.json(); }).then(function (d) { avail = d || {}; then(); }).catch(function () { /* no switcher, no rewriting */ }); };
@@ -84,7 +85,7 @@
   function link(a) {
     var h = a.getAttribute('href'); if (!h || /^(#|mailto:|tel:|javascript:)/i.test(h)) return;
     var u; try { u = new URL(h, location.href); } catch (e) { return; }
-    if (u.origin !== location.origin || /^\/(hi|bn|gu)(\/|$)/.test(u.pathname)) return;
+    if (u.origin !== location.origin || /^\/(hi|bn|gu|id|ms)(\/|$)/.test(u.pathname)) return;
     var p = bare(u.pathname); if (!hasLocal(p)) return;
     a.setAttribute('href', '/' + lang + (p === '/' ? '/' : p) + u.search + u.hash);
   }

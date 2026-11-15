@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Umur &amp; Metrik — Poshan Score</title>
+<meta name="description" content="Cara Poshan Score berfungsi: sepuluh semakan ya-atau-tidak, dikira bagi setiap kumpulan umur ICMR-NIN, dari 6 bulan hingga dewasa, daripada rujukan ICMR-NIN, WHO dan FSSAI. Setiap ambang dan sumber disenaraikan.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Poshan Score by KidPoshan">
+<meta property="og:title" content="Umur &amp;amp; Metrik — Poshan Score">
+<meta property="og:description" content="Cara Poshan Score berfungsi: sepuluh semakan ya-atau-tidak, dikira bagi setiap kumpulan umur ICMR-NIN, dari 6 bulan hingga dewasa, daripada rujukan ICMR-NIN, WHO dan FSSAI. Setiap ambang dan sumber disenaraikan.">
+<meta property="og:image" content="https://www.kidposhan.in/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Umur &amp;amp; Metrik — Poshan Score">
+<meta name="twitter:description" content="Cara Poshan Score berfungsi: sepuluh semakan ya-atau-tidak, dikira bagi setiap kumpulan umur ICMR-NIN, dari 6 bulan hingga dewasa, daripada rujukan ICMR-NIN, WHO dan FSSAI. Setiap ambang dan sumber disenaraikan.">
+<meta name="twitter:image" content="https://www.kidposhan.in/og-image.png">
+<style>
+  :root{
+    --bg:#FDFBF6;
+    --bg-alt:#F6F0E4;
+    --card:#FFFFFF;
+    --line:#E7DFCE;
+    --ink:#221A12;
+    --ink-dim:#6B5D4B;
+    --gold:#B5790A;
+    --gold-soft:#F6E4BC;
+    --green:#3F6B3C;
+    --green-soft:#E3EEDF;
+    --red:#A6402A;
+    --red-soft:#F5E1DB;
+    --brown:#4A3423;
+    --brown-soft:#EFE6DC;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --font-display:'Iowan Old Style','Palatino Linotype','Book Antiqua', Georgia, serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  img,svg{ max-width:100%; }
+
+  nav{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(253,251,246,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand-mark{ position:relative; width:20px; height:24px; flex-shrink:0; }
+  .brand-mark .tier{ position:absolute; left:0; right:0; height:6px; border-radius:3px; border:1px solid rgba(34,26,18,0.15); }
+  .brand-mark .tier:nth-child(1){ top:0; background:var(--green); }
+  .brand-mark .tier:nth-child(2){ top:6px; background:var(--gold); }
+  .brand-mark .tier:nth-child(3){ top:12px; background:var(--red); }
+  .brand-mark .tier:nth-child(4){ top:18px; background:var(--brown); }
+  .brand-name{ font-family:var(--font-display); font-size:18px; line-height:1.05; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-name b{ display:block; color:var(--gold); font-size:11px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; margin-top:2px; }
+  .nav-links{ display:none; gap:26px; font-size:14px; color:var(--ink-dim); }
+  .nav-links a{ text-decoration:none; transition:color .2s ease; position:relative; padding-bottom:2px; }
+  .nav-links a::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
+  .nav-links a:hover{ color:var(--gold); }
+  .nav-links a:hover::after{ transform:scaleX(1); }
+  @media(min-width:780px){ .nav-links{ display:flex; } }
+  .hamburger{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+  .hamburger svg{ width:18px; height:18px; color:var(--ink); }
+  @media(min-width:780px){ .hamburger{ display:none; } }
+
+  .mobile-menu{ display:none; flex-direction:column; padding:4px 20px 14px; background:var(--card); border-bottom:1px solid var(--line); }
+  .mobile-menu.open{ display:flex; }
+  .mobile-menu a{ padding:14px 6px; text-decoration:none; color:var(--ink); font-size:16px; border-bottom:1px solid var(--line); }
+  .mobile-menu a:last-child{ border-bottom:none; }
+  @media(min-width:780px){ .mobile-menu{ display:none !important; } }
+
+  .nav-cta{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:100px; text-decoration:none; white-space:nowrap; }
+
+  .hero{ max-width:820px; margin:0 auto; padding:52px 20px 10px; }
+  @media(min-width:900px){
+    .hero{ max-width:1080px; display:flex; align-items:center; gap:32px; padding:56px 40px 10px; }
+    .hero-text{ flex:1.15; }
+    .hero-visual{ flex:1; }
+  }
+
+  /* ---- package sorting scene ---- */
+  .hero-visual{ display:flex; flex-direction:column; gap:18px; margin-top:34px; }
+  @media(min-width:900px){ .hero-visual{ margin-top:0; } }
+  .sort-scene{ position:relative; height:150px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); overflow:hidden; padding:14px 10px 0; }
+  .sort-belt{ position:absolute; top:14px; left:10px; right:10px; height:2px; background:var(--line); }
+  .sort-belt::before, .sort-belt::after{ content:''; position:absolute; top:-2px; width:6px; height:6px; border-radius:50%; background:var(--line); }
+  .sort-belt::before{ left:0; }
+  .sort-belt::after{ right:0; }
+
+  .pkg{ position:absolute; top:8px; width:22px; height:26px; border-radius:5px 5px 3px 3px; opacity:0; }
+  .pkg::before{ content:''; position:absolute; top:3px; left:2px; right:2px; height:3px; background:rgba(255,255,255,0.55); border-radius:2px; }
+  .pkg.pkg-a{ left:14%; background:var(--green); animation:dropA 4.5s ease-in-out infinite; }
+  .pkg.pkg-b{ left:46%; background:var(--gold); animation:dropB 4.5s ease-in-out infinite; animation-delay:.5s; }
+  .pkg.pkg-c{ left:78%; background:var(--brown); animation:dropC 4.5s ease-in-out infinite; animation-delay:1s; }
+
+  @keyframes dropA{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(-22px,88px) rotate(-18deg); opacity:1; }
+    55%{ transform:translate(-22px,88px) rotate(-18deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropB{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(0,88px) rotate(10deg); opacity:1; }
+    55%{ transform:translate(0,88px) rotate(10deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+  @keyframes dropC{
+    0%{ opacity:0; transform:translate(0,0) rotate(0deg); }
+    8%{ opacity:1; }
+    45%{ transform:translate(18px,88px) rotate(-8deg); opacity:1; }
+    55%{ transform:translate(18px,88px) rotate(-8deg); opacity:0; }
+    100%{ opacity:0; }
+  }
+
+  .sort-bins{ position:absolute; left:10px; right:10px; bottom:0; display:flex; justify-content:space-between; }
+  .sort-bin{ width:30%; text-align:center; }
+  .sort-bin-shape{ height:34px; border-radius:6px 6px 3px 3px; margin-bottom:4px; opacity:0.18; }
+  .sort-bin.excellent .sort-bin-shape{ background:var(--green); }
+  .sort-bin.good .sort-bin-shape{ background:var(--gold); }
+  .sort-bin.avoid .sort-bin-shape{ background:var(--brown); }
+  .sort-bin-label{ font-family:var(--font-mono); font-size:9px; letter-spacing:0.03em; text-transform:uppercase; color:var(--ink-dim); }
+
+  @media (prefers-reduced-motion: reduce){ .pkg{ animation:none; opacity:0; } }
+
+  /* ---- kids playing sports scene ---- */
+  .sport-scene{ display:flex; justify-content:space-around; align-items:flex-end; height:110px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:8px 6px 0; }
+  .sport-figure{ width:70px; height:100px; }
+
+  /* football kid: kicking leg swings from the hip */
+  .kick-leg{ transform-box:view-box; transform-origin:28px 52px; animation:kickSwing 1.8s ease-in-out infinite; }
+  @keyframes kickSwing{ 0%,100%{ transform:rotate(0deg); } 35%{ transform:rotate(-38deg); } 55%{ transform:rotate(18deg); } 70%{ transform:rotate(0deg); } }
+  .football{ transform-box:view-box; transform-origin:52px 86px; animation:ballHop 1.8s ease-in-out infinite; }
+  @keyframes ballHop{ 0%,50%{ transform:translate(0,0) scale(1); } 58%{ transform:translate(10px,-6px) scale(1.05); } 70%{ transform:translate(18px,0) scale(1); } 100%{ transform:translate(0,0) scale(1); } }
+
+  /* cricket kid: bat arm swings from the shoulder */
+  .bat-arm{ transform-box:view-box; transform-origin:38px 28px; animation:batSwing 2.1s ease-in-out infinite; }
+  @keyframes batSwing{ 0%,100%{ transform:rotate(24deg); } 45%{ transform:rotate(-46deg); } 60%{ transform:rotate(-30deg); } }
+
+  /* muscle kid: bicep pulses, forearm curls */
+  .flex-arm{ transform-box:view-box; transform-origin:38px 28px; animation:flexCurl 1.6s ease-in-out infinite; }
+  @keyframes flexCurl{ 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(-22deg); } }
+  .bicep{ transform-box:view-box; transform-origin:40px 30px; animation:bicepPulse 1.6s ease-in-out infinite; }
+  @keyframes bicepPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.28); } }
+
+  .sport-bounce{ animation:idleBounce 2.4s ease-in-out infinite; }
+  .sport-figure:nth-child(1) .sport-bounce{ animation-delay:0s; }
+  .sport-figure:nth-child(2) .sport-bounce{ animation-delay:.3s; }
+  .sport-figure:nth-child(3) .sport-bounce{ animation-delay:.6s; }
+  @keyframes idleBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+
+  @media (prefers-reduced-motion: reduce){
+    .kick-leg, .football, .bat-arm, .flex-arm, .bicep, .sport-bounce{ animation:none !important; }
+  }
+
+  /* ---- flip card: front claims vs. back ingredient panel ---- */
+  .metrics-intro-row{ display:flex; flex-direction:column; gap:22px; margin-bottom:22px; }
+  @media(min-width:760px){ .metrics-intro-row{ flex-direction:row; align-items:center; gap:32px; } .metrics-intro-row .intro{ flex:1.3; margin-bottom:0 !important; } }
+
+  .flip-stage{ perspective:800px; width:132px; height:172px; flex-shrink:0; margin:0 auto; }
+  .flip-card{
+    position:relative; width:100%; height:100%; transform-style:preserve-3d;
+    animation:flipCard 5s ease-in-out infinite;
+  }
+  @keyframes flipCard{
+    0%, 40%{ transform:rotateY(0deg); }
+    50%, 90%{ transform:rotateY(180deg); }
+    100%{ transform:rotateY(360deg); }
+  }
+  .flip-face{
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:14px;
+    border:1.5px solid var(--line); box-shadow:0 10px 24px -14px rgba(74,52,35,0.3);
+    padding:14px 12px; display:flex; flex-direction:column;
+  }
+  .flip-front{ background:linear-gradient(160deg, var(--green-soft), var(--card)); align-items:center; justify-content:center; text-align:center; gap:8px; }
+  .flip-front .claim{ font-family:var(--font-display); font-size:14px; color:var(--green); line-height:1.3; }
+  .flip-front .badge-check{ width:30px; height:30px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .flip-back{ background:var(--card); transform:rotateY(180deg); justify-content:flex-start; gap:5px; }
+  .flip-back .panel-title{ font-family:var(--font-mono); font-size:8px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px; }
+  .flip-back .panel-line{ height:5px; border-radius:3px; background:var(--line); }
+  .flip-back .panel-line.hl{ background:var(--red-soft); }
+  .flip-back .panel-line.w40{ width:40%; } .flip-back .panel-line.w60{ width:60%; } .flip-back .panel-line.w80{ width:80%; }
+  .flip-back .panel-line.w50{ width:50%; } .flip-back .panel-line.w70{ width:70%; } .flip-back .panel-line.w90{ width:90%; }
+  @media (prefers-reduced-motion: reduce){ .flip-card{ animation:none; } }
+
+  /* ---- floating packages drifting behind the metrics list ---- */
+  #ten-metrics{ position:relative; overflow:hidden; }
+  .bg-pkg{ position:absolute; border-radius:6px 6px 3px 3px; opacity:0.10; animation:bgFloat 12s ease-in-out infinite; }
+  .bg-pkg::before{ content:''; position:absolute; top:14%; left:12%; right:12%; height:14%; background:rgba(255,255,255,0.6); border-radius:3px; }
+  .bg-pkg.bp1{ top:6%; left:4%; width:46px; height:58px; background:var(--green); animation-delay:0s; }
+  .bg-pkg.bp2{ top:32%; right:6%; width:38px; height:48px; background:var(--gold); animation-delay:2.5s; }
+  .bg-pkg.bp3{ bottom:14%; left:8%; width:34px; height:42px; background:var(--red); animation-delay:5s; }
+  .bg-pkg.bp4{ bottom:4%; right:10%; width:50px; height:62px; background:var(--brown); animation-delay:1.2s; }
+  @keyframes bgFloat{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-14px) rotate(6deg); } }
+  @media (prefers-reduced-motion: reduce){ .bg-pkg{ animation:none; } }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; margin-bottom:16px; position:relative; }
+  .eyebrow::before{ content:''; width:0; height:1px; background:var(--gold); display:inline-block; animation:drawLine .6s ease forwards .1s; }
+  @keyframes drawLine{ to{ width:16px; } }
+  h1{ font-family:var(--font-display); font-weight:400; letter-spacing:-0.01em; font-size:clamp(30px, 6.5vw, 44px); line-height:1.08; margin:0 0 16px; color:var(--ink); opacity:0; animation:fadeUp .6s ease forwards .15s; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+  .lede{ font-size:15.5px; line-height:1.68; color:var(--ink-dim); max-width:66ch; margin:0 0 8px; opacity:0; animation:fadeUp .6s ease forwards .3s; }
+  .lede b{ color:var(--ink); font-weight:600; }
+
+  .section{ max-width:820px; margin:0 auto; padding:34px 20px; }
+  .section-eyebrow{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:8px; }
+  .section h2{ font-family:var(--font-display); font-size:clamp(22px,4vw,28px); font-weight:400; margin:0 0 12px; color:var(--ink); }
+  .section p.intro{ font-size:14.5px; line-height:1.65; color:var(--ink-dim); max-width:68ch; margin:0 0 22px; }
+  .section p.intro b{ color:var(--ink); }
+
+  /* age tabs, popping off the white background */
+  .age-tabs{ position:relative; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; background:var(--bg-alt); border-radius:100px; padding:6px; width:fit-content; }
+  .age-tab{
+    position:relative; z-index:1; font-family:var(--font-mono); font-size:12.5px; letter-spacing:0.03em;
+    padding:9px 16px; border-radius:100px; border:none;
+    background:transparent; color:var(--ink-dim); cursor:pointer;
+    transition:color .2s ease, transform .15s ease;
+  }
+  .age-tab.active{ background:var(--card); color:var(--ink); font-weight:600; transform:scale(1.05); box-shadow:0 8px 18px -8px rgba(34,26,18,0.25); }
+  .age-tab:active{ transform:scale(0.96); }
+
+  .age-panel{ display:none; }
+  .age-panel.active{ display:block; animation:panelPop .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes panelPop{ from{ opacity:0; transform:translateY(10px) scale(0.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @media (prefers-reduced-motion: reduce){
+    .age-panel.active{ animation:none; }
+    .refcard{ opacity:1; transform:none; animation:none !important; }
+    .metric-row:hover .metric-badge{ transform:none; }
+  }
+
+  .refcard-grid{ display:grid; gap:12px; grid-template-columns:1fr 1fr; margin-bottom:8px; }
+  @media(min-width:600px){ .refcard-grid{ grid-template-columns:repeat(3,1fr); } }
+  .refcard{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px; transition:transform .2s ease, box-shadow .2s ease; opacity:0; transform:translateY(10px) scale(0.97); }
+  .age-panel.active .refcard{ animation:refcardPop .45s cubic-bezier(.2,.8,.2,1) forwards; }
+  .age-panel.active .refcard:nth-child(1){ animation-delay:.03s; }
+  .age-panel.active .refcard:nth-child(2){ animation-delay:.08s; }
+  .age-panel.active .refcard:nth-child(3){ animation-delay:.13s; }
+  .age-panel.active .refcard:nth-child(4){ animation-delay:.18s; }
+  .age-panel.active .refcard:nth-child(5){ animation-delay:.23s; }
+  .age-panel.active .refcard:nth-child(6){ animation-delay:.28s; }
+  @keyframes refcardPop{ to{ opacity:1; transform:translateY(0) scale(1); } }
+  .refcard:hover{ transform:translateY(-3px); box-shadow:0 14px 24px -14px rgba(74,52,35,0.25); }
+  .refcard .label{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+  .refcard .value{ font-family:var(--font-display); font-size:22px; color:var(--ink); }
+  .refcard .value small{ font-family:var(--font-body); font-size:12px; color:var(--ink-dim); }
+  .refcard .src{ font-size:10px; color:var(--ink-dim); margin-top:4px; }
+
+  /* metrics list */
+  .metric-row{
+    display:grid; grid-template-columns:auto 1fr; gap:16px;
+    padding:20px 0; border-bottom:1px solid var(--line);
+    opacity:0; transform:translateY(10px);
+  }
+  .metric-row.in-view{ animation:rowRise .5s ease forwards; }
+  .metric-row:last-child{ border-bottom:none; }
+  @keyframes rowRise{ to{ opacity:1; transform:translateY(0); } }
+  .metric-badge{
+    width:38px; height:38px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:16px; color:#fff;
+    transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .metric-row:hover .metric-badge{ transform:rotate(-6deg) scale(1.1); }
+  .metric-row h3{ font-family:var(--font-display); font-size:18px; font-weight:400; margin:0 0 4px; }
+  .metric-row .scaling{
+    display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.05em;
+    text-transform:uppercase; padding:3px 9px; border-radius:100px; margin-bottom:8px; margin-right:6px;
+  }
+  .scaling.byage{ background:var(--green-soft); color:var(--green); }
+  .scaling.fixed{ background:var(--brown-soft); color:var(--brown); }
+  .scaling.credit{ background:var(--gold-soft); color:var(--gold); }
+  .scaling.composite{ background:var(--red-soft); color:var(--red); }
+  .metric-row p{ font-size:13.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 8px; }
+  .metric-row .threshold{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink); background:var(--bg-alt); border:1px solid var(--line); padding:8px 12px; border-radius:8px; display:inline-block; }
+  .metric-row .cite{ font-size:11px; color:var(--ink-dim); margin-top:6px; }
+  .metric-row .cite a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  /* worked example */
+  .example{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius-lg); padding:24px; margin-top:6px; }
+  .example h3{ font-family:var(--font-display); font-size:19px; font-weight:400; margin:0 0 4px; }
+  .example .sub{ font-size:13px; color:var(--ink-dim); margin:0 0 18px; }
+  .example-grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media(min-width:600px){ .example-grid{ grid-template-columns:1fr 1fr 1fr 1fr; } }
+  .example-cell{ background:var(--bg-alt); border-radius:var(--radius-md); padding:14px; text-align:center; transition:transform .2s ease; }
+  .example-cell:hover{ transform:translateY(-3px); }
+  .example-cell .age{ font-family:var(--font-mono); font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
+  .example-cell .pct{ font-family:var(--font-display); font-size:26px; color:var(--ink); }
+  .example-cell.flag-high .pct{ color:var(--red); }
+  .example-cell.flag-mid .pct{ color:var(--gold); }
+  .example-cell .caption{ font-size:11px; color:var(--ink-dim); margin-top:4px; }
+
+  /* sources */
+  .sources-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; }
+  .sources-list li{ font-size:13px; line-height:1.6; color:var(--ink-dim); padding-left:22px; position:relative; }
+  .sources-list li::before{ content:'\2014'; position:absolute; left:0; color:var(--gold); }
+  .sources-list b{ color:var(--ink); }
+  .sources-list a{ color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold); }
+
+  .note{ max-width:820px; margin:20px auto 0; padding:16px 20px; font-size:12px; line-height:1.65; color:var(--ink-dim); border-top:1px solid var(--line); }
+  .note b{ color:var(--ink); }
+
+  footer{ text-align:center; padding:40px 20px 60px; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; color:var(--ink-dim); }
+  footer b{ color:var(--ink); }
+
+  .tiers{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:18px 0 8px; }
+  .tier-card{ border-radius:12px; padding:12px 12px 10px; border:1px solid var(--line); background:var(--card); }
+  .tier-card b{ display:block; font-family:var(--font-display); font-size:18px; }
+  .tier-card span{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); }
+  .tier-card.t-Good{ border-top:5px solid var(--green); }
+  .tier-card.t-OK{ border-top:5px solid #B5790A; } .tier-card.t-Do-not-use{ border-top:5px solid var(--red); }
+  @media(max-width:560px){ .tiers{ grid-template-columns:repeat(2,1fr); } }
+  .m2{ display:grid; grid-template-columns:44px 1fr; gap:14px; padding:18px 0; border-top:1px solid var(--line); }
+  .m2 .metric-badge{ width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--green); }
+  .m2 h3{ margin:0 0 2px; font-family:var(--font-display); font-weight:400; font-size:21px; }
+  .m2 .scaling{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); }
+  .m2 p{ margin:6px 0; font-size:14.5px; line-height:1.55; color:var(--ink-dim); }
+  .ruler10{ display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:3px; margin:10px 0 2px; }
+  .ruler10 .rc{ border-radius:6px; background:#EFEAD9; padding:6px 0 4px; text-align:center; font:700 13px/1 var(--font-body); color:#6B5D4B; }
+  .ruler10 .rc small{ display:block; margin-top:4px; font:500 9.5px/1.2 var(--font-body); color:#8C7A64; min-height:24px; }
+  .ruler10 .rc.lo{ background:#F2D6CD; } .ruler10 .rc.mid{ background:#F4E3B5; } .ruler10 .rc.hi{ background:#D3E6CC; }
+  .rsc{ display:flex; justify-content:space-between; font-size:11px; color:var(--ink-dim); }
+  .m2 .src{ font-size:12.5px; color:var(--ink-dim); margin-top:6px; }
+  @media(max-width:560px){ .m2{ grid-template-columns:1fr; } .ruler10 .rc small{ font-size:8.5px; } }
+@media(min-width:780px) and (max-width:1179px){.nav-links{display:none!important}.hamburger{display:flex!important}.mobile-menu.open{display:flex}}
+  @media(min-width:1180px){.nav-links{gap:22px}}
+  .nav-links a[aria-current="page"],.mobile-menu a[aria-current="page"]{color:var(--gold);font-weight:600}
+  @media(max-width:560px){.age-tab-bar{width:100%;max-width:100%;box-sizing:border-box;margin-left:0;margin-right:0}.age-tab{flex:1 1 0;min-width:0;padding:10px 4px;font-size:12px;text-align:center}}
+</style>
+<link rel="canonical" href="https://www.kidposhan.in/ms/age-metrics">
+<meta property="og:url" content="https://www.kidposhan.in/ms/age-metrics">
+<link rel="alternate" hreflang="en" href="https://www.kidposhan.in/age-metrics">
+<link rel="alternate" hreflang="hi" href="https://www.kidposhan.in/hi/age-metrics">
+<link rel="alternate" hreflang="bn" href="https://www.kidposhan.in/bn/age-metrics">
+<link rel="alternate" hreflang="gu" href="https://www.kidposhan.in/gu/age-metrics">
+<link rel="alternate" hreflang="id" href="https://www.kidposhan.in/id/age-metrics">
+<link rel="alternate" hreflang="ms" href="https://www.kidposhan.in/ms/age-metrics">
+<link rel="alternate" hreflang="x-default" href="https://www.kidposhan.in/age-metrics">
+</head>
+<body>
+<p class="fine langs" lang="en"><a href="/age-metrics" hreflang="en">English</a> · <a href="/hi/age-metrics" hreflang="hi">हिन्दी</a> · <a href="/bn/age-metrics" hreflang="bn">বাংলা</a> · <a href="/gu/age-metrics" hreflang="gu">ગુજરાતી</a> · <a href="/id/age-metrics" hreflang="id">Bahasa Indonesia</a> · <b>Bahasa Melayu</b></p>
+
+<nav>
+  <a class="brand" href="/ms/">
+    <div class="brand-mark"><div class="tier"></div><div class="tier"></div><div class="tier"></div><div class="tier"></div></div>
+    <div class="brand-name">Poshan Score<b>oleh Kidposhan</b></div>
+  </a>
+  <div class="nav-links">
+    <a href="/ms/">Laman Utama</a>
+    <a href="/ms/age-metrics#ten-metrics">Metodologi</a>
+    <a href="/ms/age-metrics" aria-current="page">Umur &amp; Metrik</a>
+    <a href="/ms/meal-ideas">Idea Hidangan</a>
+    <a href="/ms/recipes">Resipi</a>
+    <a href="/best.html">Kedudukan</a>
+    <a href="/ms/products">Produk</a>
+    <a href="/ms/scan">Imbas pek</a>
+    <a href="/ms/why-we-do-this">Mengapa Kami Melakukan Ini</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+    <a class="nav-cta" href="/ms/products">Lihat produk</a>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="/ms/">Laman Utama</a>
+    <a href="/ms/age-metrics#ten-metrics">Metodologi</a>
+    <a href="/ms/age-metrics" aria-current="page">Umur &amp; Metrik</a>
+    <a href="/ms/meal-ideas">Idea Hidangan</a>
+    <a href="/ms/recipes">Resipi</a>
+    <a href="/best.html">Kedudukan</a>
+    <a href="/ms/products">Produk</a>
+    <a href="/ms/scan">Imbas pek</a>
+    <a href="/ms/why-we-do-this">Mengapa Kami Melakukan Ini</a>
+  </div>
+
+<header class="hero">
+  <div class="hero-text">
+    <div class="eyebrow">Rubrik mengikut umur · Cara membacanya</div>
+    <h1>Sepuluh semakan ya-atau-tidak. Setiap satu yang lulus bernilai 10 mata.</h1>
+    <p class="lede">
+      Setiap produk dan setiap resipi mendapat <b>satu skor daripada 0 hingga 100</b>. Setiap satu daripada sepuluh semakan ialah <b>ya (1) atau tidak (0)</b> yang jelas, dan skornya ialah bilangan yang lulus didarab 10, jadi produk yang lulus semuanya mendapat tepat 100 dan yang tidak lulus satu pun mendapat 0. Enam daripadanya ialah nombor pada label, diukur sebagai bahagian daripada rujukan harian bagi kumpulan umur (dan, mulai 10 tahun, jantina dan jenis kerja): <b>gula tambahan, natrium, lemak tepu, lemak trans, serat dan protein</b>. Serat dan protein ialah metrik <b>kredit</b> (lebih banyak lebih baik); yang lain ialah metrik <b>risiko</b> (lebih sedikit lebih baik). Tiga lagi ialah semakan yang tidak berubah mengikut umur: <b>pengawet, bahan tambah tiruan dan integriti bahan asas</b>. Yang kesepuluh ialah <b>HFSS</b>, yang gagal jika semakan gula, natrium atau lemak tepu gagal. Produk yang gagal pada mana-mana satu semakan risiko ditahan pada <b>Sederhana</b>: skor masih menunjukkan bilangan sebenar, dengan lencana "dihadkan". Pek dan resipi diberi skor dengan cara yang sama, bagi setiap sajian yang realistik, supaya boleh dibandingkan. Kaedah yang sama digunakan di laman Produk dan Idea Hidangan. Setiap nombor di bawah dipetik, dan sumbernya disenaraikan di bahagian bawah laman ini.
+    </p>
+  </div>
+
+  <div class="hero-visual">
+    <!-- packages sorting into Good / OK / Do not use -->
+    <div class="sort-scene" aria-hidden="true">
+      <div class="sort-belt"></div>
+      <div class="pkg pkg-a"></div>
+      <div class="pkg pkg-b"></div>
+      <div class="pkg pkg-c"></div>
+      <div class="sort-bins">
+        <div class="sort-bin excellent"><div class="sort-bin-shape"></div><div class="sort-bin-label">Baik</div></div>
+        <div class="sort-bin good"><div class="sort-bin-shape"></div><div class="sort-bin-label">Sederhana</div></div>
+        <div class="sort-bin avoid"><div class="sort-bin-shape"></div><div class="sort-bin-label">Jangan diberi</div></div>
+      </div>
+    </div>
+
+    <!-- what good nutrition is for: kids playing -->
+    <div class="sport-scene" aria-hidden="true">
+      <!-- football kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#B5790A"/>
+          <g class="kick-leg">
+            <rect x="24" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          </g>
+          <rect x="32" y="52" width="8" height="30" rx="4" fill="#F6E4BC"/>
+          <rect x="14" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+          <rect x="38" y="30" width="8" height="20" rx="4" fill="#B5790A"/>
+        </g>
+        <circle class="football" cx="52" cy="86" r="6" fill="#3F6B3C"/>
+      </svg>
+
+      <!-- cricket kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#3F6B3C"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#3F6B3C"/>
+          <g class="bat-arm">
+            <rect x="34" y="28" width="8" height="18" rx="4" fill="#3F6B3C"/>
+            <rect x="40" y="8" width="7" height="34" rx="3" fill="#B5790A"/>
+          </g>
+        </g>
+      </svg>
+
+      <!-- muscle kid -->
+      <svg class="sport-figure" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="sport-bounce">
+          <circle cx="30" cy="18" r="10" fill="#4A3423"/>
+          <rect x="21" y="28" width="18" height="26" rx="7" fill="#A6402A"/>
+          <rect x="22" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="33" y="54" width="8" height="30" rx="4" fill="#221A12"/>
+          <rect x="14" y="30" width="8" height="18" rx="4" fill="#A6402A"/>
+          <g class="flex-arm">
+            <rect x="34" y="28" width="9" height="16" rx="4" fill="#A6402A"/>
+            <circle class="bicep" cx="40" cy="30" r="7" fill="#F6E4BC"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- AGE REFERENCE -->
+<section class="section" id="age-reference">
+  <div class="section-eyebrow">Langkah 1</div>
+  <h2>Pilih kumpulan umur</h2>
+  <p class="intro">
+    Kumpulan umur ialah yang digunakan jadual ICMR-NIN 2020: 1–3, 4–6 dan 7–9 tahun; budak lelaki dan perempuan pada 10–12, 13–15 dan 16–18; serta dewasa, lelaki dan wanita pada kerja ringan, sederhana atau berat. Di bawah 12 bulan kami menggunakan rujukan 1–3 tahun. Ketik satu kumpulan untuk melihat nombor rujukannya. Wanita hamil dan menyusu belum diberi skor.
+  </p>
+
+  <div class="age-tabs" id="ageTabs">
+    <button class="age-tab active" data-age="6-12m">6–12 bulan</button>
+    <button class="age-tab" data-age="1-3">1–3 tahun</button>
+    <button class="age-tab" data-age="4-6">4–6 tahun</button>
+    <button class="age-tab" data-age="7-9">7–9 tahun</button>
+    <button class="age-tab" data-age="10-12">10–12 tahun</button>
+    <button class="age-tab" data-age="13-15">13–15 tahun</button>
+    <button class="age-tab" data-age="16-18">16–18 tahun</button>
+    <button class="age-tab" data-age="adult">Dewasa</button>
+  </div>
+
+  <div class="age-panel active" data-age="6-12m">
+    <p class="intro" style="margin-bottom:12px">Di bawah 12 bulan tiada julat rujukan diterbitkan, jadi nombor rujukan <b>1–3 tahun</b> digunakan. Hanya makanan biasa untuk bayi diberi skor: produk dengan gula atau garam tambahan ditunjukkan sebagai “Bukan untuk di bawah 1”, bukan sebagai nombor.</p>
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Tenaga rujukan</div><div class="value">1,110 <small>kkal/hari</small></div><div class="src">Rujukan 1–3 tahun [1]</div></div>
+      <div class="refcard"><div class="label">Gula tambahan (ideal / had atas)</div><div class="value">14 / 28 <small>g/hari</small></div><div class="src">Garis panduan gula bebas WHO [2]</div></div>
+      <div class="refcard"><div class="label">Natrium</div><div class="value">~1,110 <small>mg/hari</small></div><div class="src">Had dewasa ICMR-NIN, diskalakan mengikut tenaga [4]</div></div>
+      <div class="refcard"><div class="label">Lemak tepu</div><div class="value">~12 <small>g/hari</small></div><div class="src">WHO &lt;10% tenaga [3]</div></div>
+      <div class="refcard"><div class="label">Serat</div><div class="value">15 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="1-3">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Tenaga rujukan</div><div class="value">1,110 <small>kkal/hari</small></div><div class="src">Rujukan pediatrik ICMR [1]</div></div>
+      <div class="refcard"><div class="label">Gula tambahan (ideal / had atas)</div><div class="value">14 / 28 <small>g/hari</small></div><div class="src">Garis panduan gula bebas WHO [2]</div></div>
+      <div class="refcard"><div class="label">Natrium</div><div class="value">~1,110 <small>mg/hari</small></div><div class="src">Had dewasa ICMR-NIN, diskalakan mengikut tenaga [4]</div></div>
+      <div class="refcard"><div class="label">Lemak tepu</div><div class="value">~12 <small>g/hari</small></div><div class="src">WHO &lt;10% tenaga [3]</div></div>
+      <div class="refcard"><div class="label">Serat</div><div class="value">15 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">12.5 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="4-6">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Tenaga rujukan</div><div class="value">1,360 <small>kkal/hari</small></div><div class="src">Rujukan pediatrik ICMR [1]</div></div>
+      <div class="refcard"><div class="label">Gula tambahan (ideal / had atas)</div><div class="value">17 / 34 <small>g/hari</small></div><div class="src">Garis panduan gula bebas WHO [2]</div></div>
+      <div class="refcard"><div class="label">Natrium</div><div class="value">~1,360 <small>mg/hari</small></div><div class="src">Had dewasa ICMR-NIN, diskalakan mengikut tenaga [4]</div></div>
+      <div class="refcard"><div class="label">Lemak tepu</div><div class="value">~15 <small>g/hari</small></div><div class="src">WHO &lt;10% tenaga [3]</div></div>
+      <div class="refcard"><div class="label">Serat</div><div class="value">20 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">16 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="7-9">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Tenaga rujukan</div><div class="value">1,700 <small>kkal/hari</small></div><div class="src">Rujukan pediatrik ICMR [1]</div></div>
+      <div class="refcard"><div class="label">Gula tambahan (ideal / had atas)</div><div class="value">21 / 43 <small>g/hari</small></div><div class="src">Garis panduan gula bebas WHO [2]</div></div>
+      <div class="refcard"><div class="label">Natrium</div><div class="value">~1,700 <small>mg/hari</small></div><div class="src">Had dewasa ICMR-NIN, diskalakan mengikut tenaga [4]</div></div>
+      <div class="refcard"><div class="label">Lemak tepu</div><div class="value">~19 <small>g/hari</small></div><div class="src">WHO &lt;10% tenaga [3]</div></div>
+      <div class="refcard"><div class="label">Serat</div><div class="value">26 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">23 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+  </div>
+  <div class="age-panel" data-age="10-12">
+    <div class="refcard-grid">
+      <div class="refcard"><div class="label">Tenaga rujukan</div><div class="value">2,140 <small>kkal/hari</small></div><div class="src">Rujukan pediatrik ICMR [1]</div></div>
+      <div class="refcard"><div class="label">Gula tambahan (ideal / had atas)</div><div class="value">27 / 54 <small>g/hari</small></div><div class="src">Garis panduan gula bebas WHO [2]</div></div>
+      <div class="refcard"><div class="label">Natrium</div><div class="value">~2,000 <small>mg/hari</small></div><div class="src">Had dewasa ICMR-NIN, diskalakan mengikut tenaga [4]</div></div>
+      <div class="refcard"><div class="label">Lemak tepu</div><div class="value">~24 <small>g/hari</small></div><div class="src">WHO &lt;10% tenaga [3]</div></div>
+      <div class="refcard"><div class="label">Serat</div><div class="value">31.5 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+      <div class="refcard"><div class="label">Protein</div><div class="value">32.5 <small>g/hari</small></div><div class="src">ICMR-NIN 2020 [1]</div></div>
+    </div>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Kumpulan</th><th>Tenaga kkal</th><th>Gula tambahan g (ideal / had atas)</th><th>Natrium mg</th><th>Lemak tepu g</th><th>Serat g</th><th>Protein g</th></tr></thead><tbody><tr><td>10–12 tahun</td><td>2,140</td><td>27 / 54</td><td>2,000</td><td>24</td><td>31.5</td><td>32.5</td></tr><tr><td>Budak lelaki 10–12 tahun</td><td>2,220</td><td>28 / 56</td><td>2,000</td><td>25</td><td>33</td><td>32</td></tr><tr><td>Budak perempuan 10–12 tahun</td><td>2,060</td><td>26 / 52</td><td>2,000</td><td>23</td><td>30</td><td>33</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Tenaga, protein dan serat ialah angka ICMR-NIN 2020 bagi setiap kumpulan (tenaga ialah anggaran keperluan NIN). Gula tambahan ialah 5% tenaga (had atas 10%) dan lemak tepu 10% tenaga (WHO). Natrium ialah had dewasa ICMR-NIN 2020 sebanyak 2,000 mg, diturunkan mengikut tenaga untuk kanak-kanak yang lebih kecil. Baris tanpa jantina ialah purata kedua-duanya.</p>
+  </div>
+  <div class="age-panel" data-age="13-15">
+    <p class="intro" style="margin-bottom:6px">Mulai 13 tahun jadual ICMR-NIN 2020 dibahagikan mengikut jantina. Di laman Produk dan Imbas, pilih budak lelaki atau perempuan untuk memberi skor kepada salah satunya; jika tidak memilih kedua-duanya, purata digunakan.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Kumpulan</th><th>Tenaga kkal</th><th>Gula tambahan g (ideal / had atas)</th><th>Natrium mg</th><th>Lemak tepu g</th><th>Serat g</th><th>Protein g</th></tr></thead><tbody><tr><td>13–15 tahun</td><td>2,630</td><td>33 / 66</td><td>2,000</td><td>29</td><td>39.5</td><td>44</td></tr><tr><td>Budak lelaki 13–15 tahun</td><td>2,860</td><td>36 / 72</td><td>2,000</td><td>32</td><td>43</td><td>45</td></tr><tr><td>Budak perempuan 13–15 tahun</td><td>2,400</td><td>30 / 60</td><td>2,000</td><td>27</td><td>36</td><td>43</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Tenaga, protein dan serat ialah angka ICMR-NIN 2020 bagi setiap kumpulan (tenaga ialah anggaran keperluan NIN). Gula tambahan ialah 5% tenaga (had atas 10%) dan lemak tepu 10% tenaga (WHO). Natrium ialah had dewasa ICMR-NIN 2020 sebanyak 2,000 mg, diturunkan mengikut tenaga untuk kanak-kanak yang lebih kecil. Baris tanpa jantina ialah purata kedua-duanya.</p>
+  </div>
+  <div class="age-panel" data-age="16-18">
+    <p class="intro" style="margin-bottom:6px">ICMR-NIN 2020 menyenaraikan umur 16–18 tahun bagi budak lelaki dan perempuan. Pilih budak lelaki atau perempuan di laman Produk dan Imbas.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Kumpulan</th><th>Tenaga kkal</th><th>Gula tambahan g (ideal / had atas)</th><th>Natrium mg</th><th>Lemak tepu g</th><th>Serat g</th><th>Protein g</th></tr></thead><tbody><tr><td>16–18 tahun</td><td>2,910</td><td>36 / 73</td><td>2,000</td><td>32</td><td>44</td><td>50.5</td></tr><tr><td>Budak lelaki 16–18 tahun</td><td>3,320</td><td>42 / 83</td><td>2,000</td><td>37</td><td>50</td><td>55</td></tr><tr><td>Budak perempuan 16–18 tahun</td><td>2,500</td><td>31 / 63</td><td>2,000</td><td>28</td><td>38</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Tenaga, protein dan serat ialah angka ICMR-NIN 2020 bagi setiap kumpulan (tenaga ialah anggaran keperluan NIN). Gula tambahan ialah 5% tenaga (had atas 10%) dan lemak tepu 10% tenaga (WHO). Natrium ialah had dewasa ICMR-NIN 2020 sebanyak 2,000 mg, diturunkan mengikut tenaga untuk kanak-kanak yang lebih kecil. Baris tanpa jantina ialah purata kedua-duanya.</p>
+  </div>
+  <div class="age-panel" data-age="adult">
+    <p class="intro" style="margin-bottom:6px">Bagi dewasa ICMR-NIN 2020 memberi lelaki dan wanita secara berasingan, masing-masing pada kerja ringan, sederhana dan berat. Pilih lelaki atau wanita, dan jenis kerja, di laman Produk dan Imbas; jika tidak memilih kedua-duanya, purata lelaki dan wanita pada kerja ringan digunakan. Wanita hamil dan menyusu belum diberi skor.</p>
+    <div style="overflow-x:auto;margin-top:14px"><table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid var(--line,#ddd)"><th>Kumpulan</th><th>Tenaga kkal</th><th>Gula tambahan g (ideal / had atas)</th><th>Natrium mg</th><th>Lemak tepu g</th><th>Serat g</th><th>Protein g</th></tr></thead><tbody><tr><td>Dewasa</td><td>1,885</td><td>24 / 47</td><td>2,000</td><td>21</td><td>27.5</td><td>50</td></tr><tr><td>Lelaki, kerja ringan</td><td>2,110</td><td>26 / 53</td><td>2,000</td><td>23</td><td>30</td><td>54</td></tr><tr><td>Lelaki, kerja sederhana</td><td>2,710</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>54</td></tr><tr><td>Lelaki, kerja berat</td><td>3,470</td><td>43 / 87</td><td>2,000</td><td>39</td><td>50</td><td>54</td></tr><tr><td>Wanita, kerja ringan</td><td>1,660</td><td>21 / 42</td><td>2,000</td><td>18</td><td>25</td><td>46</td></tr><tr><td>Wanita, kerja sederhana</td><td>2,130</td><td>27 / 53</td><td>2,000</td><td>24</td><td>30</td><td>46</td></tr><tr><td>Wanita, kerja berat</td><td>2,720</td><td>34 / 68</td><td>2,000</td><td>30</td><td>40</td><td>46</td></tr></tbody></table></div>
+    <p class="intro" style="margin-top:10px">Tenaga, protein dan serat ialah angka ICMR-NIN 2020 bagi setiap kumpulan (tenaga ialah anggaran keperluan NIN). Gula tambahan ialah 5% tenaga (had atas 10%) dan lemak tepu 10% tenaga (WHO). Natrium ialah had dewasa ICMR-NIN 2020 sebanyak 2,000 mg, diturunkan mengikut tenaga untuk kanak-kanak yang lebih kecil. Baris tanpa jantina ialah purata kedua-duanya.</p>
+  </div>
+</section>
+
+<!-- TEN METRICS -->
+<section class="section" id="ten-metrics" style="background:var(--bg-alt); border-radius:var(--radius-lg);">
+  <div class="bg-pkg bp1" aria-hidden="true"></div>
+  <div class="bg-pkg bp2" aria-hidden="true"></div>
+  <div class="bg-pkg bp3" aria-hidden="true"></div>
+  <div class="bg-pkg bp4" aria-hidden="true"></div>
+
+  <div class="section-eyebrow">Langkah 2</div>
+  <h2>Sepuluh semakan, masing-masing ya atau tidak</h2>
+
+  <div class="metrics-intro-row">
+    <p class="intro">
+      Setiap semakan di bawah menunjukkan dengan tepat apa yang mendapat ya dan apa yang mendapat tidak. Kira bilangan ya dan darabkan dengan 10 untuk mendapat skor daripada 0 hingga 100. Inilah sebabnya kami tidak mempercayai bahagian hadapan pek: lihat apa yang dicetak di sana berbanding apa yang sebenarnya ada di belakang.
+    </p>
+    <div class="flip-stage" aria-hidden="true">
+      <div class="flip-card">
+        <div class="flip-face flip-front">
+          <div class="badge-check">✓</div>
+          <div class="claim">"Tanpa<br>Bahan Pengawet"</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="panel-title">Bahan-bahan</div>
+          <div class="panel-line w90"></div>
+          <div class="panel-line w70"></div>
+          <div class="panel-line hl w50"></div>
+          <div class="panel-line w80"></div>
+          <div class="panel-line w60"></div>
+          <div class="panel-line hl w40"></div>
+          <div class="panel-line w70"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tiers" class="tiers" aria-live="polite"></div>
+  <div id="metricList" aria-live="polite"><p class="intro">Memuatkan kaedah…</p></div>
+</section>
+
+<!-- WORKED EXAMPLE -->
+<section class="section" id="worked-example">
+  <div class="section-eyebrow">Langkah 3</div>
+  <h2>Mengapa umur mengubah jawapan: contoh sebenar</h2>
+  <p class="intro" id="exIntro">Memuatkan contoh…</p>
+  <div class="example">
+    <h3 id="exTitle">Natrium dalam satu sajian</h3>
+    <p class="sub">Jumlah natrium dikekalkan. Hanya rujukan harian kumpulan umur yang berubah.</p>
+    <div class="example-grid" id="exGrid"></div>
+  </div>
+  <p class="intro" style="margin-top:18px;">
+    Label yang sama boleh lulus pada satu umur dan gagal pada umur lain, jadi skor daripada 100 juga berubah. Pilih kumpulan umur di <a href="/ms/products">laman Produk</a> dan seluruh katalog diberi skor semula untuk umur itu.
+  </p>
+</section>
+
+<!-- SOURCES -->
+<section class="section" id="sources">
+  <div class="section-eyebrow">Rujukan</div>
+  <h2>Setiap nombor di laman ini, lengkap dengan sumbernya</h2>
+  <ol class="sources-list">
+    <li><b>[1] ICMR-NIN (National Institute of Nutrition), "Nutrient Requirements for Indians: Recommended Dietary Allowances and Estimated Average Requirements," 2020.</b> Sumber bagi keperluan tenaga, RDA protein dan RDA serat makanan bagi setiap kumpulan di laman ini: kanak-kanak 1–3, 4–6 dan 7–9; budak lelaki dan perempuan 10–12, 13–15 dan 16–18; lelaki dan wanita pada kerja ringan, sederhana dan berat. Ia juga memberi had natrium dewasa 2,000 mg sehari (5 g garam), yang diambilnya daripada WHO (2012).</li>
+    <li><b>[2] WHO, "Guideline: Sugars intake for adults and children," 2015.</b> Gula bebas kurang daripada 10% tenaga, dengan manfaat tambahan di bawah 5%. Kami menggunakan 5% daripada tenaga setiap kumpulan sebagai ideal harian dan 10% sebagai had atas, ditukar kepada gram pada 4 kkal/g.</li>
+    <li><b>[3] Panduan WHO tentang lemak tepu</b> (garis panduan 2023 tentang pengambilan asid lemak tepu dan trans, serta perundingan FAO/WHO tentang lemak). Lemak tepu kurang daripada 10% tenaga, ditukar kepada gram pada 9 kkal/g.</li>
+    <li><b>[4] WHO, "Guideline: Sodium intake for adults and children," 2012.</b> Bagi kanak-kanak had dewasa diturunkan selaras dengan keperluan tenaga mereka yang lebih rendah. ICMR-NIN 2020 tidak memberi angka kanak-kanak, jadi kami menggunakan peraturan itu sendiri: had dewasa 2,000 mg diskalakan mengikut tenaga setiap kumpulan, kira-kira 1 mg setiap kkal, tidak pernah melebihi 2,000 mg. Had kanak-kanak ini ialah pengiraan kami, bukan angka yang diterbitkan.</li>
+    <li><b>[5] FSSAI, Food Safety and Standards (Prohibition and Restrictions on Sales) Regulations.</b> Lemak trans dihadkan kepada ≤2% daripada jumlah minyak dan lemak dalam sebarang produk makanan, semua umur, semua kategori.</li>
+    <li><b>[6] FSSAI, Food Safety and Standards (Food Products Standards and Food Additives) Regulations, 2011.</b> Mengawal pengawet yang dibenarkan (Kelas II) dan bahan tambah (pewarna, penguat perisa) mengikut nombor INS.</li>
+    <li><b>[7] Afidavit pematuhan FSSAI, Mahkamah Agung India, W.P.(C) No. 437/2024 — 3S and Our Health Society vs Union of India, difailkan 29 Ogos 2026.</b> Mencadangkan amaran heksagon merah di hadapan pek untuk makanan tinggi lemak tepu tambahan, gula tambahan dan/atau garam (HFSS), dengan ambang yang diambil daripada <i>Dietary Guidelines for Indians, 2024</i> (ICMR-NIN). Ini ialah prosiding yang masih berjalan, bukan peraturan yang telah diwartakan.</li>
+    <li><b>[8] Saiz sajian.</b> Sajian yang dicetak pada pek. Jika pek tidak mencetaknya, jumlah rujukan bagi jenis makanan itu digunakan, diambil daripada "reference amounts customarily consumed" US FDA (21 CFR 101.12) jika ada yang sesuai, dan anggaran kami sendiri jika tiada.</li>
+  </ol>
+</section>
+
+<p class="note">
+  <b>Apa yang petikan dan apa yang pertimbangan kami sendiri:</b> rujukan harian di sebalik semakan 1, 2, 3, 5 dan 6 datang daripada [1] hingga [4], kecuali had natrium kanak-kanak, iaitu penskalaan kami terhadap [1] (lihat [4]). Semakan 4, 7 dan 8 menguji senarai bahan terhadap peraturan FSSAI [5] dan [6]. Semakan 10 menyerupai idea tinggi-lemak-gula-atau-garam dalam [7], tetapi peraturannya sendiri ialah milik kami. Bahagian ini ialah pilihan kami sendiri, digunakan dengan cara yang sama setiap kali: garis yang tidak boleh dilepasi satu sajian (30% daripada keperluan sehari, 15% untuk snek, manisan dan minuman manis) untuk lulus gula, natrium dan lemak tepu; 15% daripada keperluan sehari yang mesti diberi satu sajian untuk lulus serat dan protein; semakan bahan asas (9); makanan mana yang dikira snek; dan menahan pek pada Sederhana apabila satu semakan risiko gagal. Garis 30% juga ialah garis yang digunakan label lampu isyarat UK untuk satu hidangan. Di bawah 12 bulan tiada julat rujukan diterbitkan, jadi rujukan umur 1 hingga 3 tahun digunakan. Wanita hamil dan menyusu serta warga emas belum diberi skor.
+</p>
+
+<footer>
+  Dipadankan dengan <b>ICMR-NIN 2020</b>, panduan <b>WHO</b> dan peraturan <b>FSSAI</b> · Poshan Score ialah penilaian bebas, bukan pensijilan
+</footer>
+
+<script>
+(async function(){
+  const API='https://kidposhan-platform.mailus-pixiedust.workers.dev';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let d; try{ const r=await fetch(API+'/api/kp/score-method'); if(!r.ok) throw 0; d=await r.json() }
+  catch(e){ document.getElementById('metricList').innerHTML='<p class="intro">The method could not be loaded just now. Please refresh the page.</p>'; return }
+  document.getElementById('tiers').innerHTML=d.tiers.map(t=>'<div class="tier-card t-'+esc(t.name).replace(/ /g,'-')+'"><b>'+esc(t.name)+'</b><span>'+t.min+' to '+t.max+' out of 100</span></div>').join('');
+  const kind={risk:'Risk metric: less is better',credit:'Credit metric: more is better',check:'Check: the same at every age',composite:'Composite: worst of metrics 1, 2 and 3'};
+  document.getElementById('metricList').innerHTML=d.metrics.map(m=>{
+    const by={}; m.steps.forEach(s=>{ if(typeof s.score==='number') by[s.score]=s.rule });
+    let cells=''; [[1,'Yes','hi'],[0,'No','lo']].forEach(function(c){ cells+='<div class="rc '+c[2]+'">'+c[1]+'<small>'+(by[c[0]]?esc(by[c[0]]):'')+'</small></div>' });
+    const note=m.steps.length&&typeof m.steps[0].score!=='number'?'<p><b>'+esc(m.steps[0].score)+':</b> '+esc(m.steps[0].rule)+'</p>':'';
+    return '<div class="m2"><div class="metric-badge">'+m.n+'</div><div><h3>'+esc(m.name)+'</h3><span class="scaling">'+esc(kind[m.type]||'')+'</span><p>'+esc(m.measure)+'</p>'+note+'<div class="ruler10" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="img" aria-label="Yes or no for '+esc(m.name)+'">'+cells+'</div><div class="rsc"><span>No = 0 points</span><span>Yes = 10 points</span></div><div class="src">Source: '+esc(m.source)+'</div></div></div>'
+  }).join('')+'<p class="intro" style="margin-top:8px"><b>'+esc(d.cap.because.charAt(0).toUpperCase()+d.cap.because.slice(1))+' '+esc(d.cap.effect)+'.</b> '+esc(d.bases.serving)+'</p>';
+  const ex=d.sodium_example;
+  document.getElementById('exIntro').textContent=ex.mg+' mg of sodium in '+ex.what+'. Here is what that serving costs against each age band\'s daily sodium reference, and whether it passes the sodium check:';
+  document.getElementById('exTitle').textContent=ex.mg+' mg sodium, '+ex.what;
+  document.getElementById('exGrid').innerHTML=ex.by_age.map(a=>'<div class="example-cell '+(a.score===0?'flag-high':'')+'"><div class="age">'+esc(a.label)+'</div><div class="pct">'+a.share+'%</div><div class="caption">of daily sodium reference<br><b>Sodium check: '+(a.score?'Yes, passes':'No, fails')+'</b></div></div>').join('');
+})();
+</script>
+
+<script>
+  const tabs = document.querySelectorAll('.age-tab');
+  const panels = document.querySelectorAll('.age-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const age = tab.getAttribute('data-age');
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.getAttribute('data-age') === age));
+    });
+  });
+
+  // staggered reveal for the metric rows as they scroll into view
+  const rowObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('in-view'), i * 60);
+        rowObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.metric-row').forEach(row => rowObserver.observe(row));
+
+  // (the worked example is drawn by the loader above)
+</script>
+
+<script>
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  const isOpen = menu.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.querySelector('.hamburger');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+  menu.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.remove('open'));
+});
+</script>
+<script src="/kp-meter.js" defer></script>
+<script src="/kp-visits.js" defer></script>
+<script src="/kp-search.js" defer></script>
+<script src="/kp-i18n.js" defer></script>
+</body>
+</html>
