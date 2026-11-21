@@ -160,7 +160,8 @@ export async function siteStats(env) {
 
 // "From various cooks and cookbooks": one good recipe from each of several different creators, so the home page shows the range of
 // people the recipes come from. Only real meals that score 70 or more for the age (and are not capped); a random cook and dish each time.
-export async function cooksShelf(env, { limit = 8, age = null, occasion = null, prefs = [], rng = Math.random } = {}) {
+// vid: the random id the visitor's browser keeps. What this browser was shown before is remembered, and a repeat visit gets recipes it has not seen (the least recently seen ones once everything has been shown).
+export async function cooksShelf(env, { limit = 8, age = null, occasion = null, prefs = [], rng = Math.random, vid = null } = {}) {
   const band = bandForMonths(Number.isFinite(age) ? age : 60);
   const scoreE = bandScoreSql(band.id), capE = capSqlFor(band.id);
   const DIETS_OF = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'] };
@@ -179,12 +180,24 @@ export async function cooksShelf(env, { limit = 8, age = null, occasion = null, 
     if (!byCook.has(cook)) byCook.set(cook, []);
     byCook.get(cook).push(r);
   }
-  const cooks = [...byCook.keys()].sort(() => rng() - 0.5).slice(0, limit);
+  const combo = ['home-cooks', Number.isFinite(age) ? age : 60, occasion || '', [...prefs].sort().join('+')].join('|');
+  const seen = new Map();
+  if (vid) for (const r of (await env.DB.prepare('SELECT recipe_id, last_at FROM kp_seen WHERE vid = ? AND combo = ?').bind(vid, combo).all()).results) seen.set(r.recipe_id, r.last_at);
+  // each cook offers a few of their best recipes; a recipe this browser has not seen comes first, otherwise the one seen longest ago
+  const shuffle = (a) => a.map((x) => [rng(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
+  const offer = new Map();
+  for (const [cook, list] of byCook) {
+    const cand = list.slice(0, 8), fresh = cand.filter((r) => !seen.has(r.id));
+    offer.set(cook, fresh.length ? { r: shuffle(fresh)[0], fresh: true } : { r: cand.slice().sort((x, y) => seen.get(x.id) - seen.get(y.id))[0], fresh: false });
+  }
+  const order = [...shuffle([...offer.keys()].filter((c) => offer.get(c).fresh)), ...shuffle([...offer.keys()].filter((c) => !offer.get(c).fresh)).sort((a, b) => seen.get(offer.get(a).r.id) - seen.get(offer.get(b).r.id))].slice(0, limit);
+  const picked = order.map((cook) => ({ cook, r: offer.get(cook).r }));
+  if (vid && picked.length) {
+    const t = Math.floor(Date.now() / 1000), up = env.DB.prepare('INSERT INTO kp_seen (vid, combo, recipe_id, times, last_at) VALUES (?,?,?,1,?) ON CONFLICT(vid, combo, recipe_id) DO UPDATE SET times = times + 1, last_at = excluded.last_at');
+    await env.DB.batch(picked.map((p) => up.bind(vid, combo, p.r.id, t)));
+  }
   return {
-    cooks: cooks.map((cook) => {
-      const best = byCook.get(cook).slice(0, 3), r = best[Math.floor(rng() * best.length)];
-      return { cook, id: r.id, name: r.name, image_url: r.image_url, total_minutes: r.total_minutes, score: r.score, capped: !!r.capped };
-    }),
+    cooks: picked.map(({ cook, r }) => ({ cook, id: r.id, name: r.name, image_url: r.image_url, total_minutes: r.total_minutes, score: r.score, capped: !!r.capped })),
     count_cooks: byCook.size,
   };
 }

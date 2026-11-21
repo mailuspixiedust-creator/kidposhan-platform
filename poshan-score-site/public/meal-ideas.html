@@ -1278,7 +1278,17 @@ function route(){const m=location.hash.match(/^#\/r\/(\d+)/); if(m) renderRecipe
 window.addEventListener('hashchange',()=>{route();if(!location.hash.startsWith('#/r/'))window.scrollTo(0,0)});
 window.addEventListener('storage',refreshSavedCount);
 syncPull();
+// Coming back to the page (a reload, or a tab brought back) draws a new set for the same choices: the server skips what this browser was shown last time.
+// Going back from a recipe does not reload the page, so the list stays as it was.
+async function landRefresh(){
+  if(!LIVE||!S.results||S.editing||!(S.age.length&&S.occ.length&&S.season.length&&S.pref.length)||/^#\/(r\/|saved)/.test(location.hash)) return;
+  try{const q={age:S.age,occ:S.occ,season:S.season,pref:S.pref,fit:S.fit};
+    const [main,asia,europe]=await Promise.all([search(q),searchWorld(q,'asia'),searchWorld(q,'europe')]);
+    if(!main.length||/^#\/(r\/|saved)/.test(location.hash)||S.editing) return;
+    S.results=main;S.more={asia,europe};persist();renderMenu()}catch(e){/* keep what is on screen */}
+}
 route();
+landRefresh();
 </script>
 <script src="/kp-visits.js" defer></script>
 <script src="/kp-search.js" defer></script>

@@ -1194,6 +1194,18 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(['Aunty Asha', 'Chef Ravi', 'The Millet Table'].every((c) => names.includes(c)) && new Set(names).size === names.length, 'The shelf has one recipe from each of several different cooks, credited by the creator\'s name only: ' + names.join(', '));
   const http = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
   ok(http.status === 200 && Array.isArray((await http.json()).cooks), 'The home page can ask for the cooks shelf');
+  // a browser that comes back is shown other recipes: three visits, three different dishes from each cook, and the one seen longest ago when all have been shown
+  const vidA = 'abcdef0123456789abcdef01', mine = ['Aunty Asha', 'Chef Ravi', 'The Millet Table'], visit = async () => (await SRX.cooksShelf(env, { limit: 8, age: 60, vid: vidA })).cooks.filter((c) => mine.includes(c.cook)).map((c) => c.id);
+  const v1 = await visit(), v2 = await visit(), v3 = await visit();
+  // the visits were made within the same second: space them out as real visits would be
+  [[v1, 300], [v2, 200], [v3, 100]].forEach(([ids, ago]) => db.prepare('UPDATE kp_seen SET last_at = ? WHERE vid = ? AND recipe_id IN (' + ids.join(',') + ')').run(Math.floor(Date.now() / 1000) - ago, vidA));
+  const v4 = await visit();
+  ok(v1.length === 3 && !v2.some((x) => v1.includes(x)) && !v3.some((x) => v1.includes(x) || v2.includes(x)), 'Coming back to the home page shows recipes this browser has not seen: ' + JSON.stringify([v1, v2, v3]));
+  ok(v4.slice().sort().join() === v1.slice().sort().join(), 'When every recipe has been shown, the ones seen longest ago come back first');
+  const other = (await SRX.cooksShelf(env, { limit: 8, age: 60, vid: 'zzzzzz0123456789zzzzzz01' })).cooks.filter((c) => mine.includes(c.cook)).map((c) => c.id);
+  ok(other.length === 3 && !other.every((x) => v1.includes(x) && v2.includes(x)), 'Another browser is not affected by what the first was shown');
+  const httpV = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60&vid=' + vidA, { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  ok(httpV.headers.get('cache-control') === 'private, no-store', 'A visitor\'s own draw is not cached');
 }
 
 

@@ -152,8 +152,10 @@ export async function routeRecipes(request, env, ctx) {
   if (request.method === 'GET' && path === '/api/kp/cooks') {
     const ageQ = parseInt(url.searchParams.get('age_months'), 10);
     const occ = url.searchParams.get('occasion'), prefs = (url.searchParams.get('pref') || '').split(',').filter((p) => ['veg', 'jain', 'nonveg'].includes(p));
-    const out = await cooksShelf(env, { age: Number.isFinite(ageQ) && ageQ >= 12 && ageQ <= 144 ? ageQ : null, limit: Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 8, 1), 12), occasion: ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'].includes(occ) ? occ : null, prefs });
-    return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' } }));
+    const vidQ = String(url.searchParams.get('vid') || ''), vid = /^[A-Za-z0-9]{16,40}$/.test(vidQ) ? vidQ : null;
+    const out = await cooksShelf(env, { age: Number.isFinite(ageQ) && ageQ >= 12 && ageQ <= 144 ? ageQ : null, limit: Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 8, 1), 12), occasion: ['breakfast', 'lunchbox', 'lunch', 'snack_4pm', 'dinner'].includes(occ) ? occ : null, prefs, vid });
+    // a visitor's own draw is never cached: coming back shows other recipes
+    return withCors(request, new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': vid ? 'private, no-store' : 'public, max-age=60' } }));
   }
   // The landing page's numbers
   if (request.method === 'GET' && path === '/api/kp/stats') {
