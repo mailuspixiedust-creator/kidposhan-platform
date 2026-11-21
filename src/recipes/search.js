@@ -2,7 +2,7 @@
 // Every word must appear in the name (a product's brand and kind of food count too). Recipes need a score and a cooking time, like the menus.
 
 import { listProducts, AGE_BANDS, ageIdForMonths, resolveAge } from './products.js';
-import { bandForMonths } from './score2.js';
+import { bandForMonths, youngestInBand } from './score2.js';
 import { bandScoreSql, capSqlFor } from './score.js';
 import { isPrepRecipe } from './api.js';
 import { creditName, isRealMeal } from './clean.js';
@@ -27,6 +27,9 @@ const ALT = {
   kellogs: ['kellogg'], kelloggs: ['kellogg'], kellog: ['kellogg'], kellogg: ['kellogg'], bornvita: ['bournvita'], bournvita: ['bournvita', 'bornvita'],
   chawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyavanprash: ['chyawanprash', 'chyawanprakash'],
   chavanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprakash: ['chyawanprash', 'chyawanprakash'],
+  // dishes: the spellings and names parents use for the same food
+  parota: ['parotta', 'porotta', 'paratha'], parotta: ['parota', 'porotta'], porotta: ['parotta', 'parota'], parathe: ['paratha', 'parathas'], parathas: ['paratha'], paratha: ['parathe'],
+  mooli: ['radish', 'muli', 'mullangi'], muli: ['mooli', 'radish'], radish: ['mooli', 'muli'], luchi: ['loochi', 'luchchi'], loochi: ['luchi'], poori: ['puri'], puri: ['poori'],
   maggie: ['maggi'], horlics: ['horlicks'], horlick: ['horlicks'], nestle: ['nestle', 'nestl'], cadburys: ['cadbury'], lays: ['lay'], parleg: ['parle'],
 };
 const variantsOf = (w) => [w, ...(ALT[w] || [])];
@@ -108,7 +111,7 @@ function bindOrder(pq, args, hasTaste) { return hasTaste ? [...pq.tastes, ...arg
 export async function searchAll(env, q, { limit = 6, age = null, only = null } = {}) {
   const pq = parseQuery(q);
   if (pq.smart) {
-    const am = pq.ageMonths != null ? pq.ageMonths : Number.isFinite(age) ? age : 60;      // "for 9 year" beats the age chosen on the page
+    const am = pq.ageMonths != null ? pq.ageMonths : youngestInBand(Number.isFinite(age) ? age : 60);      // "for 9 year" beats the age chosen on the page
     if (pq.tastes.length || pq.mild || pq.meals.length || pq.diet || pq.ageMonths != null) {
       const out = await smartSearch(env, q, pq, am, limit, only);
       // an age on its own ("oats for 9 year") with nothing found: fall through to the ordinary name search
@@ -124,13 +127,13 @@ export async function searchAll(env, q, { limit = 6, age = null, only = null } =
   const ageLabel = Number.isFinite(age) && (age < 12 || age >= 156) ? ageInfo.label : band.label;
   if (!words.length) return { q: String(q || ''), age_label: ageLabel, recipes: [], products: [] };
   const scoreE = bandScoreSql(band.id), capE = capSqlFor(band.id);
-  const where = words.map(() => "LOWER(r.name) LIKE ? ESCAPE '\\'").join(' AND ');
+  const where = words.map((w) => '(' + variantsOf(w).map(() => "LOWER(r.name) LIKE ? ESCAPE '\\'").join(' OR ') + ')').join(' AND ');
   const { results } = await env.DB.prepare(
     `SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, ${scoreE} AS score, ${capE} AS capped, s.name AS source_name
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL AND ${where}
       ORDER BY ${scoreE} DESC, r.id LIMIT 30`
-  ).bind(...words.map(like)).all();
+  ).bind(...words.flatMap((w) => variantsOf(w).map(like))).all();
   const recipes = results.filter((r) => !isPrepRecipe(r.name)).slice(0, limit).map((r) => ({ ...r, source_name: creditName(r.source_name), capped: !!r.capped }));
   const all = only === 'recipes' ? [] : (await listProducts(env, { age: ageInfo.id, limit: 3000, unchecked: true })).items.sort((x, y) => (x.unchecked === y.unchecked ? 0 : x.unchecked ? 1 : -1));   // checked packs first
   const hayOf = (p) => [p.name, p.brand, p.kind_label, p.category].join(' ').toLowerCase();
@@ -157,7 +160,8 @@ export async function siteStats(env) {
 
 // "From various cooks and cookbooks": one good recipe from each of several different creators, so the home page shows the range of
 // people the recipes come from. Only real meals that score 70 or more for the age (and are not capped); a random cook and dish each time.
-export async function cooksShelf(env, { limit = 8, age = null, occasion = null, prefs = [], rng = Math.random } = {}) {
+// vid: the random id the visitor's browser keeps. What this browser was shown before is remembered, and a repeat visit gets recipes it has not seen (the least recently seen ones once everything has been shown).
+export async function cooksShelf(env, { limit = 8, age = null, occasion = null, prefs = [], rng = Math.random, vid = null } = {}) {
   const band = bandForMonths(Number.isFinite(age) ? age : 60);
   const scoreE = bandScoreSql(band.id), capE = capSqlFor(band.id);
   const DIETS_OF = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['nonveg', 'egg'] };
@@ -168,7 +172,7 @@ export async function cooksShelf(env, { limit = 8, age = null, occasion = null, 
       WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND s.world = 'india' AND r.total_minutes IS NOT NULL AND r.image_url IS NOT NULL AND s.photos_hidden = 0
         AND ${scoreE} >= 70 AND ${capE} = 0 AND r.age_min_months <= ? AND r.age_max_months >= ?${occasion ? " AND EXISTS (SELECT 1 FROM kp_recipe_occasions o WHERE o.recipe_id = r.id AND o.occasion = ?)" : ''}${diets.length ? ` AND r.diet IN (${diets.map(() => '?').join(',')})` : ''}
       ORDER BY ${scoreE} DESC LIMIT 600`
-  ).bind(Number.isFinite(age) ? age : 60, Math.min(144, Number.isFinite(age) ? age : 60), ...(occasion ? [occasion] : []), ...diets).all();
+  ).bind(youngestInBand(Number.isFinite(age) ? age : 60), Math.min(144, Number.isFinite(age) ? age : 60), ...(occasion ? [occasion] : []), ...diets).all();
   const byCook = new Map();
   for (const r of results) {
     if (!isRealMeal(r.name)) continue;
@@ -176,12 +180,24 @@ export async function cooksShelf(env, { limit = 8, age = null, occasion = null, 
     if (!byCook.has(cook)) byCook.set(cook, []);
     byCook.get(cook).push(r);
   }
-  const cooks = [...byCook.keys()].sort(() => rng() - 0.5).slice(0, limit);
+  const combo = ['home-cooks', Number.isFinite(age) ? age : 60, occasion || '', [...prefs].sort().join('+')].join('|');
+  const seen = new Map();
+  if (vid) for (const r of (await env.DB.prepare('SELECT recipe_id, last_at FROM kp_seen WHERE vid = ? AND combo = ?').bind(vid, combo).all()).results) seen.set(r.recipe_id, r.last_at);
+  // each cook offers a few of their best recipes; a recipe this browser has not seen comes first, otherwise the one seen longest ago
+  const shuffle = (a) => a.map((x) => [rng(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
+  const offer = new Map();
+  for (const [cook, list] of byCook) {
+    const cand = list.slice(0, 8), fresh = cand.filter((r) => !seen.has(r.id));
+    offer.set(cook, fresh.length ? { r: shuffle(fresh)[0], fresh: true } : { r: cand.slice().sort((x, y) => seen.get(x.id) - seen.get(y.id))[0], fresh: false });
+  }
+  const order = [...shuffle([...offer.keys()].filter((c) => offer.get(c).fresh)), ...shuffle([...offer.keys()].filter((c) => !offer.get(c).fresh)).sort((a, b) => seen.get(offer.get(a).r.id) - seen.get(offer.get(b).r.id))].slice(0, limit);
+  const picked = order.map((cook) => ({ cook, r: offer.get(cook).r }));
+  if (vid && picked.length) {
+    const t = Math.floor(Date.now() / 1000), up = env.DB.prepare('INSERT INTO kp_seen (vid, combo, recipe_id, times, last_at) VALUES (?,?,?,1,?) ON CONFLICT(vid, combo, recipe_id) DO UPDATE SET times = times + 1, last_at = excluded.last_at');
+    await env.DB.batch(picked.map((p) => up.bind(vid, combo, p.r.id, t)));
+  }
   return {
-    cooks: cooks.map((cook) => {
-      const best = byCook.get(cook).slice(0, 3), r = best[Math.floor(rng() * best.length)];
-      return { cook, id: r.id, name: r.name, image_url: r.image_url, total_minutes: r.total_minutes, score: r.score, capped: !!r.capped };
-    }),
+    cooks: picked.map(({ cook, r }) => ({ cook, id: r.id, name: r.name, image_url: r.image_url, total_minutes: r.total_minutes, score: r.score, capped: !!r.capped })),
     count_cooks: byCook.size,
   };
 }

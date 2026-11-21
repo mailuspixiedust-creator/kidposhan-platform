@@ -19,6 +19,7 @@ export function buildRecipe(extracted, source) {
     ingredients,
     sourceUrl: extracted.source_url,
     collectionHint: `${source.url} ${source.notes || ''}`,
+    sourceName: source.name || '',
   });
   // Everything waits for the owner's decision. Flags only tell the reviewer where to look closely.
   const flags = [];
@@ -137,7 +138,7 @@ async function upsertRecipe(env, sourceId, url, { extracted: x, ingredients, tag
 export async function processPending(env, { limit = 10, queryKey = null, world = null } = {}) {
   // Candidates found for a live parent search go first, so they reach the review screen quickly.
   const { results: cands } = await env.DB.prepare(
-    `SELECT c.id, c.url, c.source_id, c.query_key, s.url AS source_url, s.notes AS source_notes, s.status AS source_status
+    `SELECT c.id, c.url, c.source_id, c.query_key, s.name AS source_name, s.url AS source_url, s.notes AS source_notes, s.status AS source_status
        FROM kp_recipe_candidates c JOIN kp_recipe_sources s ON s.id = c.source_id
       WHERE (c.status = 'pending' OR (c.status = 'error' AND c.attempts < 3))
         AND (s.status = 'suggested' OR (s.status = 'registered' AND s.active = 1))
@@ -156,7 +157,7 @@ export async function processPending(env, { limit = 10, queryKey = null, world =
   }
   const out = [];
   for (const c of picked) {
-    out.push(await processCandidate(env, c, { id: c.source_id, url: c.source_url, notes: c.source_notes, status: c.source_status }));
+    out.push(await processCandidate(env, c, { id: c.source_id, name: c.source_name, url: c.source_url, notes: c.source_notes, status: c.source_status }));
   }
   return out;
 }

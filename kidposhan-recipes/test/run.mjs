@@ -23,6 +23,10 @@ const blog = `<title>Lauki Thepla | My Blog</title><h3>Ingredients</h3><ul><li>1
 const c = extractFromHtml(blog, 'https://b.blogspot.com/lauki-thepla.html');
 ok(c.method === 'heuristic' && c.name === 'Lauki Thepla' && c.instructions.length === 2 && c.completeness === 'partial', 'Heading heuristic, kept as partial');
 ok(extractFromHtml('<p>Top 10 tiffin ideas</p>', 'x') === null, 'Non-recipe page returns null');
+// a page whose structured data names the recipe but lists no ingredients or steps (Bong Eats): the visible recipe is read, and the structured data's servings and time are kept
+const webflow = '<html><head><title>Mooli ke Parathe</title><meta property="og:image" content="https://cdn.example/mooli.jpg"><script type="application/ld+json">{"@context":"https://schema.org","@type":"Recipe","name":"Mooli ke Parathe","recipeYield":"2","totalTime":"PT60M"}</script></head><body><h1>Mooli ke Parathe</h1><div class="rich-text-block recipe-ingredients w-richtext"><h3>For the dough</h3><ul><li><strong>120 g</strong> atta</li><li>1/2 tsp salt</li></ul><h3>For the filling</h3><ul><li><strong>200 g</strong> radish</li><li>oil for frying</li></ul></div></div></section><section class="recipe-process-wrapper"><div class="rich-text-block recipe-process w-richtext"><ol><li>Knead the dough.</li><li>Fill and roll the parathas.</li></ol></div></section></body></html>';
+const wf = extractFromHtml(webflow, 'https://www.bongeats.com/recipe/mooli-ke-parathe/');
+ok(wf.completeness === 'complete' && wf.ingredients.length === 4 && wf.instructions.length === 2 && wf.name === 'Mooli ke Parathe' && wf.total_minutes === 60, 'A page with a recipe name in its structured data but the ingredients and steps in the page is read in full: ' + JSON.stringify([wf.method, wf.ingredients.length, wf.instructions.length, wf.total_minutes]));
 
 const p1 = parseIngredientLine('1 ½ cups rava (sooji)');
 ok(p1.quantity === 1.5 && p1.unit === 'cup' && p1.ingredient_key === 'rava', 'Unicode fraction + unit + key');
@@ -467,6 +471,14 @@ ok(afterCrawl.length === 1 && afterCrawl[0].raw_text === '1 handful of special m
 // ---- diet: Non-veg search shows only egg / non-veg dishes; tagging reads the whole ingredient text ----
 import { tagRecipe, detectDiet } from '../../src/recipes/tag.js';
 const dietOf = (name, lines) => tagRecipe({ name, ingredients: lines.map(parseIngredientLine) }).diet;
+// ages: a recipe is for a child under 3 only if it says so, and chilli is not for a child under 5
+const ageOf = (o, lines) => tagRecipe({ ...o, ingredients: lines.map(parseIngredientLine) }).age_min_months;
+ok(ageOf({ name: 'Vegetable Khichdi' }, ['1 cup rice', '1/2 cup moong dal', '1 tsp ghee']) === 36, 'A recipe that does not say it is for babies or toddlers is for 3 years and up');
+ok(ageOf({ name: 'Fish with Chili Paste Sauce' }, ['300 g fish', '2 tbsp chili paste']) === 60 && ageOf({ name: 'Dal Tadka' }, ['1 cup toor dal', '1 tsp red chilli powder']) === 60 && ageOf({ name: 'Aloo Sabzi' }, ['2 potatoes', '1 green chilli']) === 60, 'A recipe with chilli in any form is for 5 years and up');
+ok(ageOf({ name: 'Toddler Dal Khichdi' }, ['1/4 cup rice', '2 tbsp moong dal']) <= 12 && ageOf({ name: 'Carrot Mash', sourceName: 'Swasthi Recipes - Baby food' }, ['1 carrot']) === 36 && ageOf({ name: 'Rice cereal for 8 month old' }, ['2 tbsp rice flour']) <= 12, 'A recipe that says in its own words it is for toddlers or babies keeps its young age; being listed on a baby-food page is not enough');
+ok(ageOf({ name: 'Veg Pulao' }, ['1 cup rice', '1 tsp black pepper']) === 72 && ageOf({ name: 'Dal' }, ['1 cup toor dal', '1/2 tsp garam masala']) === 72 && ageOf({ name: 'Veg Soup' }, ['1 carrot', 'salt and pepper to taste']) === 72 && ageOf({ name: 'Tikki (Baby And Toddlers)' }, ['1 potato', 'a pinch of freshly ground black pepper (kalimirch)']) === 72 && ageOf({ name: 'Stuffed Capsicum' }, ['2 green bell peppers', '1 cup rice']) === 36 && ageOf({ name: 'Peppermint Tea' }, ['mint leaves']) === 36, 'Pepper and garam masala are for 6 and up (even in a toddler recipe); bell pepper, capsicum and peppermint are not pepper');
+ok(ageOf({ name: 'Chicken Rice Bowl' }, ['250 g chicken', '1 tbsp red thai curry paste']) === 60 && ageOf({ name: 'Spicy Egg Thokku' }, ['4 eggs', '1 tsp turmeric']) === 60 && ageOf({ name: 'Veg Pulao' }, ['1 cup rice', '1 carrot']) === 36, 'Curry paste and spicy recipes are for 5 and up');
+ok(ageOf({ name: 'Toddler Veg Pasta with Chilli Flakes' }, ['1 cup pasta', '1/2 tsp chilli flakes']) === 60 && ageOf({ name: 'Baby Corn Stir Fry' }, ['1 cup baby corn', '1 onion']) === 36 && ageOf({ name: 'Baby Spinach Salad' }, ['2 cups baby spinach']) === 36, 'Chilli keeps even a toddler recipe from under-5s, and baby corn and baby spinach are vegetables, not baby food');
 ok(dietOf('Tasty Dahi Chicken Recipe', ['1/2 kgboneless chicken (cut as per your choice),2 onions', '1 cup curd']) === 'nonveg', 'Chicken hidden on a crammed ingredient line is still found (was tagged Jain)');
 ok(dietOf('Khada Masala Gosht', ['500 g gosht', '2 onions']) === 'nonveg' && dietOf('Chicken Biryani', ['500 g murgi', '1 cup rice']) === 'nonveg' && dietOf('Fish Curry', ['500 g rohu', '1 onion']) === 'nonveg', 'Regional names (gosht, murgi, rohu) count as non-veg');
 ok(['Pork Sausage Rolls|4 pork sausages', 'Prawn Curry|250 g shrimp', 'Lamb Keema|300 g lamb mince', 'Crab Cakes|200 g crab meat', 'Tuna Sandwich|1 can tuna', 'Beef Stew|500 g beef'].every((x) => { const [n, l] = x.split('|'); return dietOf(n, [l]) === 'nonveg'; }), 'Pork, shrimp, lamb, crab, tuna and beef are non-veg');
@@ -1037,6 +1049,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(got.recipes.some((r) => r.id === rid) && !got.recipes.some((r) => r.id === rid2) && !got.recipes.some((r) => r.id === rid3), 'Recipe search finds a dish by words in its name, and leaves out a batter and a recipe with no cooking time');
   const filler = await SR.searchAll(env, 'ragi dosa recipes for kids');
   ok(filler.recipes.some((r) => r.id === rid) && (await SR.searchAll(env, 'recipes for kids')).recipes.length >= 0, 'Words like "recipes for kids" do not stop a search from finding the dish');
+  const mooli = mkRecipe('https://srch.example/mooli/', { status: 'approved', name: 'Mooli ke Parathe', score: 82 }), parot = mkRecipe('https://srch.example/parotta/', { status: 'approved', name: 'Kerala Parotta Recipe', score: 80 });
+  ok((await SR.searchAll(env, 'radish paratha')).recipes.some((r) => r.id === mooli) && (await SR.searchAll(env, 'mooli paratha')).recipes.some((r) => r.id === mooli) && (await SR.searchAll(env, 'parota')).recipes.some((r) => r.id === parot), 'Search knows that mooli is radish, parathe is paratha and parota is parotta');
   const gp = await SR.searchAll(env, 'organic ragi');
   ok(gp.products.some((p) => /Ragi Flour/.test(p.name)) && (await SR.searchAll(env, 'zzzz')).products.length === 0, 'Product search finds an approved product by name');
   const sres = await routeRecipes(new Request('https://w/api/kp/search?q=ragi', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
@@ -1188,6 +1202,18 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(['Aunty Asha', 'Chef Ravi', 'The Millet Table'].every((c) => names.includes(c)) && new Set(names).size === names.length, 'The shelf has one recipe from each of several different cooks, credited by the creator\'s name only: ' + names.join(', '));
   const http = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
   ok(http.status === 200 && Array.isArray((await http.json()).cooks), 'The home page can ask for the cooks shelf');
+  // a browser that comes back is shown other recipes: three visits, three different dishes from each cook, and the one seen longest ago when all have been shown
+  const vidA = 'abcdef0123456789abcdef01', mine = ['Aunty Asha', 'Chef Ravi', 'The Millet Table'], visit = async () => (await SRX.cooksShelf(env, { limit: 8, age: 60, vid: vidA })).cooks.filter((c) => mine.includes(c.cook)).map((c) => c.id);
+  const v1 = await visit(), v2 = await visit(), v3 = await visit();
+  // the visits were made within the same second: space them out as real visits would be
+  [[v1, 300], [v2, 200], [v3, 100]].forEach(([ids, ago]) => db.prepare('UPDATE kp_seen SET last_at = ? WHERE vid = ? AND recipe_id IN (' + ids.join(',') + ')').run(Math.floor(Date.now() / 1000) - ago, vidA));
+  const v4 = await visit();
+  ok(v1.length === 3 && !v2.some((x) => v1.includes(x)) && !v3.some((x) => v1.includes(x) || v2.includes(x)), 'Coming back to the home page shows recipes this browser has not seen: ' + JSON.stringify([v1, v2, v3]));
+  ok(v4.slice().sort().join() === v1.slice().sort().join(), 'When every recipe has been shown, the ones seen longest ago come back first');
+  const other = (await SRX.cooksShelf(env, { limit: 8, age: 60, vid: 'zzzzzz0123456789zzzzzz01' })).cooks.filter((c) => mine.includes(c.cook)).map((c) => c.id);
+  ok(other.length === 3 && !other.every((x) => v1.includes(x) && v2.includes(x)), 'Another browser is not affected by what the first was shown');
+  const httpV = await routeRecipes(new Request('https://w/api/kp/cooks?age_months=60&vid=' + vidA, { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);
+  ok(httpV.headers.get('cache-control') === 'private, no-store', 'A visitor\'s own draw is not cached');
 }
 
 
@@ -1577,8 +1603,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(!r2.recipes.some((r) => r.id === tang) && r3.recipes.some((r) => r.id === plainR) && !r3.recipes.some((r) => r.id === spicyR), 'Mild leaves out spicy recipes; the taste asked for decides what is found');
   const r4 = await SR.searchAll(env, 'tangy pulao for 9 year');
   ok(r4.recipes.length >= 1 && r4.recipes.every((r) => /pulao/i.test(r.name)), 'A dish word alongside the taste narrows the results to it');
-  const r5 = await SR.searchAll(env, 'tangy meal', { age: 36 });
-  ok(r5.understood.age_months === 36 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used');
+  const r5 = await SR.searchAll(env, 'tangy meal', { age: 60 });
+  ok(r5.understood.age_months === 48 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used, as the youngest child that age group can mean (4 to 6 years: 4)');
 }
 // the live database allows only 100 values in one query: tagging many recipes at once must not break it
 {
@@ -1814,6 +1840,18 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const ml = db.prepare("SELECT model FROM kp_ui_i18n WHERE key = ? AND lang = 'hi'").get('Claude should translate this line');
   ok(ml && ml.model.startsWith('claude'), 'The lines of the pages are translated by Claude too');
   globalThis.fetch = realFetch;
+}
+
+// ---- ages: what a parent sees for under-5s ----
+{
+  const mk = (n, agemin) => { const id = mkRecipe('https://ages.example/' + n + '/', { status: 'approved', name: 'Agetest ' + n, score: 88, agemin, agemax: 144 }); db.prepare("UPDATE kp_recipes SET diet = 'jain', score_13 = 88, score_46 = 88, score_79 = 88, score_1012 = 88, cap_13 = 0, cap_46 = 0, cap_79 = 0, cap_1012 = 0 WHERE id = ?").run(id); db.prepare("DELETE FROM kp_recipe_occasions WHERE recipe_id = ?").run(id); db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'dinner')").run(id); return id; };
+  const toddlerOk = mk('toddler', 12), plain = mk('plain', 36), chilli = mk('chilli', 60);
+  const shown = async (age) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&season=all&pref=veg&limit=60'), env, ctx)).json()).results.map((r) => r.id);
+  const a24 = await shown(24), a60 = await shown(60), a96 = await shown(96);
+  ok(a24.includes(toddlerOk) && !a24.includes(plain) && !a24.includes(chilli), '1 to 3 years: only a recipe made for that age is shown');
+  const { youngestInBand } = await import('../../src/recipes/score2.js');
+  ok(youngestInBand(9) === 9 && youngestInBand(24) === 12 && youngestInBand(60) === 48 && youngestInBand(96) === 96 && !a60.includes(chilli), '4 to 6 years means a 4 year old: a recipe for 5 and up (chilli) is not shown; the other groups are unchanged');
+  ok(a96.includes(toddlerOk) && a96.includes(plain) && a96.includes(chilli), 'From 7 years every recipe is shown');
 }
 
 // ---- the weekly healthy tiffin email ----

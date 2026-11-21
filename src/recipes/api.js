@@ -17,7 +17,7 @@ import { discoverForQuery, shouldDiscover, queryKey } from './live.js';
 import { scoreSqlFor, capSqlFor } from './score.js';
 import { creditName, cleanIngredients, singleMethod, toPoints, hasChilli, KID_CHILLI_NOTE, isRealMeal, SWEET_OR_BAKED, savouryOnly, dishKey } from './clean.js';
 export { isPrepRecipe } from './clean.js';
-import { bandForMonths, bandById, REFERENCE_BAND, ALL_BANDS } from './score2.js';
+import { bandForMonths, bandById, REFERENCE_BAND, ALL_BANDS, youngestInBand } from './score2.js';
 
 export const MIN_RESULTS = 20;          // every filter combination should offer at least this many recipes
 const MAX_LIMIT = 40, POOL = 160;       // POOL: candidates gathered so a random draw has something to choose from
@@ -98,7 +98,8 @@ async function queryTier(env, q, tier, excludeIds, take) {
        AND r.age_min_months <= ? AND r.age_max_months >= ?
        AND s.world = ?
        AND r.total_minutes IS NOT NULL AND (${scoreExpr(q)}) IS NOT NULL`;     // no score or no time: not shown until it has both
-  args.push(...diets, Math.min(...q.ages), Math.min(144, Math.max(...q.ages)), q.world || 'india');   // suits every chosen age
+  // suits every chosen age, and the youngest child a band can mean
+  args.push(...diets, youngestInBand(Math.min(...q.ages)), Math.min(144, Math.max(...q.ages)), q.world || 'india');
   if (tier.good) sql += ` AND (${scoreExpr(q)}) >= ${GOOD_MIN} AND ${capExpr(q)} = 0`;
   for (const f of q.fit || []) sql += ` AND ${FIT_FILTERS[f].sql}`;
 

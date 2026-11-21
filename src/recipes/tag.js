@@ -45,7 +45,31 @@ const SEASON_WORDS = {
   monsoon: /\b(pakora|pakoda|bhutta|bhajji|bhaji|soup|khichuri|corn)\b/i,
 };
 
-export function tagRecipe({ name = '', description = '', category = [], keywords = '', ingredients = [], sourceUrl = '', collectionHint = '' }) {
+// A recipe is for a child under 3 only if it says so: baby, toddler, infant, first food, weaning, baby-led, a stage or an age in months or years, in its
+// name, description, category or keywords (not in the ingredients: "baby corn" and "baby spinach" are vegetables; "puree" or "finger food" alone do not count,
+// a spinach puree is in an ordinary paratha). The page a recipe was found on does not count: a baby-food collection can list ordinary recipes.
+const BABY_VEG = /\bbab(?:y|ies)[- ]?(?:corn|spinach|potato(?:es)?|carrots?|bok choy|back ribs|beets?|kale|romaine|marrow|arugula|gem|onions?|egg ?plants?|brinjals?|aubergines?|tomato(?:es)?|squash|zucchini|lettuce|greens|leaf|leaves|cucumbers?|radish(?:es)?|turnips?|artichokes?|bella|shell|shells|portobello|okra|pak choi|courgettes?|peppers?|aloo|kachori|rolls?)\b/gi;
+const YOUNG_WORD = /\b(babies|baby|infants?|toddlers?|first foods?|weaning|stage [1-4]|baby[- ]led|blw)\b/i;
+const YOUNG_AGE = /\b(?:suitable for|ages?|aged|for a|for an|for your|for babies of|from)\s+(?:a\s+|an\s+|your\s+)?(?:\d+|one|two)\s*(?:\+|-|–|to)?\s*(?:\d+\s*)?(?:years?[- ]olds?|yrs?[- ]olds?|years?|yrs?|months?|mos?)\b(?:\s+(?:old|and up|and above|plus))?|\bfor\s+\d+\s*(?:\+|-|–|to)?\s*(?:\d+\s*)?(?:months?|years?)[- ]olds?\b/i;
+export function isMarkedForYoung({ name = '', description = '', category = [], keywords = '', sourceName = '' }) {
+  const text = [name, description, Array.isArray(category) ? category.join(' ') : category, keywords].join(' ').replace(BABY_VEG, ' ');
+  return YOUNG_WORD.test(text) || YOUNG_AGE.test(text);
+}
+// Chilli in any form: not for a child under 5, whatever else the recipe says. This includes the pastes and spice mixes that are made with it (curry paste, curry powder,
+// sambar powder, chole masala ...) and a recipe that calls itself spicy or hot. Black pepper is not chilli.
+export const CHILLI = /\b(chil+i(?:es)?|chil+e(?:s)?|chilly|jalape[nñ]os?|cayenne|peri[- ]?peri|sriracha|sch?ezwan|szechuan|gochujang|gochugaru|harissa|sambal|tabasco|hot sauce|red pepper flakes|crushed red pepper|lal mirch|mirchi|mirch|bird'?s eye|thai chil|curry paste|thai curry|red curry|green curry|curry powder|sambh?ar (?:powder|masala)|rasam powder|pav bhaji masala|chole masala|chana masala|biryani masala|tandoori masala|kitchen king|chicken masala|meat masala|spicy|fiery|vindaloo|chettinad|kolhapuri|arrabbiata|diavola|buffalo|jerk|cajun|nashville|chaat masala|sabzi masala)/i;
+// Pepper (black pepper, peppercorns, kali mirch) and garam masala: not for a child under 6. Bell peppers, capsicum, peppermint and pepperoni are not pepper.
+const NOT_PEPPER = /\b(?:(?:bell|sweet|red|green|yellow|orange|roasted|stuffed|baby|mini)\s+(?:bell\s+)?peppers?|capsicum|peppermint|pepperoni|pepper jack|dr\.? pepper|pepper(?:ed)? (?:cheese|jack))\b/gi;
+const PEPPER = /\bpepper(?:corns?)?\b|\bkali ?mirch\b|\bkala ?mirch\b|\bkalimirch\b|\bgaram masala\b/i;
+export function hasPepperOrGaramMasala(name, ingredients) {
+  const clean = (t) => String(t || '').replace(NOT_PEPPER, ' ');
+  return PEPPER.test(clean(name)) || ingredients.some((i) => i && (i.ingredient_key === 'black_pepper' || PEPPER.test(clean(i.raw_text))));
+}
+export function hasChilli(name, ingredients) {
+  return CHILLI.test(String(name || '')) || ingredients.some((i) => i && (['green_chilli', 'red_chilli_powder'].includes(i.ingredient_key) || CHILLI.test(String(i.raw_text || ''))));
+}
+
+export function tagRecipe({ name = '', description = '', category = [], keywords = '', ingredients = [], sourceUrl = '', collectionHint = '', sourceName = '' }) {
   const keys = new Set(ingredients.map((i) => i.ingredient_key).filter(Boolean));
   const allText = [name, description, category.join(' '), keywords, ingredients.map((i) => i.raw_text).join(' ')].join(' ');
   const titleText = [name, category.join(' '), keywords].join(' ');
@@ -71,18 +95,20 @@ export function tagRecipe({ name = '', description = '', category = [], keywords
   // ---- age (months) ----
   let ageMin = 12, ageMax = 144;
   const ageNotes = [];
-  if (/\b(baby|babies|infant|toddler|first food|6 ?months?|puree|weaning|stage [1-4])\b/i.test(allText)) {
+  if (isMarkedForYoung({ name, description, category, keywords, sourceName })) {
     ageMin = /\btoddler\b/i.test(titleText) && !/\bbaby|babies|infant\b/i.test(titleText) ? 12 : 6;
     ageNotes.push(`marked for babies/toddlers -> ${ageMin}m+`);
     if (ageMin === 6 && (keys.has('salt') || keys.has('sugar'))) { ageMin = 12; ageNotes.push('has added salt/sugar -> 12m+'); }
   } else {
-    ageNotes.push('general recipe -> 12m+ (salt/sugar)');
+    ageMin = 36;
+    ageNotes.push('not marked for under-3s -> 3y+');
   }
   if (keys.has('honey')) { ageMin = Math.max(ageMin, 12); ageNotes.push('honey -> 12m+'); }
   if (/\b(whole|roasted|fried)\s+(peanuts|cashews?|almonds|nuts|chana)\b|\bpopcorn\b|\bchikki\b/i.test(allText)) {
     ageMin = Math.max(ageMin, 60); ageNotes.push('whole nuts/hard pieces (choking) -> 5y+');
   }
-  if (keys.has('green_chilli') || keys.has('red_chilli_powder')) { ageMin = Math.max(ageMin, 24); ageNotes.push('chilli -> 2y+ (adjust spice)'); }
+  if (hasChilli(name, ingredients)) { ageMin = Math.max(ageMin, 60); ageNotes.push('chilli -> 5y+'); }
+  if (hasPepperOrGaramMasala(name, ingredients)) { ageMin = Math.max(ageMin, 72); ageNotes.push('pepper or garam masala -> 6y+'); }
   if (/\blunch ?box|tiffin\b/i.test(titleText + ' ' + collectionHint)) { ageMin = Math.max(ageMin, 36); ageNotes.push('school lunchbox -> 3y+'); }
   reasons.age = ageNotes.join('; ');
 

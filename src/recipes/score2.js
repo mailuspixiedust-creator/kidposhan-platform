@@ -53,6 +53,8 @@ export function bandForMonths(m) {
   if (!Number.isFinite(n) || n < 12) return BANDS[0];
   return ALL_BANDS.filter((b) => !b.id.includes(':')).find((b) => n >= b.min_m && n <= b.max_m) || ALL_BANDS.find((b) => b.id === 'adult');
 }
+// The age a recipe must suit when a parent picks an age group: the youngest child the group can mean ("4 to 6 years" is safe for a 4 year old, "1 to 3 years" for a 1 year old).
+export const youngestInBand = (m) => { const n = Number(m); return n >= 12 && n < 84 ? Math.min(n, bandForMonths(n).min_m ?? n) : n; };
 export const SCORE_COLUMN = { '1-3': 'score_13', '4-6': 'score_46', '7-9': 'score_79', '10-12': 'score_1012' };
 
 // ten yes/no checks: the Poshan Score is the number passed times 10, so a product that passes everything is exactly 100 and one that passes nothing is 0

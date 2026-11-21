@@ -3,6 +3,7 @@
 // food preference, and confirms from a link in a first email (double opt-in); every email has a one-click unsubscribe. Nothing is sent until the owner
 // has set up a mail service (the RESEND_API_KEY secret and MAIL_FROM) and switched it on (NEWSLETTER_ON = on).
 import { scoreSqlFor, capSqlFor } from './score.js';
+import { youngestInBand } from './score2.js';
 
 export const BANDS = { '1-3': { mid: 24, label: '1 to 3 years' }, '4-6': { mid: 60, label: '4 to 6 years' }, '7-9': { mid: 96, label: '7 to 9 years' }, '10-12': { mid: 132, label: '10 to 12 years' } };
 const DIETS = { veg: ['veg', 'jain'], jain: ['jain'], nonveg: ['veg', 'jain', 'nonveg', 'egg'] };
@@ -37,7 +38,7 @@ export async function composeIssue(env, { band = '4-6', diet = 'veg', week = iso
         AND r.diet IN (${diets.map(() => '?').join(',')}) AND r.age_min_months <= ? AND r.age_max_months >= ?
         AND (${scoreSqlFor(band)}) >= 80 AND ${capSqlFor(band)} = 0
         AND r.diet_tags IS NOT NULL AND r.diet_tags NOT LIKE '%,fried,%'
-      ORDER BY r.id`).bind(...diets, mid, Math.min(144, mid)).all();
+      ORDER BY r.id`).bind(...diets, youngestInBand(mid), Math.min(144, mid)).all();
   const used = new Set();
   const prev = await env.DB.prepare('SELECT recipe_ids FROM kp_newsletter_issues WHERE band = ? AND diet = ? AND week < ? ORDER BY week DESC LIMIT ?').bind(band, diet, week, KEEP_WEEKS).all();
   for (const p of prev.results) for (const id of String(p.recipe_ids).split(',')) used.add(+id);
