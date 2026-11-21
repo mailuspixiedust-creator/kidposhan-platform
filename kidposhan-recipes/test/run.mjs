@@ -471,6 +471,14 @@ ok(afterCrawl.length === 1 && afterCrawl[0].raw_text === '1 handful of special m
 // ---- diet: Non-veg search shows only egg / non-veg dishes; tagging reads the whole ingredient text ----
 import { tagRecipe, detectDiet } from '../../src/recipes/tag.js';
 const dietOf = (name, lines) => tagRecipe({ name, ingredients: lines.map(parseIngredientLine) }).diet;
+// ages: a recipe is for a child under 3 only if it says so, and chilli is not for a child under 5
+const ageOf = (o, lines) => tagRecipe({ ...o, ingredients: lines.map(parseIngredientLine) }).age_min_months;
+ok(ageOf({ name: 'Vegetable Khichdi' }, ['1 cup rice', '1/2 cup moong dal', '1 tsp ghee']) === 36, 'A recipe that does not say it is for babies or toddlers is for 3 years and up');
+ok(ageOf({ name: 'Fish with Chili Paste Sauce' }, ['300 g fish', '2 tbsp chili paste']) === 60 && ageOf({ name: 'Dal Tadka' }, ['1 cup toor dal', '1 tsp red chilli powder']) === 60 && ageOf({ name: 'Aloo Sabzi' }, ['2 potatoes', '1 green chilli']) === 60, 'A recipe with chilli in any form is for 5 years and up');
+ok(ageOf({ name: 'Toddler Dal Khichdi' }, ['1/4 cup rice', '2 tbsp moong dal']) <= 12 && ageOf({ name: 'Carrot Mash', sourceName: 'Swasthi Recipes - Baby food' }, ['1 carrot']) === 36 && ageOf({ name: 'Rice cereal for 8 month old' }, ['2 tbsp rice flour']) <= 12, 'A recipe that says in its own words it is for toddlers or babies keeps its young age; being listed on a baby-food page is not enough');
+ok(ageOf({ name: 'Veg Pulao' }, ['1 cup rice', '1 tsp black pepper']) === 72 && ageOf({ name: 'Dal' }, ['1 cup toor dal', '1/2 tsp garam masala']) === 72 && ageOf({ name: 'Veg Soup' }, ['1 carrot', 'salt and pepper to taste']) === 72 && ageOf({ name: 'Tikki (Baby And Toddlers)' }, ['1 potato', 'a pinch of freshly ground black pepper (kalimirch)']) === 72 && ageOf({ name: 'Stuffed Capsicum' }, ['2 green bell peppers', '1 cup rice']) === 36 && ageOf({ name: 'Peppermint Tea' }, ['mint leaves']) === 36, 'Pepper and garam masala are for 6 and up (even in a toddler recipe); bell pepper, capsicum and peppermint are not pepper');
+ok(ageOf({ name: 'Chicken Rice Bowl' }, ['250 g chicken', '1 tbsp red thai curry paste']) === 60 && ageOf({ name: 'Spicy Egg Thokku' }, ['4 eggs', '1 tsp turmeric']) === 60 && ageOf({ name: 'Veg Pulao' }, ['1 cup rice', '1 carrot']) === 36, 'Curry paste and spicy recipes are for 5 and up');
+ok(ageOf({ name: 'Toddler Veg Pasta with Chilli Flakes' }, ['1 cup pasta', '1/2 tsp chilli flakes']) === 60 && ageOf({ name: 'Baby Corn Stir Fry' }, ['1 cup baby corn', '1 onion']) === 36 && ageOf({ name: 'Baby Spinach Salad' }, ['2 cups baby spinach']) === 36, 'Chilli keeps even a toddler recipe from under-5s, and baby corn and baby spinach are vegetables, not baby food');
 ok(dietOf('Tasty Dahi Chicken Recipe', ['1/2 kgboneless chicken (cut as per your choice),2 onions', '1 cup curd']) === 'nonveg', 'Chicken hidden on a crammed ingredient line is still found (was tagged Jain)');
 ok(dietOf('Khada Masala Gosht', ['500 g gosht', '2 onions']) === 'nonveg' && dietOf('Chicken Biryani', ['500 g murgi', '1 cup rice']) === 'nonveg' && dietOf('Fish Curry', ['500 g rohu', '1 onion']) === 'nonveg', 'Regional names (gosht, murgi, rohu) count as non-veg');
 ok(['Pork Sausage Rolls|4 pork sausages', 'Prawn Curry|250 g shrimp', 'Lamb Keema|300 g lamb mince', 'Crab Cakes|200 g crab meat', 'Tuna Sandwich|1 can tuna', 'Beef Stew|500 g beef'].every((x) => { const [n, l] = x.split('|'); return dietOf(n, [l]) === 'nonveg'; }), 'Pork, shrimp, lamb, crab, tuna and beef are non-veg');
@@ -1595,8 +1603,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(!r2.recipes.some((r) => r.id === tang) && r3.recipes.some((r) => r.id === plainR) && !r3.recipes.some((r) => r.id === spicyR), 'Mild leaves out spicy recipes; the taste asked for decides what is found');
   const r4 = await SR.searchAll(env, 'tangy pulao for 9 year');
   ok(r4.recipes.length >= 1 && r4.recipes.every((r) => /pulao/i.test(r.name)), 'A dish word alongside the taste narrows the results to it');
-  const r5 = await SR.searchAll(env, 'tangy meal', { age: 36 });
-  ok(r5.understood.age_months === 36 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used');
+  const r5 = await SR.searchAll(env, 'tangy meal', { age: 60 });
+  ok(r5.understood.age_months === 48 && r5.recipes.length >= 1, 'With no age typed, the age chosen on the page is used, as the youngest child that age group can mean (4 to 6 years: 4)');
 }
 // the live database allows only 100 values in one query: tagging many recipes at once must not break it
 {
@@ -1832,6 +1840,18 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   const ml = db.prepare("SELECT model FROM kp_ui_i18n WHERE key = ? AND lang = 'hi'").get('Claude should translate this line');
   ok(ml && ml.model.startsWith('claude'), 'The lines of the pages are translated by Claude too');
   globalThis.fetch = realFetch;
+}
+
+// ---- ages: what a parent sees for under-5s ----
+{
+  const mk = (n, agemin) => { const id = mkRecipe('https://ages.example/' + n + '/', { status: 'approved', name: 'Agetest ' + n, score: 88, agemin, agemax: 144 }); db.prepare("UPDATE kp_recipes SET diet = 'jain', score_13 = 88, score_46 = 88, score_79 = 88, score_1012 = 88, cap_13 = 0, cap_46 = 0, cap_79 = 0, cap_1012 = 0 WHERE id = ?").run(id); db.prepare("DELETE FROM kp_recipe_occasions WHERE recipe_id = ?").run(id); db.prepare("INSERT INTO kp_recipe_occasions (recipe_id, occasion) VALUES (?, 'dinner')").run(id); return id; };
+  const toddlerOk = mk('toddler', 12), plain = mk('plain', 36), chilli = mk('chilli', 60);
+  const shown = async (age) => (await (await handleRecipesApi(new Request('https://w/api/kp/recipes?age_months=' + age + '&occasion=lunch&season=all&pref=veg&limit=60'), env, ctx)).json()).results.map((r) => r.id);
+  const a24 = await shown(24), a60 = await shown(60), a96 = await shown(96);
+  ok(a24.includes(toddlerOk) && !a24.includes(plain) && !a24.includes(chilli), '1 to 3 years: only a recipe made for that age is shown');
+  const { youngestInBand } = await import('../../src/recipes/score2.js');
+  ok(youngestInBand(9) === 9 && youngestInBand(24) === 12 && youngestInBand(60) === 48 && youngestInBand(96) === 96 && !a60.includes(chilli), '4 to 6 years means a 4 year old: a recipe for 5 and up (chilli) is not shown; the other groups are unchanged');
+  ok(a96.includes(toddlerOk) && a96.includes(plain) && a96.includes(chilli), 'From 7 years every recipe is shown');
 }
 
 // ---- the weekly healthy tiffin email ----

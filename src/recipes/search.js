@@ -2,7 +2,7 @@
 // Every word must appear in the name (a product's brand and kind of food count too). Recipes need a score and a cooking time, like the menus.
 
 import { listProducts, AGE_BANDS, ageIdForMonths, resolveAge } from './products.js';
-import { bandForMonths } from './score2.js';
+import { bandForMonths, youngestInBand } from './score2.js';
 import { bandScoreSql, capSqlFor } from './score.js';
 import { isPrepRecipe } from './api.js';
 import { creditName, isRealMeal } from './clean.js';
@@ -111,7 +111,7 @@ function bindOrder(pq, args, hasTaste) { return hasTaste ? [...pq.tastes, ...arg
 export async function searchAll(env, q, { limit = 6, age = null, only = null } = {}) {
   const pq = parseQuery(q);
   if (pq.smart) {
-    const am = pq.ageMonths != null ? pq.ageMonths : Number.isFinite(age) ? age : 60;      // "for 9 year" beats the age chosen on the page
+    const am = pq.ageMonths != null ? pq.ageMonths : youngestInBand(Number.isFinite(age) ? age : 60);      // "for 9 year" beats the age chosen on the page
     if (pq.tastes.length || pq.mild || pq.meals.length || pq.diet || pq.ageMonths != null) {
       const out = await smartSearch(env, q, pq, am, limit, only);
       // an age on its own ("oats for 9 year") with nothing found: fall through to the ordinary name search
@@ -172,7 +172,7 @@ export async function cooksShelf(env, { limit = 8, age = null, occasion = null, 
       WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND s.world = 'india' AND r.total_minutes IS NOT NULL AND r.image_url IS NOT NULL AND s.photos_hidden = 0
         AND ${scoreE} >= 70 AND ${capE} = 0 AND r.age_min_months <= ? AND r.age_max_months >= ?${occasion ? " AND EXISTS (SELECT 1 FROM kp_recipe_occasions o WHERE o.recipe_id = r.id AND o.occasion = ?)" : ''}${diets.length ? ` AND r.diet IN (${diets.map(() => '?').join(',')})` : ''}
       ORDER BY ${scoreE} DESC LIMIT 600`
-  ).bind(Number.isFinite(age) ? age : 60, Math.min(144, Number.isFinite(age) ? age : 60), ...(occasion ? [occasion] : []), ...diets).all();
+  ).bind(youngestInBand(Number.isFinite(age) ? age : 60), Math.min(144, Number.isFinite(age) ? age : 60), ...(occasion ? [occasion] : []), ...diets).all();
   const byCook = new Map();
   for (const r of results) {
     if (!isRealMeal(r.name)) continue;
