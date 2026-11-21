@@ -23,6 +23,10 @@ const blog = `<title>Lauki Thepla | My Blog</title><h3>Ingredients</h3><ul><li>1
 const c = extractFromHtml(blog, 'https://b.blogspot.com/lauki-thepla.html');
 ok(c.method === 'heuristic' && c.name === 'Lauki Thepla' && c.instructions.length === 2 && c.completeness === 'partial', 'Heading heuristic, kept as partial');
 ok(extractFromHtml('<p>Top 10 tiffin ideas</p>', 'x') === null, 'Non-recipe page returns null');
+// a page whose structured data names the recipe but lists no ingredients or steps (Bong Eats): the visible recipe is read, and the structured data's servings and time are kept
+const webflow = '<html><head><title>Mooli ke Parathe</title><meta property="og:image" content="https://cdn.example/mooli.jpg"><script type="application/ld+json">{"@context":"https://schema.org","@type":"Recipe","name":"Mooli ke Parathe","recipeYield":"2","totalTime":"PT60M"}</script></head><body><h1>Mooli ke Parathe</h1><div class="rich-text-block recipe-ingredients w-richtext"><h3>For the dough</h3><ul><li><strong>120 g</strong> atta</li><li>1/2 tsp salt</li></ul><h3>For the filling</h3><ul><li><strong>200 g</strong> radish</li><li>oil for frying</li></ul></div></div></section><section class="recipe-process-wrapper"><div class="rich-text-block recipe-process w-richtext"><ol><li>Knead the dough.</li><li>Fill and roll the parathas.</li></ol></div></section></body></html>';
+const wf = extractFromHtml(webflow, 'https://www.bongeats.com/recipe/mooli-ke-parathe/');
+ok(wf.completeness === 'complete' && wf.ingredients.length === 4 && wf.instructions.length === 2 && wf.name === 'Mooli ke Parathe' && wf.total_minutes === 60, 'A page with a recipe name in its structured data but the ingredients and steps in the page is read in full: ' + JSON.stringify([wf.method, wf.ingredients.length, wf.instructions.length, wf.total_minutes]));
 
 const p1 = parseIngredientLine('1 ½ cups rava (sooji)');
 ok(p1.quantity === 1.5 && p1.unit === 'cup' && p1.ingredient_key === 'rava', 'Unicode fraction + unit + key');
@@ -1037,6 +1041,8 @@ ok((await s2Q(24)).query.score_band === '1-3' && (await s2Q(132)).query.score_ba
   ok(got.recipes.some((r) => r.id === rid) && !got.recipes.some((r) => r.id === rid2) && !got.recipes.some((r) => r.id === rid3), 'Recipe search finds a dish by words in its name, and leaves out a batter and a recipe with no cooking time');
   const filler = await SR.searchAll(env, 'ragi dosa recipes for kids');
   ok(filler.recipes.some((r) => r.id === rid) && (await SR.searchAll(env, 'recipes for kids')).recipes.length >= 0, 'Words like "recipes for kids" do not stop a search from finding the dish');
+  const mooli = mkRecipe('https://srch.example/mooli/', { status: 'approved', name: 'Mooli ke Parathe', score: 82 }), parot = mkRecipe('https://srch.example/parotta/', { status: 'approved', name: 'Kerala Parotta Recipe', score: 80 });
+  ok((await SR.searchAll(env, 'radish paratha')).recipes.some((r) => r.id === mooli) && (await SR.searchAll(env, 'mooli paratha')).recipes.some((r) => r.id === mooli) && (await SR.searchAll(env, 'parota')).recipes.some((r) => r.id === parot), 'Search knows that mooli is radish, parathe is paratha and parota is parotta');
   const gp = await SR.searchAll(env, 'organic ragi');
   ok(gp.products.some((p) => /Ragi Flour/.test(p.name)) && (await SR.searchAll(env, 'zzzz')).products.length === 0, 'Product search finds an approved product by name');
   const sres = await routeRecipes(new Request('https://w/api/kp/search?q=ragi', { headers: { origin: 'https://www.kidposhan.in' } }), env, ctx);

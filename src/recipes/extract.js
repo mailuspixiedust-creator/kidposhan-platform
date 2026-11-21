@@ -20,12 +20,26 @@ export async function fetchHtml(url, env) {
 }
 
 export function extractFromHtml(html, url) {
-  return (
-    fromJsonLd(html, url) ||
-    fromMicrodata(html, url) ||
-    fromPluginHtml(html, url) ||
-    fromHeuristic(html, url)
-  );
+  const ld = fromJsonLd(html, url);
+  if (ld && ld.completeness === 'complete') return ld;
+  // A page whose structured data names the recipe but lists no ingredients or steps (Bong Eats): read the visible recipe, and keep what the structured data does give
+  const visible = fromMicrodata(html, url) || fromPluginHtml(html, url);
+  if (ld && visible && visible.completeness === 'complete') {
+    return {
+      ...visible,
+      image_url: visible.image_url || ld.image_url,
+      description: visible.description || ld.description,
+      servings: visible.servings || ld.servings,
+      prep_minutes: visible.prep_minutes ?? ld.prep_minutes,
+      cook_minutes: visible.cook_minutes ?? ld.cook_minutes,
+      total_minutes: visible.total_minutes ?? ld.total_minutes,
+      nutrition: visible.nutrition || ld.nutrition,
+      rating: visible.rating ?? ld.rating,
+      rating_count: visible.rating_count ?? ld.rating_count,
+      ld_images: ld.ld_images && ld.ld_images.length ? ld.ld_images : visible.ld_images,
+    };
+  }
+  return ld || visible || fromHeuristic(html, url);
 }
 
 // ---------- text helpers ----------
@@ -170,10 +184,23 @@ export function fromPluginHtml(html, url) {
     steps = listInside(html, 'tasty-recipes-instructions');
     method = 'tasty';
   }
+  // Webflow-style recipe pages (Bong Eats): the ingredients are lists under "For the ..." headings in a block of class recipe-ingredients, the method an ordered list in recipe-process
+  let h1 = null, serves = null, minutes = null;
+  if (!ingredients.length) {
+    ingredients = listInside(html, 'recipe-ingredients');
+    steps = listInside(html, 'recipe-process');
+    method = 'richtext';
+    h1 = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || null;
+    serves = (html.match(/Serves<\/div>\s*<div[^>]*>\s*([0-9][^<]{0,12})</i) || [])[1] || null;
+    minutes = (html.match(/Cook(?:ing)? time<\/div>\s*<div[^>]*>\s*(\d{1,3})\s*mins?/i) || [])[1] || null;
+  }
   if (!ingredients.length) return null;
   return result({
     method, url,
-    name: byClass(html, 'h2', 'wprm-recipe-name')[0] || byClass(html, 'h2', 'tasty-recipes-title')[0] || pageTitle(html),
+    name: byClass(html, 'h2', 'wprm-recipe-name')[0] || byClass(html, 'h2', 'tasty-recipes-title')[0] || (h1 && clean(h1)) || pageTitle(html),
+    image_url: method === 'richtext' ? ((html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) || [])[1] || null) : null,
+    servings: serves,
+    total_minutes: minutes ? +minutes : null,
     ingredients,
     instructions: steps.map((text) => ({ section: null, text })),
   });

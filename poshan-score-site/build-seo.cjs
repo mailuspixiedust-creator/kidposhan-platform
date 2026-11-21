@@ -205,6 +205,10 @@ ul.ing{padding-left:20px}ul.ing li{margin:4px 0}ol.steps{padding-left:22px}ol.st
 const NAV = '<nav><a class="brand" href="/">Poshan Score <small>by KidPoshan</small></a><a href="/recipes">Recipes</a><a href="/products">Products</a><a href="/meal-ideas">Meal Ideas</a><a href="/age-metrics">Age &amp; Metrics</a></nav>';
 const bandColor = (band, capped) => TIER_COLOR[capped ? 'OK' : band] || TIER_COLOR.Good;
 
+const MORETOP_CSS = `.moretop{margin:18px 0 8px}.moretop h2{font-size:18px;margin:0 0 10px}.mt-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mt-card{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:8px;background:var(--card)}.mt-card img,.mt-ph{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:10px;background:#E3EEDF;display:block}.mt-card b{font-size:14px;line-height:1.3;display:block}.mt-t{display:block}
+@media(max-width:560px){.mt-row{grid-template-columns:1fr}.mt-card{flex-direction:row;align-items:center;gap:10px}.mt-card img,.mt-ph{width:96px;flex:none}}`;
+
 function recipePage(d, slug, extra = {}) {
   const url = `${SITE}/recipes/${slug}`, nm = recName(d.name), sc = d.score || {}, score = Math.round(sc.value ?? d.poshan_score);
   const credit = d.source?.name || 'the recipe creator';
@@ -225,6 +229,7 @@ function recipePage(d, slug, extra = {}) {
   const moreHtml = `<div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
 ${(extra.similar || []).length ? `<h2>More like this</h2><ul class="ing">${extra.similar.map((x) => `<li><a href="/recipes/${x.slug}">${esc(x.name)}</a> <span class="fine">· ${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></li>`).join('')}</ul>` : ''}
 ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.map((c) => `<a href="/ideas/${c.slug}">${esc(c.h1)}</a>`).join(' · ')}</p>` : ''}`;
+  const topMore = (extra.similar || []).length ? `<section class="moretop"><h2>More recipes like this</h2><div class="mt-row">${extra.similar.slice(0, 3).map((x) => `<a class="mt-card" href="/recipes/${x.slug}">${x.img ? `<img src="${esc(x.img)}" alt="" width="240" height="160" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '<span class="mt-ph"></span>'}<span class="mt-t"><b>${esc(x.name)}</b><span class="fine">${x.score}/100${x.by ? ' · ' + esc(x.by) : ''}</span></span></a>`).join('')}</div></section>` : '';
   const diet = DIET_WORD[d.diet] || '', meals = (d.meals || []).map((o) => MEAL_LABEL[o]).filter(Boolean);
   // search results show about 60 characters: a long name is cut at a word, and a dish that several creators share is told apart by its creator
   let shortNm = nm;
@@ -255,7 +260,7 @@ ${(extra.collections || []).length ? `<h2>More ideas</h2><p>${extra.collections.
 <html lang="en-IN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 ${[ld, ldFaq, ldCrumb].map((o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join('')}
-<style>${RECIPE_CSS}${SHARE_CSS}</style></head><body>
+<style>${RECIPE_CSS}${SHARE_CSS}${MORETOP_CSS}</style></head><body>
 ${NAV}
 <main>
 <p class="crumb"><a href="/">Home</a> › <a href="/recipes">Recipes</a> › ${extra.mealCrumb ? `<a href="/ideas/${extra.mealCrumb.slug}">${esc(cap1(extra.mealCrumb.h1.replace(/^Healthy /, '')))}</a> › ` : ''}${esc(nm)}</p>
@@ -265,6 +270,7 @@ ${d.image_url ? `<div class="hero"><img src="${esc(d.image_url)}" alt="${esc(nm)
 <div class="facts">${facts}</div>
 ${howLine(d)}
 ${shareHtml(SITE, `recipes/${slug}`, `${nm}: Poshan Score ${score}/100 for ${sc.age_band_label || 'ages 4–6'}.`)}
+${topMore}
 <div id="kpm" style="margin:18px 0 6px"></div>
 <p>${esc(nm)} scores <b>${score}</b> out of 100 (${esc(sc.capped ? 'OK, held by a risk check' : sc.band)}) for ${esc(sc.age_band_label || 'ages 4–6')}, worked out for one serving. The same dish scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${d.kid_note ? `<p class="note">${esc(d.kid_note)}</p>` : ''}
@@ -481,7 +487,13 @@ call('/api/kp/newsletter/subscribe',{method:'POST',headers:{'content-type':'text
         const sharedWords = [...r.words].filter((w) => o.words.has(w)).length;
         return { o, rank: shared * 3 + Math.min(sharedWords, 2) * 3 + sameMeal * 2 + (o.it.diet === r.it.diet ? 1 : 0) };
       }).filter((x) => x.rank >= 5).sort((a, b) => b.rank - a.rank || b.o.it.score - a.o.it.score || a.o.it.id - b.o.it.id).slice(0, 6)
-        .map((x) => ({ slug: x.o.slug, name: recName(x.o.d.name), score: Math.round(x.o.d.score.value ?? x.o.it.score), by: x.o.it.by }));
+        .map((x) => ({ slug: x.o.slug, name: recName(x.o.d.name), score: Math.round(x.o.d.score.value ?? x.o.it.score), by: x.o.it.by, img: x.o.d.image_url || null }));
+      if (sim.length < 3) {
+        const got = new Set(sim.map((x) => x.slug));
+        have.filter((o) => o !== r && !got.has(o.slug) && o.d.poshan_score >= 80 && o.d.image_url && o.it.diet === r.it.diet && (!myMeal || (o.it.occasions || []).includes(myMeal)))
+          .sort((a, b) => b.it.score - a.it.score || a.it.id - b.it.id).slice(0, 3 - sim.length)
+          .forEach((o) => sim.push({ slug: o.slug, name: recName(o.d.name), score: Math.round(o.d.score.value ?? o.it.score), by: o.it.by, img: o.d.image_url || null }));
+      }
       const cols = (ideas.membership.get(r.it.id) || []).filter((p) => p.age.generic).slice(0, 8).map((p) => ({ slug: p.slug, h1: p.h1 }));
       const crumb = (ideas.membership.get(r.it.id) || []).find((p) => p.kind === 'meal' && p.age.generic && p.meal && (myMeal === 'snack_4pm' ? p.meal.id === 'snack' : p.meal.id === myMeal));
       const pg = recipePage(r.d, r.slug, { similar: sim, collections: cols, mealCrumb: crumb ? { slug: crumb.slug, h1: crumb.h1 } : null });

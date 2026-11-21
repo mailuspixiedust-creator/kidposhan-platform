@@ -27,6 +27,9 @@ const ALT = {
   kellogs: ['kellogg'], kelloggs: ['kellogg'], kellog: ['kellogg'], kellogg: ['kellogg'], bornvita: ['bournvita'], bournvita: ['bournvita', 'bornvita'],
   chawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyavanprash: ['chyawanprash', 'chyawanprakash'],
   chavanprash: ['chyawanprash', 'chyawanprakash', 'chavanprash'], chyawanprakash: ['chyawanprash', 'chyawanprakash'],
+  // dishes: the spellings and names parents use for the same food
+  parota: ['parotta', 'porotta', 'paratha'], parotta: ['parota', 'porotta'], porotta: ['parotta', 'parota'], parathe: ['paratha', 'parathas'], parathas: ['paratha'], paratha: ['parathe'],
+  mooli: ['radish', 'muli', 'mullangi'], muli: ['mooli', 'radish'], radish: ['mooli', 'muli'], luchi: ['loochi', 'luchchi'], loochi: ['luchi'], poori: ['puri'], puri: ['poori'],
   maggie: ['maggi'], horlics: ['horlicks'], horlick: ['horlicks'], nestle: ['nestle', 'nestl'], cadburys: ['cadbury'], lays: ['lay'], parleg: ['parle'],
 };
 const variantsOf = (w) => [w, ...(ALT[w] || [])];
@@ -124,13 +127,13 @@ export async function searchAll(env, q, { limit = 6, age = null, only = null } =
   const ageLabel = Number.isFinite(age) && (age < 12 || age >= 156) ? ageInfo.label : band.label;
   if (!words.length) return { q: String(q || ''), age_label: ageLabel, recipes: [], products: [] };
   const scoreE = bandScoreSql(band.id), capE = capSqlFor(band.id);
-  const where = words.map(() => "LOWER(r.name) LIKE ? ESCAPE '\\'").join(' AND ');
+  const where = words.map((w) => '(' + variantsOf(w).map(() => "LOWER(r.name) LIKE ? ESCAPE '\\'").join(' OR ') + ')').join(' AND ');
   const { results } = await env.DB.prepare(
     `SELECT r.id, r.name, CASE WHEN s.photos_hidden = 0 THEN r.image_url END AS image_url, r.total_minutes, r.diet, ${scoreE} AS score, ${capE} AS capped, s.name AS source_name
        FROM kp_recipes r JOIN kp_recipe_sources s ON s.id = r.source_id
       WHERE r.review_status = 'approved' AND r.score_hidden = 0 AND r.poshan_score IS NOT NULL AND r.total_minutes IS NOT NULL AND ${where}
       ORDER BY ${scoreE} DESC, r.id LIMIT 30`
-  ).bind(...words.map(like)).all();
+  ).bind(...words.flatMap((w) => variantsOf(w).map(like))).all();
   const recipes = results.filter((r) => !isPrepRecipe(r.name)).slice(0, limit).map((r) => ({ ...r, source_name: creditName(r.source_name), capped: !!r.capped }));
   const all = only === 'recipes' ? [] : (await listProducts(env, { age: ageInfo.id, limit: 3000, unchecked: true })).items.sort((x, y) => (x.unchecked === y.unchecked ? 0 : x.unchecked ? 1 : -1));   // checked packs first
   const hayOf = (p) => [p.name, p.brand, p.kind_label, p.category].join(' ').toLowerCase();
