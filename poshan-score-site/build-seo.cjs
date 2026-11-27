@@ -100,6 +100,23 @@ function swapsFor(it, all) {
   return out;
 }
 
+// the next packs to look at, on every pack page: the same kind of food, best first, one per brand where it can, leaving out the ones already listed as better
+function moreFor(it, all, shown = []) {
+  if (!it.kind || !it.kind_checked) return [];
+  const skip = new Set([it.id, ...shown.map((x) => x.item.id)]), brands = new Set([String(it.brand || it.name).toLowerCase()]), out = [];
+  const pool = all.filter((x) => !skip.has(x.item.id) && x.item.kind === it.kind && x.item.kind_checked && !/\d{8,}/.test(x.item.name))
+    .sort((a, b) => b.item.score - a.item.score || String(a.item.name).localeCompare(String(b.item.name)));
+  for (const x of pool) { const b = String(x.item.brand || x.item.name).toLowerCase(); if (!brands.has(b)) { brands.add(b); out.push(x); } if (out.length === 3) break; }
+  for (const x of pool) { if (out.length >= 3) break; if (!out.includes(x)) out.push(x); }
+  return out;
+}
+function morePacksHtml(p, more = [], rankHref = null) {
+  if (!more.length && !rankHref) return '';
+  const low = String(p.kind_label || 'packs').toLowerCase();
+  const cards = more.map((x) => `<a class="mt-card" href="/products/${x.slug}">${x.item.image_url ? `<img src="${esc(x.item.image_url)}" alt="" width="240" height="160" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '<span class="mt-ph"></span>'}<span class="mt-t"><b>${esc(String(x.item.name).split('|')[0].replace(/\s+/g, ' ').trim())}</b><span class="fine">${Math.round(x.item.score)}/100${x.item.brand ? ' · ' + esc(x.item.brand) : ''}</span></span></a>`).join('');
+  return `<section class="moretop packs">${cards ? `<h2>More ${esc(low)} to look at</h2><div class="mt-row">${cards}</div>` : ''}${rankHref ? `<p><a class="cta alt" href="${rankHref}">See all ${esc(low)} ranked</a></p>` : ''}</section>`;
+}
+
 function productPage(p, slug, extra = {}) {
   const url = `${SITE}/products/${slug}`;
   const score = Math.round(p.score), nm = p.name.split('|')[0].replace(/\s+/g, ' ').trim();
@@ -131,7 +148,7 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}td{padding:8px 6px;bo
 .cta{display:inline-block;background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;text-decoration:none;font-weight:600;margin:6px 8px 6px 0}
 .cta.alt{background:none;color:var(--ink);border:1.5px solid var(--ink)}
 .fine{font-size:13px;color:var(--dim)}
-${SHARE_CSS}ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}ul.swaps li a{font-weight:600}ul.swaps li b{margin-left:auto;min-width:40px;text-align:center;color:#fff;border-radius:999px;padding:3px 10px}
+${SHARE_CSS}${MORETOP_CSS}.packs .mt-card img{object-fit:contain;background:#fff}ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}ul.swaps li a{font-weight:600}ul.swaps li b{margin-left:auto;min-width:40px;text-align:center;color:#fff;border-radius:999px;padding:3px 10px}
 .more{margin:14px 0}.more>summary{list-style:none;cursor:pointer;text-align:center;border:1.5px solid var(--green);color:var(--green);background:var(--card);font-weight:700;border-radius:12px;padding:13px 16px;font-size:16px}.more>summary::-webkit-details-marker{display:none}.more[open]>summary{background:#E3EEDF;color:#2d4f2b}
 @media(max-width:520px){.hero{grid-template-columns:96px 1fr}.hero img{width:96px;height:96px}td.r{display:none}}
 </style></head><body>
@@ -144,6 +161,7 @@ ${SHARE_CSS}ul.swaps{list-style:none;padding:0;margin:0}ul.swaps li{display:flex
 <div id="kpm"></div><div id="kpclaim"></div>
 <p>${esc(p.brand ? p.brand + ' · ' : '')}${esc(p.kind_label || '')}${p.pack_size ? ' · ' + esc(p.pack_size) : ''}. Scored ${esc(p.basis || 'per serving')}. The same product scores differently for different ages, because a younger child's daily limit for sugar, salt and saturated fat is smaller.</p>
 ${extra.swaps && extra.swaps.length ? `<h2>Better-scoring ${esc((p.kind_label || 'packs').toLowerCase())}</h2><p>${esc(nm)} scores ${score} for ${esc(p.age_label)}. These score higher on the same ten checks:</p><ul class="swaps">${extra.swaps.map((x) => `<li><a href="/products/${x.slug}">${esc(String(x.item.name).split('|')[0].replace(/\s+/g, ' ').trim())}</a> <span class="fine">${esc(x.item.brand || '')}</span> <b style="background:${TIER_COLOR[x.item.capped ? 'OK' : x.item.band] || TIER_COLOR.Good}">${Math.round(x.item.score)}</b></li>`).join('')}</ul>` : ''}
+${morePacksHtml(p, extra.more, extra.rankHref)}
 ${shareHtml(SITE, `products/${slug}`, `${nm}: Poshan Score ${score}/100 for ${p.age_label}.`)}
 ${p.data_source === 'scan' ? '' : buyProduct((p.brand && !String(nm).toLowerCase().includes(String(p.brand).toLowerCase()) ? p.brand + ' ' : '') + nm)}
 <p class="fine"><a href="/compare?a=${p.id}">Compare ${esc(nm)} with another pack</a></p>
@@ -312,7 +330,9 @@ ${sections}
   return { html, url, title };
 }
 
-async function getJson(u) { const r = await fetch(u); if (!r.ok) throw new Error(u + ' -> ' + r.status); return r.json(); }
+// everything read from the platform goes through the saved copies in build-cache.cjs, so a layout rebuild does not use up the database's daily allowance
+const cache = require('./build-cache.cjs').createCache();
+const getJson = cache.getJson;
 
 async function run(out) {
   // 1. description, canonical and share card on every page
@@ -341,7 +361,8 @@ async function run(out) {
     for (let i = 0; i < list.items.length; i += 8) await Promise.all(list.items.slice(i, i + 8).map(one));       // eight at a time
     packsData.sort((a, b) => a.item.id - b.item.id);
     for (const pd of packsData) {
-      const pg = productPage(pd.detail, pd.slug, { swaps: swapsFor(pd.item, packsData) });
+      const better = swapsFor(pd.item, packsData), sameKind = pd.item.kind && pd.item.kind_checked ? packsData.filter((x) => x.item.kind === pd.item.kind && x.item.kind_checked).length : 0;
+      const pg = productPage(pd.detail, pd.slug, { swaps: better, more: moreFor(pd.item, packsData, better), rankHref: sameKind >= 3 ? '/best/' + require('./build-best.cjs').slugKind(pd.item.kind) : null });
       fs.writeFileSync(path.join(dir, pd.slug + '.html'), require('./build-i18n.cjs').decorateEn(pg.html, SITE, 'products/' + pd.slug));
       map[pd.item.id] = pd.slug; urls.push({ loc: pg.url, pr: '0.7', lm: pd.item.updated });
       // the same page in Hindi, Bengali and Gujarati
@@ -575,6 +596,11 @@ call('/api/kp/newsletter/subscribe',{method:'POST',headers:{'content-type':'text
   } catch (e) { console.warn('no static language pages this build:', e.message); }
   fs.writeFileSync(path.join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u.loc)}</loc><lastmod>${u.lm || today}</lastmod><priority>${u.pr}</priority></url>`).join('\n')}\n</urlset>\n`);
   console.log(`seo: ${Object.keys(map).length} product pages, ${nRecipes} recipe pages, ${nIdeas} collection pages, ${nBest} ranking pages, ${nBrands} brand pages, ${nExtra} age and comparison pages, ${nLang + nLang0} Hindi/Bengali/Gujarati pages, sitemap with ${urls.length} addresses`);
+  const data = cache.report();
+  for (const line of data.lines) console.log(line);
+  // a build without its products or recipes would take their pages off the site
+  if (!Object.keys(map).length || !nRecipes) console.log('DO NOT DEPLOY: this build has no product pages or no recipe pages.');
+  if (!data.ok || !Object.keys(map).length || !nRecipes) process.exitCode = 1;
 }
 
 module.exports = { run, withMeta, slugOf, productPage, recipePage, recipesIndexPage, get ctx() { return { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, recName, timeWord }; } };

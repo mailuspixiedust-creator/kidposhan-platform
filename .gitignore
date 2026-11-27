@@ -2,3 +2,5 @@
 
 backup-before-recipes.sql
 dist/
+# saved copies of the platform data the site build reads (see poshan-score-site/build-cache.cjs)
+poshan-score-site/.build-cache/

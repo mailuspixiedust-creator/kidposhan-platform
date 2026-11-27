@@ -57,6 +57,7 @@ const QR_SCRIPT = '<script src="/qrcode.js" defer></script><script src="/kp-qr.j
 function build(packsData, groups, recipes, ctx) {
   const { esc, withMeta, SITE, TIER_COLOR, RECIPE_CSS, NAV, slugOf, recName } = ctx;
   const css = RECIPE_CSS + SHARE_CSS + `
+.nextp{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.nextp b{font-size:14px}.nextp a{font-size:13.5px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--ink);background:var(--card)}
 .rank{width:100%;border-collapse:collapse;font-size:15px}.rank td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}.rank .n{width:30px;color:var(--dim);text-align:center}
 .rank img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line);display:block}.rank .nm a{color:var(--ink);font-weight:600;text-decoration:none}.rank .nm small{display:block;color:var(--dim);font-weight:400}
 .rank .sc{width:70px;text-align:center}.rank .sc b,.pill{display:inline-block;min-width:44px;color:#fff;border-radius:999px;padding:3px 10px;font-size:15px;font-weight:700}
@@ -67,7 +68,7 @@ function build(packsData, groups, recipes, ctx) {
 .hd a{color:var(--ink);font-weight:700;text-decoration:none;display:block}
 @media(max-width:520px){.rank .fl{display:none}.cmp small{display:none}}`;
   const byId = new Map(packsData.map((p) => [p.item.id, p]));
-  const files = [], urls = [], ageLinks = {};
+  const files = [], urls = [], ageLinks = {}, agePages = [];
   const pill = (n, capped) => (n == null ? '–' : `<span class="pill" style="background:${TIER_COLOR[capped ? 'OK' : tierOf(n)] || TIER_COLOR.OK}">${n}</span>`);
 
   // ---------- 1. best [food type] for [age] ----------
@@ -115,8 +116,17 @@ ${shareHtml(SITE, rel, `Best ${low} for ${a.short}, ranked by Poshan Score: top 
 </main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;
       html = withMeta(html, { url, title, desc });
       files.push({ path: `${rel}.html`, html }); urls.push({ loc: url, pr: '0.7' });
+      agePages.push({ file: files[files.length - 1], kind: g.slug, label: g.label, category: g.category, age: a });
       (ageLinks[g.slug] = ageLinks[g.slug] || []).push({ href: `/best/${slug}`, text: a.short });
     }
+  }
+
+  // on each page by age, above the table: the other foods of the same aisle ranked for the same age
+  for (const p of agePages) {
+    const sameAge = agePages.filter((x) => x.age.slug === p.age.slug && x.kind !== p.kind), others = [...sameAge.filter((x) => x.category === p.category), ...sameAge.filter((x) => x.category !== p.category)].slice(0, 6);
+    if (!others.length) continue;
+    const chips = '<div class="nextp"><b>Also for ' + esc(p.age.short) + ':</b>' + others.map((x) => '<a href="/best/' + x.kind + '-for-' + x.age.slug + '">' + esc(x.label) + '</a>').join('') + '</div>';
+    p.file.html = p.file.html.replace('<table class="rank">', () => chips + '\n<table class="rank">');
   }
 
   // ---------- 2. A vs B comparison pages ----------

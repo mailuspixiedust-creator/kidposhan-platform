@@ -50,6 +50,7 @@ function build(packs, ctx) {
 .tiers{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.tiers span{border-radius:999px;padding:4px 12px;font-size:13.5px;color:#fff}
 .faq h3{font-size:17px;margin:18px 0 4px}.faq p{margin:0 0 8px}
 .cats{columns:2;column-gap:28px}.cats a{color:var(--ink);font-weight:600;text-decoration:none}.cats li{break-inside:avoid;margin:0 0 6px}.cats ul{list-style:none;padding:0;margin:0 0 14px}
+.nextp{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.nextp b{font-size:14px}.nextp a{font-size:13.5px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--ink);background:var(--card)}
 @media(max-width:520px){.rank .fl{display:none}.cats{columns:1}}`;
 
   for (const g of groups) {
@@ -64,7 +65,8 @@ function build(packs, ctx) {
     const url = `${SITE}/best/${g.slug}`;
     const title = `Best ${low} for kids in India, ranked by Poshan Score`;
     const desc = `${n} ${low} ranked by Poshan Score for children aged 4 to 6. Top pick: ${top.name} (${top.score}/100). See which pass the sugar, salt, saturated fat, fibre, protein and ingredient checks.`;
-    const related = groups.filter((x) => x.category === g.category && x.kind !== g.kind).slice(0, 6);
+    // the foods of the same aisle first, filled up with the foods that have the most packs, so no ranking is a dead end
+    const related = [...groups.filter((x) => x.category === g.category && x.kind !== g.kind), ...groups.filter((x) => x.category !== g.category).sort((a, b) => b.rows.length - a.rows.length || a.label.localeCompare(b.label))].slice(0, 6);
     const faq = [
       [`What are the best ${low} for kids?`, `Of the ${n} ${low} we have scored, ${top.name}${top.brand && !top.name.toLowerCase().includes(top.brand.toLowerCase()) ? ' by ' + top.brand : ''} scores highest: ${top.score} out of 100 for a child aged 4 to 6 (${tierOf(top.score)}). The lowest is ${bottom.name}, at ${bottom.score}.`],
       [`Are ${low} healthy for kids?`, `It depends on the pack. Of the ${n} we have scored, ${cnt.Good} ${cnt.Good === 1 ? 'is' : 'are'} Good (80 or more), ${cnt.OK} OK (50 to 79) and ${cnt['Do not use']} Do not use (under 50).${common.length ? ` The most common reason a pack loses points is the ${common[0][0].toLowerCase()} check (${common[0][1]} of ${n}).` : ''}`],
@@ -90,12 +92,12 @@ ${NAV}
 <h1>Best ${esc(low)} for kids in India, ranked</h1>
 <p>We have scored <b>${n}</b> ${esc(low)}. Each gets a Poshan Score out of 100 for a child aged 4 to 6, worked out from the label for one serving. Open any pack to see the score for every age, from toddlers to adults.</p>
 <div class="tiers"><span style="background:${TIER_COLOR.Good}">${cnt.Good} Good (80+)</span><span style="background:${TIER_COLOR.OK}">${cnt.OK} OK (50–79)</span><span style="background:${TIER_COLOR['Do not use']}">${cnt['Do not use']} Do not use (under 50)</span></div>
+${related.length ? `<div class="nextp"><b>Look at another food:</b>${related.map((x) => `<a href="/best/${x.slug}">${esc(x.label)}</a>`).join('')}<a href="/best">All foods</a></div>` : ''}
 ${shareHtml(SITE, `best/${g.slug}`, `Best ${low} for kids in India, ranked by Poshan Score: top pick ${top.name} (${top.score}/100).`)}
 <table class="rank">${rowsHtml}</table>
 ${help ? `<h2>What to check on the label</h2><p>The checks ${esc(low)} most often fail:</p><ul>${help}</ul>` : ''}
 <div class="faq"><h2>Common questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}</div>
 ${g.kind === 'health_drink' && brandLinks.length ? `<h2>Brand guides</h2><p>${brandLinks.map((x) => `<a href="/brands/${x.slug}">Is ${esc(x.name)} healthy for kids?</a>`).join(' · ')} · <a href="/brands">All brands</a></p>` : ''}
-${related.length ? `<h2>Related rankings</h2><p>${related.map((x) => `<a href="/best/${x.slug}">${esc(x.label)}</a>`).join(' · ')}</p>` : ''}
 <p style="margin-top:22px"><a class="cta" href="/products">Check a pack for your child's age</a><a class="cta alt" href="/scan">Scan a pack</a></p>
 <p class="fine">Poshan Score is an independent rating, not a certification, and no brand pays to be here. Label values come from the pack's own page or Open Food Facts and are checked before a product is listed. The age guide is general, not medical advice.</p>
 </main>${QR_SCRIPT}<script src="/kp-visits.js" defer></script><script src="/kp-search.js" defer></script></body></html>`;

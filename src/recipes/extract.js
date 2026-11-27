@@ -19,9 +19,37 @@ export async function fetchHtml(url, env) {
   return { html: await res.text(), finalUrl: res.url || url };
 }
 
+// Ingredients as plain paragraphs under a bold "Ingredients" heading, up to the bold "Method" heading; bold-only lines inside ("For the stuffing") are sub-headings, not ingredients.
+export function fromBoldSections(html) {
+  const body = String(html).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '');
+  const paras = [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => ({ raw: m[1], text: clean(m[1]), bold: /^\s*<(?:b|strong)[^>]*>[\s\S]*<\/(?:b|strong)>\s*(?:&nbsp;|\s)*$/i.test(m[1]) }));
+  const start = paras.findIndex((p) => p.bold && /^ingredients?\b/i.test(p.text) && p.text.length < 40);
+  if (start < 0) return null;
+  const out = [];
+  for (let i = start + 1; i < paras.length; i++) {
+    const p = paras[i];
+    if (p.bold && /^(method|instructions?|directions?|preparation|procedure|how to\b|steps?)/i.test(p.text)) break;
+    if (p.bold || !p.text || p.text.length > 200) continue;
+    out.push(p.text);
+    if (out.length >= 40) break;
+  }
+  return out.length >= 3 ? out : null;
+}
+
 export function extractFromHtml(html, url) {
   const ld = fromJsonLd(html, url);
   if (ld && ld.completeness === 'complete') return ld;
+  if (ld && !ld.ingredients.length) {
+    const lines = fromBoldSections(html);
+    if (lines) { const r = { ...ld, ingredients: lines, method: 'jsonld+text' }; r.completeness = r.name && r.instructions.length >= 1 ? 'complete' : 'partial'; return r; }
+    // headings and lists (Nisha Madhulika): the name, photo and rating from the structured data, the ingredients and method from the page
+    const text = fromHeuristic(html, url);
+    if (text && text.ingredients.length >= 3) {
+      const r = { ...ld, ingredients: text.ingredients, instructions: ld.instructions.length ? ld.instructions : text.instructions, method: 'jsonld+text' };
+      r.completeness = r.name && r.instructions.length >= 1 ? 'complete' : 'partial';
+      return r;
+    }
+  }
   // A page whose structured data names the recipe but lists no ingredients or steps (Bong Eats): read the visible recipe, and keep what the structured data does give
   const visible = fromMicrodata(html, url) || fromPluginHtml(html, url);
   if (ld && visible && visible.completeness === 'complete') {
@@ -119,7 +147,7 @@ function flattenInstructions(v, section = null, out = []) {
   return out;
 }
 export function fromJsonLd(html, url) {
-  const blocks = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  const blocks = [...html.matchAll(/<script[^>]*type=["']application\/ld(?:\+|&#x2B;|&#43;|&plus;)json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for (const [, raw] of blocks) {
     let data;
     try { data = JSON.parse(raw.trim()); }
@@ -208,13 +236,14 @@ export function fromPluginHtml(html, url) {
 
 // ---------- 4. Heading heuristic (blogspot, older WordPress, media articles) ----------
 const H_ING = /ingredients?|ingrediants|samagri|सामग्री/i;
-const H_METHOD = /method|instructions?|directions?|how to (make|prepare)|preparation|procedure|विधि/i;
+const H_METHOD = /method|instructions?|directions?|how to (make|prepare)|preparation|procedure|process of making|विधि/i;
 function sectionAfter(html, headingRe) {
   const heads = [...html.matchAll(/<(h[2-5]|strong|b)[^>]*>([\s\S]*?)<\/\1>/gi)];
   const idx = heads.findIndex((h) => headingRe.test(clean(h[2])) && clean(h[2]).length < 60);
   if (idx < 0) return [];
   const from = heads[idx].index + heads[idx][0].length;
-  const nextH = html.slice(from).search(/<h[2-4][^>]*>/i);
+  // a method written as several sub-sections under h3 headings ("Process of making dough", "Process of making stuffing") runs to the next h2
+  const nextH = html.slice(from).search(headingRe === H_METHOD && /^h[34]$/i.test(heads[idx][1]) ? /<h2[^>]*>/i : /<h[2-4][^>]*>/i);
   const chunk = html.slice(from, nextH > 0 ? from + nextH : from + 15000);
   const rawLis = [...chunk.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
   // A list made only of links is site navigation / a category list, not an ingredient list.

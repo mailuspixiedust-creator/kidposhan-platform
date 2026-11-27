@@ -23,7 +23,7 @@ export function detectDiet(name, ingredients) {
 const JAIN_EXCLUDED = ['onion', 'garlic', 'potato', 'carrot', 'beetroot', 'radish', 'ginger', 'sweet_potato', 'mushroom'];
 
 const OCCASION_WORDS = {
-  breakfast: /\b(breakfast|dosa|idli|idly|upma|poha|paratha|parotta|thepla|cheela|chilla|pancake|uttapam|appam|porridge|kanji|dalia|daliya|oats|pongal|pesarattu|luchi|toast|smoothie)\b/i,
+  breakfast: /\b(breakfast|dosa|idli|idly|upma|poha|paratha|parathas|parathe|parantha|paranthas|paranthe|parotta|porotta|thepla|cheela|chilla|pancake|uttapam|appam|porridge|kanji|dalia|daliya|oats|pongal|pesarattu|luchi|toast|smoothie)\b/i,
   lunchbox: /\b(lunch ?box|tiffin|dabba|school lunch|packed lunch|without reheating)\b/i,
   lunch: /\b(lunch|rice|pulao|pulav|biryani|khichdi|khichuri|sambar|rasam|dal|curry|sabzi|sabji|kootu|thoran|bhaat|bath|rajma|chole|kadhi)\b/i,
   snack_4pm: /\b(snack|evening|tikki|cutlet|chaat|sandwich|ladoo|laddu|muffin|cookies?|makhana|sundal|vada|bonda|pakora|pakoda|roll|frankie|wrap|nuggets?|fingers|balls|bites|energy bar|chikki|mathri|dhokla|kebab)\b/i,

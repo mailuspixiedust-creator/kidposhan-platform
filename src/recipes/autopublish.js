@@ -12,7 +12,7 @@ const HOLD_FLAGS = {
   check_jain: 'Jain suitability needs a person to confirm',
   new_site: 'this site is not in your registry yet',
 };
-const CARD_METHODS = new Set(['jsonld', 'microdata', 'wprm', 'tasty']);
+const CARD_METHODS = new Set(['jsonld', 'microdata', 'wprm', 'tasty', 'richtext', 'jsonld+text']);   // richtext: a recipe page with its own ingredient and method blocks; jsonld+text: the name and method from the structured data, the ingredients from the page's own "Ingredients" list
 const MIN_INGREDIENTS = 3, MIN_STEPS = 2;
 const UNDER_ONE_YEAR = 12; // months
 

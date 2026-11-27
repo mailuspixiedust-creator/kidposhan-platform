@@ -58,7 +58,7 @@ Object.assign(FOOD, {
 // Share of the ingredient's weight that counts as ADDED sugar.
 export const SWEETENERS = { sugar: 1, jaggery: 0.95, honey: 0.82 };
 const WHOLE_GRAIN = new Set(['wheat_flour', 'ragi', 'oats', 'dalia']);
-const NO_QTY_GRAMS = { oil: 8, ghee: 8 };   // "as needed" assumptions, per recipe
+const NO_QTY_GRAMS = { oil: 8, ghee: 8, butter: 8 };   // "as needed" assumptions, per recipe
 export const SALT_TO_TASTE_SODIUM_MG = 570;  // salt "to taste": 1/4 tsp, 570 mg of sodium PER SERVING
 export const SALT_TO_TASTE_G = SALT_TO_TASTE_SODIUM_MG / 393.4;   // the salt that carries it (table salt is 39.34% sodium): about 1.45 g
 export const FRY_OIL_G = 10;                 // oil a deep-fried serving soaks up, about 10 g PER SERVING
